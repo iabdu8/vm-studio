@@ -1,58 +1,43 @@
 // ============================================================
 //  PUSH NOTIFICATIONS
-//  Uses Web Push API + Supabase Edge Functions
-//  Works on iOS (Safari 16.4+) and Android Chrome
+//  Disabled until VITE_VAPID_PUBLIC_KEY is set in .env
 // ============================================================
 
-// ── Request permission ────────────────────────────────────────
-export async function requestPermission() {
-  if (!("Notification" in window)) return "unsupported";
-  if (Notification.permission === "granted") return "granted";
-  const result = await Notification.requestPermission();
-  return result;
-}
-
-// ── Check if push is supported ────────────────────────────────
 export function isPushSupported() {
   return "serviceWorker" in navigator && "PushManager" in window;
 }
 
-// ── Subscribe to push ─────────────────────────────────────────
-export async function subscribeToPush(userId, companyId) {
-  if (!isPushSupported()) return null;
+export async function requestPermission() {
+  if (!("Notification" in window)) return "unsupported";
+  if (Notification.permission === "granted") return "granted";
+  return await Notification.requestPermission();
+}
 
+export async function subscribeToPush(userId, companyId) {
+  // Skip if VAPID key not configured
+  const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (!vapidKey || vapidKey.length < 10) return null;
+
+  if (!isPushSupported()) return null;
   const permission = await requestPermission();
   if (permission !== "granted") return null;
 
   try {
     const reg = await navigator.serviceWorker.ready;
-
-    // Check existing subscription
     const existing = await reg.pushManager.getSubscription();
     if (existing) return existing;
 
-    // VAPID public key — generate at: https://vapidkeys.com
-    // Store in .env as VITE_VAPID_PUBLIC_KEY
-    const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-    if (!vapidKey) {
-      console.warn("VITE_VAPID_PUBLIC_KEY not set — push disabled");
-      return null;
-    }
-
     const subscription = await reg.pushManager.subscribe({
-      userVisibleOnly:      true,
+      userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidKey),
     });
 
-    // Save subscription to Supabase
     const { supabase } = await import("./supabase.js");
     await supabase.from("push_subscriptions").upsert({
-      user_id:      userId,
-      company_id:   companyId,
+      user_id: userId, company_id: companyId,
       subscription: JSON.stringify(subscription),
-      updated_at:   new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     });
-
     return subscription;
   } catch (err) {
     console.warn("Push subscription failed:", err);
@@ -60,7 +45,6 @@ export async function subscribeToPush(userId, companyId) {
   }
 }
 
-// ── Unsubscribe ───────────────────────────────────────────────
 export async function unsubscribeFromPush(userId) {
   if (!isPushSupported()) return;
   const reg = await navigator.serviceWorker.ready;
@@ -72,39 +56,24 @@ export async function unsubscribeFromPush(userId) {
   }
 }
 
-// ── Show local notification (no server needed) ────────────────
 export function showLocalNotification(title, body, options = {}) {
   if (Notification.permission !== "granted") return;
   navigator.serviceWorker.ready.then(reg => {
     reg.showNotification(title, {
-      body,
-      icon:   "/icon-192.png",
-      badge:  "/icon-192.png",
-      vibrate:[200, 100, 200],
-      ...options,
+      body, icon:"/icon-192.png", badge:"/icon-192.png",
+      vibrate:[200,100,200], ...options,
     });
   });
 }
 
-// ── Notification helpers ──────────────────────────────────────
 export const notify = {
-  taskAssigned: (taskTitle) =>
-    showLocalNotification("New Task Assigned 📋", taskTitle, { tag:"task" }),
-
-  submissionApproved: (vmName) =>
-    showLocalNotification("Submission Approved ✓", `${vmName}'s submission was approved`, { tag:"approval" }),
-
-  submissionRevision: (vmName) =>
-    showLocalNotification("Revision Requested ↩", `${vmName}'s submission needs revision`, { tag:"revision" }),
-
-  newMessage: (senderName, preview) =>
-    showLocalNotification(`${senderName} 💬`, preview, { tag:"chat" }),
-
-  syncComplete: (count) =>
-    showLocalNotification("Sync Complete ✓", `${count} submission(s) uploaded`, { tag:"sync" }),
+  taskAssigned:        (title)  => showLocalNotification("New Task 📋", title, { tag:"task" }),
+  submissionApproved:  (name)   => showLocalNotification("Approved ✓", `${name}'s submission approved`, { tag:"approval" }),
+  submissionRevision:  (name)   => showLocalNotification("Revision ↩", `${name}'s submission needs revision`, { tag:"revision" }),
+  newMessage:          (sender, preview) => showLocalNotification(`${sender} 💬`, preview, { tag:"chat" }),
+  syncComplete:        (count)  => showLocalNotification("Sync Complete ✓", `${count} submission(s) uploaded`, { tag:"sync" }),
 };
 
-// ── VAPID key converter ───────────────────────────────────────
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64  = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");

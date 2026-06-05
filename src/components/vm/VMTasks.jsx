@@ -3,18 +3,20 @@ import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
 
-export function VMTasks({ user, categories, tasks, setTasks, onSubmit, onTaskToggle }) {
-  const [catId,   setCatId]   = useState(categories[0]?.id ?? "");
-  const [subId,   setSubId]   = useState(categories[0]?.subcategories?.[0]?.id ?? "");
-  const [before,  setBefore]  = useState([]);
-  const [after,   setAfter]   = useState([]);
-  const [note,    setNote]    = useState("");
-  const [sent,    setSent]    = useState(false);
-  const [saving,  setSaving]  = useState(false);
+export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit, onTaskToggle }) {
+  const [catId,    setCatId]    = useState(categories[0]?.id ?? "");
+  const [subId,    setSubId]    = useState(categories[0]?.subcategories?.[0]?.id ?? "");
+  const [branchId, setBranchId] = useState(user?.branch_id ?? branches[0]?.id ?? "");
+  const [before,   setBefore]   = useState([]);
+  const [after,    setAfter]    = useState([]);
+  const [note,     setNote]     = useState("");
+  const [sent,     setSent]     = useState(false);
+  const [saving,   setSaving]   = useState(false);
 
   const activeCat  = categories.find(c => c.id === catId);
   const activeSubs = activeCat?.subcategories ?? [];
   const activeSub  = activeSubs.find(s => s.id === subId);
+  const activeBranch = branches.find(b => b.id === branchId);
 
   const myTasks = tasks.filter(t =>
     t.category_id === catId &&
@@ -33,12 +35,13 @@ export function VMTasks({ user, categories, tasks, setTasks, onSubmit, onTaskTog
     setSaving(true);
     try {
       await onSubmit({
-        category_id:    catId    || null,
-        subcategory_id: subId    || null,
-        categoryName:   activeCat?.name ?? "",
-        subcategoryName:activeSub?.name ?? "",
+        category_id:     catId    || null,
+        subcategory_id:  subId    || null,
+        branch_id:       branchId || null,
+        categoryName:    activeCat?.name ?? "",
+        subcategoryName: activeSub?.name ?? "",
+        branchName:      activeBranch?.name ?? "",
         before, after, note,
-        branch_id: user?.branch_id ?? null,
       });
       setBefore([]); setAfter([]); setNote("");
       setSent(true);
@@ -60,8 +63,26 @@ export function VMTasks({ user, categories, tasks, setTasks, onSubmit, onTaskTog
         My <span style={S.accent}>Tasks</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        {user?.branch?.name ?? user?.branch ?? ""} · {todayStr()}
+        {todayStr()}
       </div>
+
+      {/* Branch selector */}
+      {branches.length > 0 && (
+        <div style={S.card}>
+          <div style={S.h3}>Branch</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
+            {branches.map(b => (
+              <button key={b.id} className="pill-btn" onClick={() => setBranchId(b.id)} style={{
+                padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                background: branchId===b.id ? C.accentColor+"28" : "transparent",
+                color:      branchId===b.id ? C.accentColor : C.mutedColor,
+                border:     branchId===b.id ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
+                transition:"all .2s",
+              }}>{b.name}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Category tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
@@ -105,7 +126,7 @@ export function VMTasks({ user, categories, tasks, setTasks, onSubmit, onTaskTog
                   textDecoration: (t.is_done||t.done) ? "line-through" : "none" }}>
                   {t.title ?? t.text}
                 </div>
-                <div style={{ display:"flex", gap:6, marginTop:4, alignItems:"center" }}>
+                <div style={{ display:"flex", gap:6, marginTop:4 }}>
                   <span style={S.chip(t.priority)}>{t.priority}</span>
                   <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
                 </div>
@@ -120,6 +141,7 @@ export function VMTasks({ user, categories, tasks, setTasks, onSubmit, onTaskTog
         <div style={{ ...S.h2, marginBottom:14 }}>
           {activeCat?.icon} {activeCat?.name ?? "—"}
           {activeSub ? ` · ${activeSub.name}` : ""}
+          {activeBranch ? <span style={{ ...S.muted, fontSize:13 }}> · {activeBranch.name}</span> : null}
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
           <ImageUploader label="Before" files={before} onChange={setBefore}/>
