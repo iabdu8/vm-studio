@@ -363,7 +363,7 @@ function AuthenticatedApp() {
                                      company={company} campaign={campaign} onSaveCampaign={handleSaveCampaign} />}
         {mgrPage==="requests"   && <MgrRequests  submissions={submissions} onReview={handleReview} />}
         {mgrPage==="assign"     && <MgrAssign    tasks={tasks} categories={categories} guidelines={guidelines}
-                                     floorWalks={floorWalks} onCreateTask={handleCreateTask}
+                                     branches={branches} floorWalks={floorWalks} onCreateTask={handleCreateTask}
                                      onDeleteTask={id => deleteTask(id).then(() => getTasks(company.id).then(setTasks))}
                                      onUploadGuideline={handleUploadGuideline}
                                      onAddFloorWalk={handleAddFloorWalk} />}
