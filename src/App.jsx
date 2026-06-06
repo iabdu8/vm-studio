@@ -197,8 +197,7 @@ function SuperAdminApp() {
 
 // ── Authenticated ─────────────────────────────────────────────
 function AuthenticatedApp() {
-const { profile, company, categories, branches, isVM, isManager, isSuperAdmin } = useApp();
-console.log("branches:", branches);
+  const { profile, company, categories, branches, isVM, isManager, isSuperAdmin } = useApp();
   const { isOnline, queueSize, syncing, syncQueue, submitWithFallback } = useOfflineSync();
 
   const [vmPage,      setVmPage]      = useState("home");
