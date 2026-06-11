@@ -40,7 +40,8 @@ export async function getSubmissions(company_id) {
     .from("submissions")
     .select(`
       *,
-      submitter:profiles(full_name, avatar_initials),
+      submitter:submitted_by(full_name, avatar_initials),
+      reviewer:reviewed_by(full_name),
       branch:branches(name),
       category:categories(name, icon),
       subcategory:subcategories(name),
@@ -50,7 +51,6 @@ export async function getSubmissions(company_id) {
     .order("created_at", { ascending: false });
   if (error) throw error;
 
-  // Resolve storage URLs for photos
   return (data ?? []).map(s => ({
     ...s,
     photos: (s.photos ?? []).map(p => ({
@@ -61,12 +61,10 @@ export async function getSubmissions(company_id) {
 }
 
 export async function createSubmission(payload, beforeFiles, afterFiles) {
-  // 1 — insert submission
   const { data: sub, error } = await supabase
     .from("submissions").insert(payload).select().single();
   if (error) throw error;
 
-  // 2 — upload photos to Supabase Storage
   const upload = async (file, type) => {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${payload.company_id}/${sub.id}/${type}-${Date.now()}-${safeName}`;
