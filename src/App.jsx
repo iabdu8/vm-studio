@@ -26,6 +26,8 @@ import { VMGuidelines }       from "./components/shared/Guidelines.jsx";
 import { StatusBar }          from "./components/shared/StatusBar.jsx";
 import { VMHome }             from "./components/vm/VMHome.jsx";
 import { VMTasks }            from "./components/vm/VMTasks.jsx";
+import { VMPlan }             from "./components/vm/VMPlan.jsx";
+import { VMVisits }           from "./components/vm/VMVisits.jsx";
 import { MgrOverview }        from "./components/manager/MgrOverview.jsx";
 import { MgrRequests }        from "./components/manager/MgrRequests.jsx";
 import { MgrAssign }          from "./components/manager/MgrAssign.jsx";
@@ -368,6 +370,8 @@ function AuthenticatedApp() {
                                     tasks={tasks} setTasks={setTasks} onSubmit={handleSubmit}
                                     onTaskToggle={(id, done) => updateTask(id, { is_done:done })
                                       .then(() => getTasks(company.id).then(setTasks))} />}
+        {vmPage==="plan"       && <VMPlan       profile={profile} />}
+        {vmPage==="visits"     && <VMVisits     profile={profile} />}
         {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
         {vmPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                     setTeamMessages={setTeamChat} mgrMessages={mgrChat}

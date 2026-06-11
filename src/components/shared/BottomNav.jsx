@@ -4,15 +4,18 @@ export function VMNav({ page, setPage }) {
   const items = [
     ["home",       "🏠", "Home"],
     ["tasks",      "✅", "Tasks"],
+    ["plan",       "📅", "Plan"],
+    ["visits",     "🚶", "Visits"],
     ["guidelines", "📖", "Guides"],
     ["chat",       "💬", "Chat"],
   ];
   return (
-    <nav style={S.bottomNav}>
+    <nav style={{ ...S.bottomNav, overflowX:"auto" }}>
       {items.map(([key, icon, lbl]) => (
-        <button key={key} className="tab-btn" style={S.navBtn(page === key)} onClick={() => setPage(key)}>
-          <span style={{ fontSize:20 }}>{icon}</span>
-          <span>{lbl}</span>
+        <button key={key} className="tab-btn" style={{ ...S.navBtn(page === key), minWidth:50 }}
+          onClick={() => setPage(key)}>
+          <span style={{ fontSize:18 }}>{icon}</span>
+          <span style={{ fontSize:9 }}>{lbl}</span>
         </button>
       ))}
     </nav>
@@ -32,7 +35,7 @@ export function MgrNav({ page, setPage, isSuperAdmin }) {
   return (
     <nav style={{ ...S.bottomNav, overflowX:"auto" }}>
       {items.map(([key, icon, lbl]) => (
-        <button key={key} className="tab-btn" style={{ ...S.navBtn(page === key), minWidth:56 }}
+        <button key={key} className="tab-btn" style={{ ...S.navBtn(page === key), minWidth:50 }}
           onClick={() => setPage(key)}>
           <span style={{ fontSize:18 }}>{icon}</span>
           <span style={{ fontSize:9 }}>{lbl}</span>
