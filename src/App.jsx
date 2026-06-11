@@ -3,11 +3,15 @@ import { useApp } from "./context/AppContext.jsx";
 import { signIn, signOut } from "./services/auth.service.js";
 import {
   getTasks, createTask, updateTask, deleteTask,
-  getSubmissions, createSubmission, reviewSubmission,
+  getSubmissions, reviewSubmission,
   getGuidelines, uploadGuideline,
   getChatMessages, sendMessage, subscribeToChat,
   getActivityLog, logActivity,
 } from "./services/data.service.js";
+import {
+  getPromotions, createPromotion, deletePromotion,
+  getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
+} from "./services/enterprise.service.js";
 import { supabase } from "./lib/supabase.js";
 import { useOfflineSync } from "./hooks/useOfflineSync.js";
 import { exportWeeklyReport } from "./lib/pdfExport.js";
@@ -27,6 +31,8 @@ import { MgrRequests }        from "./components/manager/MgrRequests.jsx";
 import { MgrAssign }          from "./components/manager/MgrAssign.jsx";
 import { MgrReports }         from "./components/manager/MgrReports.jsx";
 import { AnalyticsDashboard } from "./components/manager/Analytics.jsx";
+import { StoreManagerHome, StoreManagerRequests } from "./components/manager/StoreManagerShell.jsx";
+import { AreaManagerOverview } from "./components/manager/AreaManagerShell.jsx";
 import { SuperAdminPanel }    from "./components/superadmin/SuperAdminPanel.jsx";
 import { S, C }               from "./styles/theme.js";
 import { nowTime }            from "./utils.js";
@@ -44,9 +50,9 @@ function LoadingScreen() {
 
 // ── Forgot Password ───────────────────────────────────────────
 function ForgotPassword({ onBack }) {
-  const [email,   setEmail]   = useState("");
-  const [sent,    setSent]    = useState(false);
-  const [err,     setErr]     = useState("");
+  const [email, setEmail] = useState("");
+  const [sent, setSent]   = useState(false);
+  const [err, setErr]     = useState("");
   const [loading, setLoading] = useState(false);
 
   const send = async () => {
@@ -67,16 +73,11 @@ function ForgotPassword({ onBack }) {
       <StyleTag />
       <div style={{ ...S.loginCard, textAlign:"center" }} className="fu">
         <div style={{ fontSize:44, marginBottom:16 }}>📧</div>
-        <div style={{ ...S.dFont, fontSize:22, fontWeight:700, color:C.accentColor, marginBottom:8 }}>
-          Check your email
-        </div>
+        <div style={{ ...S.dFont, fontSize:22, fontWeight:700, color:C.accentColor, marginBottom:8 }}>Check your email</div>
         <div style={{ ...S.muted, marginBottom:24, lineHeight:1.7 }}>
-          We sent a password reset link to <strong style={{ color:C.textColor }}>{email}</strong>.
-          Open it on this device.
+          We sent a reset link to <strong style={{ color:C.textColor }}>{email}</strong>
         </div>
-        <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={onBack}>
-          Back to Sign In
-        </button>
+        <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={onBack}>Back to Sign In</button>
       </div>
     </div>
   );
@@ -85,27 +86,19 @@ function ForgotPassword({ onBack }) {
     <div style={S.loginBg}>
       <StyleTag />
       <div style={S.loginCard} className="fu">
-        <div style={{ ...S.dFont, fontSize:32, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:4 }}>
-          Reset Password
-        </div>
-        <div style={{ ...S.muted, fontSize:12, marginBottom:28, lineHeight:1.6 }}>
-          Enter your email and we'll send you a reset link.
-        </div>
+        <div style={{ ...S.dFont, fontSize:32, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:4 }}>Reset Password</div>
+        <div style={{ ...S.muted, fontSize:12, marginBottom:28 }}>Enter your email and we'll send a reset link.</div>
         <div style={S.lbl}>Email</div>
         <input style={S.inp} type="email" placeholder="your@email.com"
-          value={email}
-          onChange={e => { setEmail(e.target.value); setErr(""); }}
-          onKeyDown={e => e.key === "Enter" && send()} />
+          value={email} onChange={e => { setEmail(e.target.value); setErr(""); }}
+          onKeyDown={e => e.key==="Enter" && send()} />
         {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
         <button className="btnP" style={{ ...S.btnP, width:"100%", marginBottom:10 }}
           onClick={send} disabled={loading}>
           {loading ? "Sending…" : "Send Reset Link →"}
         </button>
-        <button onClick={onBack} style={{
-          background:"none", border:"none", color:C.mutedColor,
-          cursor:"pointer", fontSize:12, width:"100%", textAlign:"center",
-          fontFamily:"'DM Sans',sans-serif",
-        }}>
+        <button onClick={onBack} style={{ background:"none", border:"none", color:C.mutedColor,
+          cursor:"pointer", fontSize:12, width:"100%", textAlign:"center", fontFamily:"'DM Sans',sans-serif" }}>
           ← Back to Sign In
         </button>
       </div>
@@ -115,7 +108,7 @@ function ForgotPassword({ onBack }) {
 
 // ── Login ─────────────────────────────────────────────────────
 function LoginScreen() {
-  const [view,     setView]     = useState("login"); // login | register | forgot
+  const [view,     setView]     = useState("login");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [err,      setErr]      = useState("");
@@ -136,47 +129,30 @@ function LoginScreen() {
     <div style={S.loginBg}>
       <StyleTag />
       <div style={S.loginCard} className="fu">
-        <div style={{ ...S.dFont, fontSize:38, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:6 }}>
-          VM-Studio
-        </div>
-        <div style={{ ...S.muted, fontSize:12, letterSpacing:.5, marginBottom:32 }}>
-          Visual Merchandising Operations Platform
-        </div>
-
+        <div style={{ ...S.dFont, fontSize:38, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:6 }}>VM-Studio</div>
+        <div style={{ ...S.muted, fontSize:12, letterSpacing:.5, marginBottom:32 }}>Visual Merchandising Operations Platform</div>
         <div style={S.lbl}>Email</div>
         <input style={S.inp} type="email" placeholder="Email address"
-          value={email}
-          onChange={e => { setEmail(e.target.value); setErr(""); }}
-          onKeyDown={e => e.key === "Enter" && go()} />
-
+          value={email} onChange={e => { setEmail(e.target.value); setErr(""); }}
+          onKeyDown={e => e.key==="Enter" && go()} />
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div style={S.lbl}>Password</div>
-          <button onClick={() => setView("forgot")} style={{
-            background:"none", border:"none", color:C.mutedColor,
-            cursor:"pointer", fontSize:11, fontFamily:"'DM Sans',sans-serif",
-            padding:0, marginBottom:4,
-          }}>
+          <button onClick={() => setView("forgot")} style={{ background:"none", border:"none", color:C.mutedColor,
+            cursor:"pointer", fontSize:11, fontFamily:"'DM Sans',sans-serif", padding:0, marginBottom:4 }}>
             Forgot password?
           </button>
         </div>
         <input style={S.inp} type="password" placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && go()} />
-
+          value={password} onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => e.key==="Enter" && go()} />
         {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
-
-        <button className="btnP"
-          style={{ ...S.btnP, width:"100%", padding:"13px", fontSize:14 }}
+        <button className="btnP" style={{ ...S.btnP, width:"100%", padding:"13px", fontSize:14 }}
           onClick={go} disabled={loading}>
           {loading ? "Signing in…" : "Sign In →"}
         </button>
-
         <div style={{ textAlign:"center", marginTop:16 }}>
-          <button onClick={() => setView("register")} style={{
-            background:"none", border:"none", color:C.mutedColor,
-            cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif",
-          }}>
+          <button onClick={() => setView("register")} style={{ background:"none", border:"none", color:C.mutedColor,
+            cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
             New employee? Create account
           </button>
         </div>
@@ -185,23 +161,24 @@ function LoginScreen() {
   );
 }
 
-// ── Super Admin ───────────────────────────────────────────────
 function SuperAdminApp() {
   return (
-    <div style={S.app}>
-      <StyleTag />
-      <SuperAdminPanel />
-    </div>
+    <div style={S.app}><StyleTag /><SuperAdminPanel /></div>
   );
 }
 
 // ── Authenticated ─────────────────────────────────────────────
 function AuthenticatedApp() {
-  const { profile, company, categories, branches, isVM, isManager, isSuperAdmin } = useApp();
+  const {
+    profile, company, categories, branches,
+    isVM, isManager, isVMManager, isAreaManager, isStoreManager, isSuperAdmin
+  } = useApp();
   const { isOnline, queueSize, syncing, syncQueue, submitWithFallback } = useOfflineSync();
 
   const [vmPage,      setVmPage]      = useState("home");
   const [mgrPage,     setMgrPage]     = useState("overview");
+  const [smPage,      setSmPage]      = useState("home"); // store manager
+  const [amPage,      setAmPage]      = useState("overview"); // area manager
   const [tasks,       setTasks]       = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [guidelines,  setGuidelines]  = useState([]);
@@ -211,6 +188,9 @@ function AuthenticatedApp() {
   const [demoHolds,   setDemoHolds]   = useState([]);
   const [floorWalks,  setFloorWalks]  = useState([]);
   const [campaign,    setCampaign]    = useState(null);
+  const [campaignProgress, setCampaignProgress] = useState([]);
+  const [promotions,  setPromotions]  = useState([]);
+  const [localBranches, setLocalBranches] = useState([]);
   const [dataLoaded,  setDataLoaded]  = useState(false);
 
   useEffect(() => {
@@ -220,12 +200,22 @@ function AuthenticatedApp() {
       getSubmissions(company.id).then(setSubmissions),
       getGuidelines(company.id).then(setGuidelines),
       getChatMessages(company.id, "team").then(setTeamChat),
-      isManager ? getChatMessages(company.id, "managers").then(setMgrChat) : Promise.resolve(),
-      isManager ? getActivityLog(company.id).then(setLog) : Promise.resolve(),
+      (isManager || isAreaManager || isStoreManager)
+        ? getChatMessages(company.id, "managers").then(setMgrChat) : Promise.resolve(),
+      (isManager || isAreaManager)
+        ? getActivityLog(company.id).then(setLog) : Promise.resolve(),
+      supabase.from("branches").select("*")
+        .eq("company_id", company.id).eq("is_active", true).order("sort_order")
+        .then(({ data }) => setLocalBranches(data ?? [])),
       supabase.from("campaigns").select("*")
         .eq("company_id", company.id).eq("is_active", true)
         .order("created_at", { ascending:false }).limit(1)
-        .then(({ data }) => setCampaign(data?.[0] ?? null)),
+        .then(({ data }) => {
+          const c = data?.[0] ?? null;
+          setCampaign(c);
+          if (c) getCampaignProgress(c.id).then(setCampaignProgress);
+        }),
+      getPromotions(company.id).then(setPromotions),
       supabase.from("demo_holds").select("*")
         .eq("company_id", company.id)
         .order("created_at", { ascending:false }).limit(50)
@@ -238,14 +228,15 @@ function AuthenticatedApp() {
 
     subscribeToPush(profile.id, company.id);
     const teamSub = subscribeToChat(company.id, "team", msg => setTeamChat(p => [...p, msg]));
-    const mgrSub  = isManager
-      ? subscribeToChat(company.id, "managers", msg => setMgrChat(p => [...p, msg]))
-      : null;
+    const mgrSub  = (isManager || isAreaManager || isStoreManager)
+      ? subscribeToChat(company.id, "managers", msg => setMgrChat(p => [...p, msg])) : null;
     navigator.serviceWorker?.addEventListener("message", e => {
       if (e.data?.type === "TRIGGER_SYNC") syncQueue();
     });
     return () => { teamSub?.unsubscribe?.(); mgrSub?.unsubscribe?.(); };
   }, [company?.id]);
+
+  const activeBranches = localBranches.length > 0 ? localBranches : (branches ?? []);
 
   const addLog = (action, detail) => {
     if (!company) return;
@@ -263,6 +254,12 @@ function AuthenticatedApp() {
     await reviewSubmission(id, status, status==="approved" ? 85 : null, profile.id);
     getSubmissions(company.id).then(setSubmissions);
     addLog(status==="approved" ? "Approved submission" : "Requested revision", "VM submission");
+  };
+
+  const handleAddNote = async (submissionId, note) => {
+    await supabase.from("submissions").update({ manager_note: note }).eq("id", submissionId);
+    getSubmissions(company.id).then(setSubmissions);
+    addLog("Added note to submission", note.slice(0,40));
   };
 
   const handleCreateTask = async (payload) => {
@@ -316,19 +313,40 @@ function AuthenticatedApp() {
         date_from:date_from||null, date_to:date_to||null,
         is_active:true, created_by:profile.id })
       .select().single();
-    if (data) setCampaign(data);
+    if (data) {
+      setCampaign(data);
+      await initCampaignBranches(data.id, activeBranches.map(b => b.id));
+      getCampaignProgress(data.id).then(setCampaignProgress);
+    }
     addLog("Updated campaign", name);
   };
 
+  const handleSetBranchStatus = async (branch_id, status) => {
+    if (!campaign?.id) return;
+    await setCampaignBranchStatus(campaign.id, branch_id, status);
+    getCampaignProgress(campaign.id).then(setCampaignProgress);
+  };
+
+  const handleCreatePromotion = async (payload, branchIds) => {
+    await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds);
+    getPromotions(company.id).then(setPromotions);
+    addLog("Created promotion", payload.name);
+  };
+
+  const handleDeletePromotion = async (id) => {
+    await deletePromotion(id);
+    setPromotions(p => p.filter(x => x.id !== id));
+  };
+
   const handleExportPDF = () => {
-    exportWeeklyReport({ company, tasks, submissions, branches,
+    exportWeeklyReport({ company, tasks, submissions, branches:activeBranches,
       weekLabel: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" }) });
   };
 
   if (!dataLoaded) return <LoadingScreen />;
   if (isSuperAdmin && !company) return <SuperAdminApp />;
 
-  // VM shell
+  // ── VM Shell ──────────────────────────────────────────────
   if (isVM) return (
     <div style={S.app}>
       <StyleTag />
@@ -337,9 +355,9 @@ function AuthenticatedApp() {
       <div style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
         {vmPage==="home"       && <VMHome       user={profile} tasks={tasks} submissions={submissions}
                                     chat={teamChat} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
-                                    floorWalks={floorWalks} campaign={campaign} />}
-        {vmPage==="tasks"      && <VMTasks      user={profile} categories={categories} branches={branches} tasks={tasks}
-                                    setTasks={setTasks} onSubmit={handleSubmit}
+                                    floorWalks={floorWalks} campaign={campaign} promotions={promotions} />}
+        {vmPage==="tasks"      && <VMTasks      user={profile} categories={categories} branches={activeBranches}
+                                    tasks={tasks} setTasks={setTasks} onSubmit={handleSubmit}
                                     onTaskToggle={(id, done) => updateTask(id, { is_done:done })
                                       .then(() => getTasks(company.id).then(setTasks))} />}
         {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} />}
@@ -352,18 +370,81 @@ function AuthenticatedApp() {
     </div>
   );
 
-  // Manager shell
+  // ── Store Manager Shell ───────────────────────────────────
+  if (isStoreManager) return (
+    <div style={S.app}>
+      <StyleTag />
+      <TopBar user={profile} onLogout={() => signOut()} />
+      <div style={S.main}>
+        {smPage==="home"     && <StoreManagerHome
+                                  profile={profile} tasks={tasks} submissions={submissions}
+                                  campaign={campaign} promotions={promotions}
+                                  floorWalks={floorWalks} demoHolds={demoHolds} />}
+        {smPage==="requests" && <StoreManagerRequests submissions={submissions} onAddNote={handleAddNote} />}
+        {smPage==="chat"     && <Chat user={profile} teamMessages={teamChat}
+                                  setTeamMessages={setTeamChat} mgrMessages={mgrChat}
+                                  setMgrMessages={setMgrChat}
+                                  onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} />}
+      </div>
+      {/* Store Manager Nav */}
+      <nav style={S.bottomNav}>
+        {[["home","🏠","Home"],["requests","📥","Submissions"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
+          <button key={k} className="tab-btn" style={S.navBtn(smPage===k)} onClick={() => setSmPage(k)}>
+            <span style={{ fontSize:20 }}>{icon}</span>
+            <span>{lbl}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+
+  // ── Area Manager Shell ────────────────────────────────────
+  if (isAreaManager) return (
+    <div style={S.app}>
+      <StyleTag />
+      <TopBar user={profile} onLogout={() => signOut()} />
+      <div style={S.main}>
+        {amPage==="overview"  && <AreaManagerOverview
+                                   profile={profile} tasks={tasks} submissions={submissions}
+                                   campaign={campaign} campaignProgress={campaignProgress}
+                                   branches={activeBranches} />}
+        {amPage==="requests"  && <MgrRequests submissions={submissions} onReview={handleReview} />}
+        {amPage==="chat"      && <Chat user={profile} teamMessages={teamChat}
+                                   setTeamMessages={setTeamChat} mgrMessages={mgrChat}
+                                   setMgrMessages={setMgrChat}
+                                   onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} />}
+      </div>
+      {/* Area Manager Nav */}
+      <nav style={S.bottomNav}>
+        {[["overview","📊","Overview"],["requests","📥","Requests"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
+          <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
+            <span style={{ fontSize:20 }}>{icon}</span>
+            <span>{lbl}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+
+  // ── VM Manager Shell (full access) ────────────────────────
   return (
     <div style={S.app}>
       <StyleTag />
       <TopBar user={profile} onLogout={() => signOut()} isSuperAdmin={isSuperAdmin}
         onSuperAdmin={() => setMgrPage("superadmin")} />
       <div style={S.main}>
-        {mgrPage==="overview"   && <MgrOverview  tasks={tasks} submissions={submissions} log={log}
-                                     company={company} campaign={campaign} onSaveCampaign={handleSaveCampaign} />}
+        {mgrPage==="overview"   && <MgrOverview
+                                     tasks={tasks} submissions={submissions} log={log}
+                                     company={company} branches={activeBranches}
+                                     campaign={campaign} onSaveCampaign={handleSaveCampaign}
+                                     campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus}
+                                     promotions={promotions}
+                                     onCreatePromotion={handleCreatePromotion}
+                                     onDeletePromotion={handleDeletePromotion} />}
         {mgrPage==="requests"   && <MgrRequests  submissions={submissions} onReview={handleReview} />}
-        {mgrPage==="assign"     && <MgrAssign    tasks={tasks} categories={categories} guidelines={guidelines}
-                                     branches={branches} floorWalks={floorWalks} onCreateTask={handleCreateTask}
+        {mgrPage==="assign"     && <MgrAssign    tasks={tasks} categories={categories}
+                                     branches={activeBranches} guidelines={guidelines}
+                                     floorWalks={floorWalks} onCreateTask={handleCreateTask}
                                      onDeleteTask={id => deleteTask(id).then(() => getTasks(company.id).then(setTasks))}
                                      onUploadGuideline={handleUploadGuideline}
                                      onAddFloorWalk={handleAddFloorWalk} />}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 
-export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHold, floorWalks, campaign }) {
+export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHold, floorWalks, campaign, promotions = [] }) {
   const [itemCode, setItemCode] = useState("");
   const [itemNote, setItemNote] = useState("");
   const [added,    setAdded]    = useState(false);
@@ -56,6 +56,20 @@ export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHol
             )}
           </div>
           <div style={{ fontSize:28, opacity:.3 }}>◈</div>
+        </div>
+      )}
+
+      {/* Promotions */}
+      {promotions.length > 0 && (
+        <div style={{ ...S.card, marginBottom:16 }} className="fu3">
+          <div style={S.h3}>Current Promotions</div>
+          {promotions.map(p => (
+            <div key={p.id} style={{ padding:"8px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.accentColor }}>🏷️ {p.name}</div>
+              {p.description && <div style={{ fontSize:12, opacity:.85, marginTop:2 }}>{p.description}</div>}
+              <div style={{ ...S.muted, fontSize:11, marginTop:3 }}>{p.date_from} → {p.date_to}</div>
+            </div>
+          ))}
         </div>
       )}
 

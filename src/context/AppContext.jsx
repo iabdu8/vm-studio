@@ -4,11 +4,11 @@ import { loadSession, onAuthChange } from "../services/auth.service.js";
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [session,  setSession]  = useState(null);   // { profile, company, settings, categories, branches }
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
 
- const refresh = async () => {
+  const refresh = async () => {
     try {
       console.log("loading session...");
       const s = await loadSession();
@@ -25,40 +25,38 @@ export function AppProvider({ children }) {
   useEffect(() => {
     refresh();
     const { data: { subscription } } = onAuthChange(async (authSession) => {
-      if (authSession) {
-        await refresh();
-      } else {
-        setSession(null);
-        setLoading(false);
-      }
+      if (authSession) { await refresh(); }
+      else { setSession(null); setLoading(false); }
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  // Helpers to update local state after mutations
   const updateCategories = (cats) =>
     setSession(s => s ? { ...s, categories: cats } : s);
-
   const updateSettings = (settings) =>
     setSession(s => s ? { ...s, settings } : s);
 
+  const role = session?.profile?.role ?? null;
+
   return (
     <AppContext.Provider value={{
-      session,
-      loading,
-      error,
-      refresh,
-      updateCategories,
-      updateSettings,
+      session, loading, error, refresh,
+      updateCategories, updateSettings,
       // shortcuts
       profile:    session?.profile    ?? null,
       company:    session?.company    ?? null,
       settings:   session?.settings   ?? null,
       categories: session?.categories ?? [],
       branches:   session?.branches   ?? [],
-      isVM:       session?.profile?.role === "vm",
-      isManager:  ["manager","super_admin"].includes(session?.profile?.role),
-      isSuperAdmin: session?.profile?.role === "super_admin",
+      // role flags
+      isVM:           role === "vm",
+      isStoreManager: role === "store_manager",
+      isAreaManager:  role === "area_manager",
+      isManager:      ["manager","super_admin"].includes(role),
+      isVMManager:    role === "manager",
+      isSuperAdmin:   role === "super_admin",
+      // any manager-level access
+      isAnyManager:   ["manager","area_manager","store_manager","super_admin"].includes(role),
     }}>
       {children}
     </AppContext.Provider>
