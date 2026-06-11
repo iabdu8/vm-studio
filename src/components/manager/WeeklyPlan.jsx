@@ -363,7 +363,7 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
                                       <div style={{ fontSize:11, color: item.status==="done" ? C.mutedColor : C.textColor,
                                         textDecoration: item.status==="done" ? "line-through" : "none",
                                         lineHeight:1.3, flex:1 }}>
-                                        {item.category?.icon && <span style={{ marginRight:3 }}>{item.category.icon}</span>}
+                                        {item.category?.name && <span style={{ fontSize:10, color:C.accentColor, display:"block", marginBottom:2 }}>{item.category.name}</span>}
                                         {item.title}
                                       </div>
                                       <div style={{ display:"flex", gap:3, flexShrink:0 }}>
