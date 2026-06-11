@@ -35,11 +35,12 @@ function FloorWalkUpload({ onAdd }) {
   );
 }
 
-export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks, onCreateTask, onDeleteTask, onUploadGuideline, onAddFloorWalk }) {
+export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
+  onCreateTask, onDeleteTask, onUploadGuideline, onAddFloorWalk, profile }) {
+
   const [tab,      setTab]      = useState("add");
   const [catId,    setCatId]    = useState(categories[0]?.id ?? "");
   const [subId,    setSubId]    = useState(categories[0]?.subcategories?.[0]?.id ?? "");
-  const [branchId, setBranchId] = useState("all");
   const [text,     setText]     = useState("");
   const [priority, setPriority] = useState("medium");
   const [dueDate,  setDueDate]  = useState("Today");
@@ -51,6 +52,11 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
 
   const activeCat  = categories.find(c => c.id === catId);
   const activeSubs = activeCat?.subcategories ?? [];
+
+  // Manager's branch — auto-assign
+  const managerBranch = profile?.branch_id
+    ? branches.find(b => b.id === profile.branch_id)
+    : null;
 
   const changeCat = (id) => {
     setCatId(id);
@@ -65,7 +71,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
       await onCreateTask({
         category_id:    catId  || null,
         subcategory_id: subId  || null,
-        branch_id:      branchId === "all" ? null : branchId,
+        branch_id:      managerBranch?.id ?? null,
         title:          text,
         priority,
         due_label:      dueDate,
@@ -90,6 +96,13 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
         Task <span style={S.accent}>Assignment</span>
       </div>
 
+      {/* Show manager's branch */}
+      {managerBranch && (
+        <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>
+          📍 {managerBranch.name} — Tasks will be assigned to your branch
+        </div>
+      )}
+
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
         {[["add","＋ New Task"],["all","All Tasks"],["floor","🚶 Floor Walk"],["guides","📖 Guidelines"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
@@ -99,33 +112,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
       {/* New Task */}
       {tab === "add" && (
         <div style={S.card}>
-
-          {/* Branch selector */}
-          {branches?.length > 0 && (
-            <>
-              <div style={S.h3}>Branch</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
-                <button className="pill-btn" onClick={() => setBranchId("all")} style={{
-                  padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                  background: branchId==="all" ? C.accentColor+"28" : "transparent",
-                  color:      branchId==="all" ? C.accentColor : C.mutedColor,
-                  border:     branchId==="all" ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
-                  transition:"all .2s",
-                }}>🏢 All Branches</button>
-                {branches.map(b => (
-                  <button key={b.id} className="pill-btn" onClick={() => setBranchId(b.id)} style={{
-                    padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                    background: branchId===b.id ? C.accentColor+"28" : "transparent",
-                    color:      branchId===b.id ? C.accentColor : C.mutedColor,
-                    border:     branchId===b.id ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
-                    transition:"all .2s",
-                  }}>{b.name}</button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Category */}
           <div style={S.h3}>Category</div>
           <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
             {categories.map(c => (
@@ -135,11 +121,10 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
                 color:      catId===c.id ? C.accentColor : C.mutedColor,
                 border:     catId===c.id ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
                 transition:"all .2s",
-              }}>{c.icon} {c.name}</button>
+              }}>{c.name}</button>
             ))}
           </div>
 
-          {/* Subcategory */}
           {activeSubs.length > 0 && (
             <>
               <div style={S.lbl}>Section</div>
@@ -149,7 +134,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
             </>
           )}
 
-          {/* Priority + Due */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             <div>
               <div style={S.lbl}>Priority</div>
@@ -175,20 +159,11 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
             placeholder="Describe the task clearly…"
             value={text} onChange={e => setText(e.target.value)}/>
 
-          {/* Summary */}
-          {text && (
-            <div style={{ padding:"10px 12px", background:C.surfaceHigh, borderRadius:8,
-              fontSize:12, color:C.mutedColor, marginBottom:12, lineHeight:1.6 }}>
-              Assigning to: <strong style={{ color:C.accentColor }}>
-                {branchId === "all" ? "All Branches" : branches?.find(b=>b.id===branchId)?.name ?? "—"}
-              </strong>
-              {activeCat && <> · {activeCat.icon} {activeCat.name}</>}
-            </div>
-          )}
-
           <button className="btnP" style={{ ...S.btnP, width:"100%" }}
             onClick={addTask} disabled={saving}>
-            {saving ? "Saving…" : "Assign Task →"}
+            {saving ? "Saving…" : managerBranch
+              ? `Assign to ${managerBranch.name} →`
+              : "Assign to All Branches →"}
           </button>
         </div>
       )}
@@ -202,7 +177,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:11, color:C.accentColor, fontWeight:600, marginBottom:4 }}>
-                    {t.category?.icon} {t.category?.name ?? "—"} · {t.subcategory?.name ?? "—"}
+                    {t.category?.name ?? "—"} · {t.subcategory?.name ?? "—"}
                   </div>
                   <div style={{ fontSize:13, color:(t.is_done||t.done)?C.mutedColor:C.textColor,
                     textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
@@ -245,8 +220,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
                     <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                       {fw.photos.map((p, j) => (
                         <img key={j} src={p.url ?? p} alt=""
-                          style={{ width:60, height:60, objectFit:"cover", borderRadius:6,
-                            border:`1px solid ${C.accentColor}22` }}/>
+                          style={{ width:60, height:60, objectFit:"cover", borderRadius:6 }}/>
                       ))}
                     </div>
                   )}

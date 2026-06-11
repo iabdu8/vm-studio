@@ -2,16 +2,10 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 
-// ============================================================
-//  VM PLAN VIEW — Read only, shows current week plan for VM's branch
-// ============================================================
-
-const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-
 const STATUS_COLORS = {
-  pending:     { bg:"#6b688018", color:"#6b6880" },
-  in_progress: { bg:"#d4a82a18", color:"#d4a82a" },
-  done:        { bg:"#4ade8018", color:"#4ade80" },
+  pending:     { bg:"#6b688018", color:"#6b6880", label:"Pending" },
+  in_progress: { bg:"#d4a82a18", color:"#d4a82a", label:"In Progress" },
+  done:        { bg:"#4ade8018", color:"#4ade80", label:"Done" },
 };
 
 const getWeekStart = () => {
@@ -25,7 +19,7 @@ const getWeekStart = () => {
 const getDayDate = (weekStartStr, dayIndex) => {
   const d = new Date(weekStartStr);
   d.setDate(d.getDate() + dayIndex);
-  return d.toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+  return d.toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"short" });
 };
 
 export function VMPlan({ profile }) {
@@ -64,7 +58,6 @@ export function VMPlan({ profile }) {
     setLoading(false);
   };
 
-  // My items (assigned to me or all)
   const myItems = items.filter(i =>
     !i.assigned_staff_id || i.assigned_staff_id === profile.id
   );
@@ -116,41 +109,45 @@ export function VMPlan({ profile }) {
         if (!dayItems.length) return null;
         return (
           <div key={i} style={S.card}>
-            <div style={{ marginBottom:10 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:C.accentColor }}>
-                {getDayDate(weekStart, i)}
-              </div>
+            <div style={{ fontSize:13, fontWeight:700, color:C.accentColor, marginBottom:10 }}>
+              {getDayDate(weekStart, i)}
             </div>
             {dayItems.map(item => {
               const meta = STATUS_COLORS[item.status] ?? STATUS_COLORS.pending;
               return (
                 <div key={item.id} style={{
-                  display:"flex", alignItems:"flex-start", gap:10,
-                  padding:"9px 0", borderBottom:`1px solid ${C.accentColor}0a`,
+                  display:"flex", alignItems:"center", gap:12,
+                  padding:"10px 0", borderBottom:`1px solid ${C.accentColor}0a`,
                 }}>
                   <div style={{
                     width:10, height:10, borderRadius:"50%",
-                    background:meta.color, flexShrink:0, marginTop:4,
+                    background:meta.color, flexShrink:0,
                   }}/>
                   <div style={{ flex:1 }}>
                     <div style={{ fontSize:13,
                       color: item.status==="done" ? C.mutedColor : C.textColor,
-                      textDecoration: item.status==="done" ? "line-through" : "none" }}>
-                      {item.category?.icon && <span style={{ marginRight:4 }}>{item.category.icon}</span>}
+                      textDecoration: item.status==="done" ? "line-through" : "none",
+                      marginBottom:3 }}>
                       {item.title}
                     </div>
-                    {item.assigned_staff?.full_name && (
-                      <div style={{ fontSize:11, color:"#818cf8", marginTop:2 }}>
-                        👤 {item.assigned_staff.full_name}
-                      </div>
-                    )}
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                      {item.category?.name && (
+                        <span style={{ fontSize:11, color:C.accentColor }}>
+                          {item.category.name}
+                        </span>
+                      )}
+                      {item.assigned_staff?.full_name && (
+                        <span style={{ fontSize:11, color:"#818cf8" }}>
+                          👤 {item.assigned_staff.full_name}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <span style={{
-                    fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:10,
-                    background:meta.bg, color:meta.color,
+                    fontSize:10, fontWeight:700, padding:"3px 9px", borderRadius:10,
+                    background:meta.bg, color:meta.color, flexShrink:0,
                   }}>
-                    {item.status === "done" ? "Done"
-                      : item.status === "in_progress" ? "In Progress" : "Pending"}
+                    {meta.label}
                   </span>
                 </div>
               );

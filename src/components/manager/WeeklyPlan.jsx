@@ -272,7 +272,7 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
                   <select style={S.sel} value={addCat}
                     onChange={e => setAddCat(e.target.value)}>
                     <option value="">— optional —</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
