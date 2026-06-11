@@ -28,6 +28,7 @@ import { VMHome }             from "./components/vm/VMHome.jsx";
 import { VMTasks }            from "./components/vm/VMTasks.jsx";
 import { VMPlan }             from "./components/vm/VMPlan.jsx";
 import { VMVisits }           from "./components/vm/VMVisits.jsx";
+import { VMDemoHold }         from "./components/vm/VMDemoHold.jsx";
 import { MgrOverview }        from "./components/manager/MgrOverview.jsx";
 import { MgrRequests }        from "./components/manager/MgrRequests.jsx";
 import { MgrAssign }          from "./components/manager/MgrAssign.jsx";
@@ -348,6 +349,11 @@ function AuthenticatedApp() {
     setPromotions(p => p.filter(x => x.id !== id));
   };
 
+  const handleDeleteDemoHold = async (id) => {
+    await supabase.from("demo_holds").delete().eq("id", id);
+    setDemoHolds(p => p.filter(x => x.id !== id));
+  };
+
   const handleExportPDF = () => {
     exportWeeklyReport({ company, tasks, submissions, branches:activeBranches,
       weekLabel: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" }) });
@@ -370,6 +376,7 @@ function AuthenticatedApp() {
                                     tasks={tasks} setTasks={setTasks} onSubmit={handleSubmit}
                                     onTaskToggle={(id, done) => updateTask(id, { is_done:done })
                                       .then(() => getTasks(company.id).then(setTasks))} />}
+        {vmPage==="demo"       && <VMDemoHold   demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
         {vmPage==="plan"       && <VMPlan       profile={profile} />}
         {vmPage==="visits"     && <VMVisits     profile={profile} />}
         {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}

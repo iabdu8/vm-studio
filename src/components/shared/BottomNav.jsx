@@ -4,6 +4,7 @@ export function VMNav({ page, setPage }) {
   const items = [
     ["home",       "🏠", "Home"],
     ["tasks",      "✅", "Tasks"],
+    ["demo",       "🏷️", "Demo Hold"],
     ["plan",       "📅", "Plan"],
     ["visits",     "🚶", "Visits"],
     ["guidelines", "📖", "Guides"],
