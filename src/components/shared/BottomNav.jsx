@@ -26,7 +26,7 @@ export function MgrNav({ page, setPage, isSuperAdmin }) {
   const items = [
     ["overview",  "📊", "Overview"],
     ["requests",  "📥", "Requests"],
-    ["assign",    "📋", "Assign"],
+    ["assign",    "📋", "Plan & Assign"],
     ["plan",      "📅", "Plan"],
     ["visits",    "🚶", "Visits"],
     ["analytics", "📈", "Analytics"],
@@ -38,7 +38,7 @@ export function MgrNav({ page, setPage, isSuperAdmin }) {
         <button key={key} className="tab-btn" style={{ ...S.navBtn(page === key), minWidth:50 }}
           onClick={() => setPage(key)}>
           <span style={{ fontSize:18 }}>{icon}</span>
-          <span style={{ fontSize:9 }}>{lbl}</span>
+          <span style={{ fontSize:9, whiteSpace:"nowrap" }}>{lbl}</span>
         </button>
       ))}
     </nav>
