@@ -4,6 +4,13 @@ import { supabase } from "../../lib/supabase.js";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+// Get date for a specific day of the week given week start
+const getDayDate = (weekStartStr, dayIndex) => {
+  const d = new Date(weekStartStr);
+  d.setDate(d.getDate() + dayIndex);
+  return d.toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"short", year:"numeric" });
+};
+
 const STATUS_COLORS = {
   pending:     "#6b6880",
   in_progress: "#d4a82a",
@@ -221,7 +228,7 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
                 <div style={S.lbl}>Day</div>
                 <select style={S.sel} value={newItem.day_of_week}
                   onChange={e => setNewItem(p => ({ ...p, day_of_week: +e.target.value }))}>
-                  {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                  {DAYS.map((d, i) => <option key={i} value={i}>{getDayDate(weekStart, i)}</option>)}
                 </select>
               </div>
               <div>
@@ -266,7 +273,7 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
                   <div style={{ fontSize:12, fontWeight:700, color:C.accentColor,
                     background:C.accentColor+"18", padding:"3px 10px", borderRadius:12 }}>
-                    {day}
+                    {getDayDate(weekStart, i)}
                   </div>
                   <div style={{ ...S.muted, fontSize:11 }}>{dayItems.length} activities</div>
                 </div>
