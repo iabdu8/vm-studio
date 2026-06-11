@@ -2,11 +2,6 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 
-// ============================================================
-//  WEEKLY STORE PLAN
-//  VM Manager ينشئ خطة أسبوعية حسب الأقسام
-// ============================================================
-
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const STATUS_COLORS = {
@@ -16,16 +11,18 @@ const STATUS_COLORS = {
 };
 
 export function WeeklyPlan({ company, categories, branches, profile }) {
-  const [plans,       setPlans]       = useState([]);
-  const [activePlan,  setActivePlan]  = useState(null);
-  const [items,       setItems]       = useState([]);
+  const [plans,          setPlans]          = useState([]);
+  const [activePlan,     setActivePlan]     = useState(null);
+  const [items,          setItems]          = useState([]);
+  const [staff,          setStaff]          = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(branches[0]?.id ?? "");
-  const [loading,     setLoading]     = useState(false);
-  const [creating,    setCreating]    = useState(false);
-  const [newItem,     setNewItem]     = useState({ title:"", category_id:"", day_of_week:0 });
-  const [saving,      setSaving]      = useState(false);
+  const [loading,        setLoading]        = useState(false);
+  const [creating,       setCreating]       = useState(false);
+  const [newItem,        setNewItem]        = useState({
+    title: "", category_id: "", day_of_week: 0, assigned_staff_id: "",
+  });
+  const [saving, setSaving] = useState(false);
 
-  // Current week start (Monday)
   const getWeekStart = (offset = 0) => {
     const d = new Date();
     const day = d.getDay();
@@ -36,7 +33,16 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
 
   const weekStart = getWeekStart(0);
 
-  // Load plans for selected branch
+  // Load staff (VM) for selected branch
+  useEffect(() => {
+    if (!company) return;
+    supabase.from("profiles")
+      .select("id, full_name")
+      .eq("company_id", company.id)
+      .eq("role", "vm")
+      .then(({ data }) => setStaff(data ?? []));
+  }, [company?.id]);
+
   useEffect(() => {
     if (!selectedBranch || !company) return;
     loadPlans();
@@ -52,23 +58,16 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
       .order("week_start", { ascending: false })
       .limit(5);
     setPlans(data ?? []);
-
-    // Auto-select current week plan
     const current = (data ?? []).find(p => p.week_start === weekStart);
-    if (current) {
-      setActivePlan(current);
-      loadItems(current.id);
-    } else {
-      setActivePlan(null);
-      setItems([]);
-    }
+    if (current) { setActivePlan(current); loadItems(current.id); }
+    else { setActivePlan(null); setItems([]); }
     setLoading(false);
   };
 
   const loadItems = async (plan_id) => {
     const { data } = await supabase
       .from("weekly_plan_items")
-      .select("*, category:categories(name, icon)")
+      .select("*, category:categories(name, icon), assigned_staff:assigned_staff_id(full_name)")
       .eq("plan_id", plan_id)
       .order("day_of_week")
       .order("sort_order");
@@ -82,48 +81,32 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
       .insert({ company_id: company.id, branch_id: selectedBranch,
         created_by: profile.id, week_start: weekStart })
       .select().single();
-    if (data) {
-      setActivePlan(data);
-      setItems([]);
-      await loadPlans();
-    }
+    if (data) { setActivePlan(data); setItems([]); await loadPlans(); }
     setCreating(false);
   };
 
-  // Copy last week's plan
   const copyLastWeek = async () => {
     const lastWeekStart = getWeekStart(-1);
     const { data: lastPlan } = await supabase
-      .from("weekly_plans")
-      .select("id")
-      .eq("company_id", company.id)
-      .eq("branch_id", selectedBranch)
-      .eq("week_start", lastWeekStart)
-      .single();
-
+      .from("weekly_plans").select("id")
+      .eq("company_id", company.id).eq("branch_id", selectedBranch)
+      .eq("week_start", lastWeekStart).single();
     if (!lastPlan) { alert("No plan found for last week."); return; }
-
     const { data: lastItems } = await supabase
-      .from("weekly_plan_items")
-      .select("*")
-      .eq("plan_id", lastPlan.id);
-
+      .from("weekly_plan_items").select("*").eq("plan_id", lastPlan.id);
     if (!lastItems?.length) { alert("Last week's plan is empty."); return; }
-
     setCreating(true);
-    // Create this week's plan
     const { data: newPlan } = await supabase
       .from("weekly_plans")
       .insert({ company_id: company.id, branch_id: selectedBranch,
         created_by: profile.id, week_start: weekStart })
       .select().single();
-
     if (newPlan) {
-      // Copy items with status reset to pending
       await supabase.from("weekly_plan_items").insert(
         lastItems.map(i => ({
           plan_id: newPlan.id, category_id: i.category_id,
           title: i.title, day_of_week: i.day_of_week,
+          assigned_staff_id: i.assigned_staff_id,
           status: "pending", sort_order: i.sort_order,
         }))
       );
@@ -139,11 +122,18 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
     setSaving(true);
     const { data } = await supabase
       .from("weekly_plan_items")
-      .insert({ plan_id: activePlan.id, ...newItem,
-        sort_order: items.filter(i => i.day_of_week === newItem.day_of_week).length })
-      .select("*, category:categories(name, icon)").single();
+      .insert({
+        plan_id:           activePlan.id,
+        title:             newItem.title,
+        category_id:       newItem.category_id || null,
+        day_of_week:       newItem.day_of_week,
+        assigned_staff_id: newItem.assigned_staff_id || null,
+        sort_order: items.filter(i => i.day_of_week === newItem.day_of_week).length,
+      })
+      .select("*, category:categories(name, icon), assigned_staff:assigned_staff_id(full_name)")
+      .single();
     if (data) setItems(p => [...p, data]);
-    setNewItem({ title:"", category_id: newItem.category_id, day_of_week: newItem.day_of_week });
+    setNewItem(p => ({ ...p, title: "" }));
     setSaving(false);
   };
 
@@ -159,7 +149,6 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
     setItems(p => p.filter(i => i.id !== id));
   };
 
-  // Stats
   const done       = items.filter(i => i.status === "done").length;
   const inProgress = items.filter(i => i.status === "in_progress").length;
   const pct        = items.length ? Math.round((done / items.length) * 100) : 0;
@@ -169,9 +158,7 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
         Weekly <span style={S.accent}>Store Plan</span>
       </div>
-      <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        Week of {weekStart}
-      </div>
+      <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>Week of {weekStart}</div>
 
       {/* Branch selector */}
       {branches.length > 1 && (
@@ -190,16 +177,12 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
         </div>
       )}
 
-      {/* No plan this week */}
+      {/* No plan */}
       {!activePlan && !loading && (
         <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>
           <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
-          <div style={{ ...S.dFont, fontSize:18, fontWeight:600, marginBottom:8 }}>
-            No plan for this week
-          </div>
-          <div style={{ ...S.muted, marginBottom:20 }}>
-            Create a new plan or copy last week's
-          </div>
+          <div style={{ ...S.dFont, fontSize:18, fontWeight:600, marginBottom:8 }}>No plan for this week</div>
+          <div style={{ ...S.muted, marginBottom:20 }}>Create a new plan or copy last week's</div>
           <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
             <button className="btnP" style={S.btnP} onClick={createPlan} disabled={creating}>
               {creating ? "Creating…" : "＋ New Plan"}
@@ -211,16 +194,13 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
         </div>
       )}
 
-      {/* Active plan */}
       {activePlan && (
         <>
           {/* Progress */}
           <div style={S.card}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
               <div style={S.h3}>Week Progress</div>
-              <span style={{ fontSize:14, fontWeight:700, color:pct>=70?"#4ade80":C.accentColor }}>
-                {pct}%
-              </span>
+              <span style={{ fontSize:14, fontWeight:700, color:pct>=70?"#4ade80":C.accentColor }}>{pct}%</span>
             </div>
             <div style={{ height:5, borderRadius:3, background:C.surfaceHigh, marginBottom:8 }}>
               <div style={{ height:"100%", borderRadius:3, width:`${pct}%`,
@@ -233,7 +213,7 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
             </div>
           </div>
 
-          {/* Add item form */}
+          {/* Add item */}
           <div style={S.card}>
             <div style={S.h3}>Add Activity</div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -245,6 +225,16 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
                 </select>
               </div>
               <div>
+                <div style={S.lbl}>Assign to</div>
+                <select style={S.sel} value={newItem.assigned_staff_id}
+                  onChange={e => setNewItem(p => ({ ...p, assigned_staff_id: e.target.value }))}>
+                  <option value="">— All Staff —</option>
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <div>
                 <div style={S.lbl}>Category</div>
                 <select style={S.sel} value={newItem.category_id}
                   onChange={e => setNewItem(p => ({ ...p, category_id: e.target.value }))}>
@@ -252,17 +242,19 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
                   {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
                 </select>
               </div>
+              <div>
+                <div style={S.lbl}>Activity</div>
+                <input style={{ ...S.inp, marginTop:5, marginBottom:0 }}
+                  placeholder="e.g. Update mannequins"
+                  value={newItem.title}
+                  onChange={e => setNewItem(p => ({ ...p, title: e.target.value }))}
+                  onKeyDown={e => e.key==="Enter" && addItem()} />
+              </div>
             </div>
-            <div style={S.lbl}>Activity</div>
-            <div style={{ display:"flex", gap:8 }}>
-              <input style={{ ...S.inp, flex:1, marginBottom:0, marginTop:0 }}
-                placeholder="e.g. Update mannequins in Men's"
-                value={newItem.title}
-                onChange={e => setNewItem(p => ({ ...p, title: e.target.value }))}
-                onKeyDown={e => e.key==="Enter" && addItem()} />
-              <button className="btnP" style={{ ...S.btnP, flexShrink:0 }}
-                onClick={addItem} disabled={saving}>Add</button>
-            </div>
+            <button className="btnP" style={{ ...S.btnP, width:"100%", marginTop:8 }}
+              onClick={addItem} disabled={saving}>
+              {saving ? "Saving…" : "＋ Add Activity"}
+            </button>
           </div>
 
           {/* Plan by day */}
@@ -282,10 +274,11 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
                   <div key={item.id} style={{ display:"flex", alignItems:"center", gap:10,
                     padding:"8px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
                     <button onClick={() => toggleStatus(item)} style={{
-                      width:22, height:22, borderRadius:"50%", border:`2px solid ${STATUS_COLORS[item.status]}`,
+                      width:22, height:22, borderRadius:"50%",
+                      border:`2px solid ${STATUS_COLORS[item.status]}`,
                       background: item.status==="done" ? STATUS_COLORS[item.status] : "transparent",
-                      cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center",
-                      fontSize:11, color:"#0a0a0f",
+                      cursor:"pointer", flexShrink:0, display:"flex", alignItems:"center",
+                      justifyContent:"center", fontSize:11, color:"#0a0a0f",
                     }}>
                       {item.status==="done" ? "✓" : item.status==="in_progress" ? "●" : ""}
                     </button>
@@ -295,11 +288,21 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
                         textDecoration: item.status==="done" ? "line-through" : "none" }}>
                         {item.title}
                       </div>
-                      {item.category && (
-                        <div style={{ fontSize:11, color:C.accentColor, marginTop:2 }}>
-                          {item.category.icon} {item.category.name}
-                        </div>
-                      )}
+                      <div style={{ display:"flex", gap:8, marginTop:2, flexWrap:"wrap" }}>
+                        {item.category && (
+                          <span style={{ fontSize:11, color:C.accentColor }}>
+                            {item.category.icon} {item.category.name}
+                          </span>
+                        )}
+                        {item.assigned_staff?.full_name && (
+                          <span style={{ fontSize:11, color:"#818cf8" }}>
+                            👤 {item.assigned_staff.full_name}
+                          </span>
+                        )}
+                        {!item.assigned_staff?.full_name && (
+                          <span style={{ fontSize:11, color:C.mutedColor }}>👥 All Staff</span>
+                        )}
+                      </div>
                     </div>
                     <button onClick={() => deleteItem(item.id)}
                       style={{ background:"none", border:"none", color:C.mutedColor,
