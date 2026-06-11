@@ -1,73 +1,99 @@
 import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
+import { supabase } from "../../lib/supabase.js";
 
-// ── Reusable grid — used by VM page and Manager upload tab ──
 export function GuidelinesGrid({ guidelines }) {
-  const [filter, setFilter] = useState("All");
-  const cats  = ["All", ...Array.from(new Set(guidelines.map(g => g.category)))];
-  const shown = filter === "All" ? guidelines : guidelines.filter(g => g.category === filter);
-
+  if (!guidelines.length) return (
+    <div style={{ ...S.muted, textAlign:"center", padding:20 }}>No guidelines published yet.</div>
+  );
   return (
     <div>
-      <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
-        {cats.map(c => (
-          <button key={c} className="tab-btn" style={S.tab(filter === c)} onClick={() => setFilter(c)}>
-            {c}
-          </button>
-        ))}
-      </div>
-
-      {shown.length === 0 && (
-        <div style={{ ...S.muted, textAlign:"center", padding:30 }}>
-          No guidelines published yet.
-        </div>
-      )}
-
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        {shown.map((g, i) => (
-          <div key={g.id ?? i} className="card-h"
-            style={{ ...S.card, marginBottom:0, cursor:"pointer" }}>
-            <div style={{ fontSize:26, marginBottom:8 }}>
-              {g.fileType === "img" ? "🖼️" : "📘"}
-            </div>
-            <div style={{ fontSize:13, fontWeight:700, lineHeight:1.3, marginBottom:6 }}>
-              {g.title}
-            </div>
-            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:10 }}>
-              <span style={S.chip("vm")}>{g.category}</span>
-              {g.pages    && <span style={{ ...S.muted, fontSize:11 }}>{g.pages}p · {g.updated}</span>}
-              {g.fileName && (
-                <span style={{ ...S.muted, fontSize:11, maxWidth:90, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {g.fileName}
-                </span>
-              )}
-            </div>
-            {g.previewUrl && (
-              <img src={g.previewUrl} alt="" style={{ width:"100%", height:64, objectFit:"cover", borderRadius:8, marginBottom:8, border:`1px solid ${C.accentColor}22` }} />
-            )}
-            <button className="btnG"
-              style={{ ...S.btnG, width:"100%", fontSize:12, padding:"7px" }}
-              onClick={() => g.fileUrl ? window.open(g.fileUrl, "_blank") : alert(`Opening: ${g.title}`)}>
-              View →
-            </button>
+      {guidelines.map(g => (
+        <div key={g.id} style={{ ...S.card, display:"flex", gap:12, alignItems:"center" }}>
+          <div style={{ fontSize:28 }}>{g.file_type==="img" ? "🖼️" : g.file_type==="pdf" ? "📄" : "📎"}</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700, fontSize:14 }}>{g.title}</div>
+            <div style={{ ...S.muted, fontSize:12 }}>{g.category}</div>
           </div>
-        ))}
-      </div>
+          {g.file_url && (
+            <a href={g.file_url} target="_blank" rel="noopener noreferrer"
+              style={{ textDecoration:"none", fontSize:12, padding:"6px 12px",
+                background:"transparent", color:C.accentColor, border:`1px solid ${C.accentColor}33`,
+                borderRadius:8, cursor:"pointer" }}>
+              Open
+            </a>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
 
-// ── VM-facing page ──
-export function VMGuidelines({ guidelines }) {
+export function VMGuidelines({ guidelines, userId }) {
+  const [acked,   setAcked]   = useState({});
+  const [loading, setLoading] = useState({});
+
+  const acknowledge = async (guidelineId) => {
+    if (acked[guidelineId] || !userId) return;
+    setLoading(p => ({ ...p, [guidelineId]: true }));
+    await supabase.from("guideline_acks")
+      .upsert({ guideline_id: guidelineId, user_id: userId });
+    setAcked(p => ({ ...p, [guidelineId]: true }));
+    setLoading(p => ({ ...p, [guidelineId]: false }));
+  };
+
+  if (!guidelines.length) return (
+    <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No guidelines published yet.</div>
+  );
+
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Guideline <span style={S.accent}>Books</span>
+        VM <span style={S.accent}>Guidelines</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        VM manuals & SOPs · published by management
+        Review and acknowledge all guidelines
       </div>
-      <GuidelinesGrid guidelines={guidelines} />
+      {guidelines.map(g => (
+        <div key={g.id} style={S.card}>
+          <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:10 }}>
+            <div style={{ fontSize:28 }}>{g.file_type==="img" ? "🖼️" : g.file_type==="pdf" ? "📄" : "📎"}</div>
+            <div style={{ flex:1 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ fontWeight:700, fontSize:14 }}>{g.title}</div>
+                {g.is_required && (
+                  <span style={{ fontSize:10, fontWeight:700, color:"#f87171",
+                    background:"#f8717118", padding:"2px 8px", borderRadius:10 }}>Required</span>
+                )}
+              </div>
+              <div style={{ ...S.muted, fontSize:12 }}>{g.category}</div>
+            </div>
+            {g.file_url && (
+              <a href={g.file_url} target="_blank" rel="noopener noreferrer"
+                style={{ textDecoration:"none", fontSize:12, padding:"6px 12px",
+                  background:"transparent", color:C.accentColor, border:`1px solid ${C.accentColor}33`,
+                  borderRadius:8, cursor:"pointer" }}>
+                Open
+              </a>
+            )}
+          </div>
+          <button
+            onClick={() => acknowledge(g.id)}
+            disabled={acked[g.id] || loading[g.id]}
+            style={{
+              width:"100%", padding:"9px", borderRadius:9,
+              cursor: acked[g.id] ? "default" : "pointer",
+              fontWeight:600, fontSize:13, border:"none", transition:"all .2s",
+              background: acked[g.id] ? "#4ade8022" : C.surfaceHigh,
+              color: acked[g.id] ? "#4ade80" : C.mutedColor,
+              fontFamily:"'DM Sans',sans-serif",
+            }}>
+            {loading[g.id] ? "Saving…"
+              : acked[g.id] ? "✓ I Have Reviewed This Guideline"
+              : "I Have Reviewed This Guideline"}
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

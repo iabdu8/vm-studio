@@ -31,13 +31,14 @@ import { MgrRequests }        from "./components/manager/MgrRequests.jsx";
 import { MgrAssign }          from "./components/manager/MgrAssign.jsx";
 import { MgrReports }         from "./components/manager/MgrReports.jsx";
 import { AnalyticsDashboard } from "./components/manager/Analytics.jsx";
+import { WeeklyPlan }         from "./components/manager/WeeklyPlan.jsx";
+import { StoreVisits }        from "./components/manager/StoreVisits.jsx";
 import { StoreManagerHome, StoreManagerRequests } from "./components/manager/StoreManagerShell.jsx";
 import { AreaManagerOverview } from "./components/manager/AreaManagerShell.jsx";
 import { SuperAdminPanel }    from "./components/superadmin/SuperAdminPanel.jsx";
 import { S, C }               from "./styles/theme.js";
 import { nowTime }            from "./utils.js";
 
-// ── Loading ───────────────────────────────────────────────────
 function LoadingScreen() {
   return (
     <div style={{ ...S.loginBg, flexDirection:"column", gap:16 }}>
@@ -48,7 +49,6 @@ function LoadingScreen() {
   );
 }
 
-// ── Forgot Password ───────────────────────────────────────────
 function ForgotPassword({ onBack }) {
   const [email, setEmail] = useState("");
   const [sent, setSent]   = useState(false);
@@ -106,7 +106,6 @@ function ForgotPassword({ onBack }) {
   );
 }
 
-// ── Login ─────────────────────────────────────────────────────
 function LoginScreen() {
   const [view,     setView]     = useState("login");
   const [email,    setEmail]    = useState("");
@@ -162,12 +161,9 @@ function LoginScreen() {
 }
 
 function SuperAdminApp() {
-  return (
-    <div style={S.app}><StyleTag /><SuperAdminPanel /></div>
-  );
+  return <div style={S.app}><StyleTag /><SuperAdminPanel /></div>;
 }
 
-// ── Authenticated ─────────────────────────────────────────────
 function AuthenticatedApp() {
   const {
     profile, company, categories, branches,
@@ -177,8 +173,8 @@ function AuthenticatedApp() {
 
   const [vmPage,      setVmPage]      = useState("home");
   const [mgrPage,     setMgrPage]     = useState("overview");
-  const [smPage,      setSmPage]      = useState("home"); // store manager
-  const [amPage,      setAmPage]      = useState("overview"); // area manager
+  const [smPage,      setSmPage]      = useState("home");
+  const [amPage,      setAmPage]      = useState("overview");
   const [tasks,       setTasks]       = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [guidelines,  setGuidelines]  = useState([]);
@@ -190,8 +186,19 @@ function AuthenticatedApp() {
   const [campaign,    setCampaign]    = useState(null);
   const [campaignProgress, setCampaignProgress] = useState([]);
   const [promotions,  setPromotions]  = useState([]);
+  const [visits,      setVisits]      = useState([]);
   const [localBranches, setLocalBranches] = useState([]);
   const [dataLoaded,  setDataLoaded]  = useState(false);
+
+  const loadVisits = async (cid) => {
+    const { data } = await supabase
+      .from("store_visits")
+      .select("*, visitor:visitor_id(full_name), findings:visit_findings(*)")
+      .eq("company_id", cid)
+      .order("created_at", { ascending:false })
+      .limit(20);
+    setVisits(data ?? []);
+  };
 
   useEffect(() => {
     if (!company) { setDataLoaded(true); return; }
@@ -224,6 +231,7 @@ function AuthenticatedApp() {
         .eq("company_id", company.id)
         .order("created_at", { ascending:false }).limit(10)
         .then(({ data }) => setFloorWalks(data ?? [])),
+      loadVisits(company.id),
     ]).finally(() => setDataLoaded(true));
 
     subscribeToPush(profile.id, company.id);
@@ -360,7 +368,7 @@ function AuthenticatedApp() {
                                     tasks={tasks} setTasks={setTasks} onSubmit={handleSubmit}
                                     onTaskToggle={(id, done) => updateTask(id, { is_done:done })
                                       .then(() => getTasks(company.id).then(setTasks))} />}
-        {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} />}
+        {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
         {vmPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                     setTeamMessages={setTeamChat} mgrMessages={mgrChat}
                                     setMgrMessages={setMgrChat}
@@ -386,7 +394,6 @@ function AuthenticatedApp() {
                                   setMgrMessages={setMgrChat}
                                   onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} />}
       </div>
-      {/* Store Manager Nav */}
       <nav style={S.bottomNav}>
         {[["home","🏠","Home"],["requests","📥","Submissions"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
           <button key={k} className="tab-btn" style={S.navBtn(smPage===k)} onClick={() => setSmPage(k)}>
@@ -409,14 +416,16 @@ function AuthenticatedApp() {
                                    campaign={campaign} campaignProgress={campaignProgress}
                                    branches={activeBranches} />}
         {amPage==="requests"  && <MgrRequests submissions={submissions} onReview={handleReview} />}
+        {amPage==="visits"    && <StoreVisits company={company} branches={activeBranches}
+                                   profile={profile} visits={visits}
+                                   onVisitCreated={() => loadVisits(company.id)} />}
         {amPage==="chat"      && <Chat user={profile} teamMessages={teamChat}
                                    setTeamMessages={setTeamChat} mgrMessages={mgrChat}
                                    setMgrMessages={setMgrChat}
                                    onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} />}
       </div>
-      {/* Area Manager Nav */}
       <nav style={S.bottomNav}>
-        {[["overview","📊","Overview"],["requests","📥","Requests"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
+        {[["overview","📊","Overview"],["requests","📥","Requests"],["visits","🚶","Visits"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
           <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
             <span style={{ fontSize:20 }}>{icon}</span>
             <span>{lbl}</span>
@@ -426,7 +435,7 @@ function AuthenticatedApp() {
     </div>
   );
 
-  // ── VM Manager Shell (full access) ────────────────────────
+  // ── VM Manager Shell ──────────────────────────────────────
   return (
     <div style={S.app}>
       <StyleTag />
@@ -449,6 +458,11 @@ function AuthenticatedApp() {
                                      onUploadGuideline={handleUploadGuideline}
                                      onAddFloorWalk={handleAddFloorWalk} />}
         {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
+        {mgrPage==="plan"       && <WeeklyPlan   company={company} categories={categories}
+                                     branches={activeBranches} profile={profile} />}
+        {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}
+                                     profile={profile} visits={visits}
+                                     onVisitCreated={() => loadVisits(company.id)} />}
         {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}
         {mgrPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                      setTeamMessages={setTeamChat} mgrMessages={mgrChat}
