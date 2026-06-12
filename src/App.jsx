@@ -35,7 +35,6 @@ import { MgrRequests }        from "./components/manager/MgrRequests.jsx";
 import { MgrAssign }          from "./components/manager/MgrAssign.jsx";
 import { MgrReports }         from "./components/manager/MgrReports.jsx";
 import { AnalyticsDashboard } from "./components/manager/Analytics.jsx";
-import { WeeklyPlan }         from "./components/manager/WeeklyPlan.jsx";
 import { StoreVisits }        from "./components/manager/StoreVisits.jsx";
 import { StoreManagerHome, StoreManagerRequests } from "./components/manager/StoreManagerShell.jsx";
 import { AreaManagerOverview } from "./components/manager/AreaManagerShell.jsx";
@@ -260,7 +259,7 @@ function AuthenticatedApp() {
     await submitWithFallback({ ...data, company_id:company.id, submitted_by:profile.id });
     if (isOnline) getSubmissions(company.id).then(setSubmissions);
     addLog("Submitted implementation", data.categoryName ?? "");
-    notifyManagers(supabase, company.id, "submission_new", "New Submission", profile.full_name + " submitted a VM report");
+    notifyManagers(supabase, company.id, "submission_new", "New Submission", (profile.full_name ?? "") + " submitted a VM report");
   };
 
   const handleReview = async (id, status) => {
@@ -288,7 +287,7 @@ function AuthenticatedApp() {
     await createTask({ ...payload, company_id:company.id, created_by:profile.id });
     getTasks(company.id).then(setTasks);
     addLog("Assigned new task", payload.title);
-    notifyAll(supabase, company.id, "task_created", "New Task Assigned", payload.title);
+    notifyAll(supabase, company.id, "task_created", "New Task Assigned", payload.title ?? "");
   };
 
   const handleUploadGuideline = async (title, category, file) => {
@@ -389,7 +388,8 @@ function AuthenticatedApp() {
                                     tasks={tasks} setTasks={setTasks} onSubmit={handleSubmit}
                                     onTaskToggle={(id, done) => updateTask(id, { is_done:done })
                                       .then(() => getTasks(company.id).then(setTasks))} />}
-        {vmPage==="demo"       && <VMDemoHold   demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
+        {vmPage==="demo"       && <VMDemoHold   demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
+                                    onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
         {vmPage==="plan"       && <VMPlan       profile={profile} />}
         {vmPage==="visits"     && <VMVisits     profile={profile} />}
         {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
@@ -475,16 +475,13 @@ function AuthenticatedApp() {
                                      onCreatePromotion={handleCreatePromotion}
                                      onDeletePromotion={handleDeletePromotion} />}
         {mgrPage==="requests"   && <MgrRequests  submissions={submissions} onReview={handleReview} />}
-        {mgrPage==="assign"     && <>
-          <WeeklyPlan company={company} categories={categories} branches={activeBranches} profile={profile} />
-          <MgrAssign    tasks={tasks} categories={categories}
+        {mgrPage==="assign"     && <MgrAssign    tasks={tasks} categories={categories}
                                      branches={activeBranches} company={company} guidelines={guidelines}
                                      floorWalks={floorWalks} profile={profile} onCreateTask={handleCreateTask}
                                      onDeleteTask={id => deleteTask(id).then(() => getTasks(company.id).then(setTasks))}
                                      onUploadGuideline={handleUploadGuideline}
-                                     onAddFloorWalk={handleAddFloorWalk} /></>}
+                                     onAddFloorWalk={handleAddFloorWalk} />}
         {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
-        
         {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}
                                      profile={profile} visits={visits}
                                      onVisitCreated={() => loadVisits(company.id)} />}
