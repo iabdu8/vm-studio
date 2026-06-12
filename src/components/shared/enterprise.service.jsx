@@ -1,12 +1,6 @@
 import { supabase } from "../lib/supabase.js";
 
-// ============================================================
-//  ENTERPRISE SERVICE
-//  Promotions + Campaign Progress
-// ============================================================
-
 // ── PROMOTIONS ────────────────────────────────────────────────
-// العروض المنتهية تختفي تلقائياً (date_to >= اليوم)
 export async function getPromotions(company_id) {
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
@@ -21,12 +15,8 @@ export async function getPromotions(company_id) {
 
 export async function createPromotion(payload, branchIds) {
   const { data: promo, error } = await supabase
-    .from("promotions")
-    .insert(payload)
-    .select()
-    .single();
+    .from("promotions").insert(payload).select().single();
   if (error) throw error;
-
   if (branchIds?.length) {
     await supabase.from("promotion_branches")
       .insert(branchIds.map(b => ({ promotion_id: promo.id, branch_id: b })));
@@ -49,7 +39,6 @@ export async function getCampaignProgress(campaign_id) {
   return data ?? [];
 }
 
-// عند إنشاء حملة — كل الفروع تبدأ not_started
 export async function initCampaignBranches(campaign_id, branchIds) {
   if (!branchIds?.length) return;
   const { error } = await supabase.from("campaign_branches")
@@ -68,32 +57,67 @@ export async function setCampaignBranchStatus(campaign_id, branch_id, status) {
     );
   if (error) throw error;
 }
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────
+export async function sendNotification(sb, { company_id, user_id, type, title, body }) {
+  await sb.from("notifications").insert({ company_id, user_id, type, title, body });
+}
+
 export async function notifyAll(sb, company_id, type, title, body) {
   const { data: users } = await sb
-    .from('profiles').select('id').eq('company_id', company_id);
+    .from("profiles").select("id").eq("company_id", company_id);
   if (!users?.length) return;
-  await sb.from('notifications').insert(
+  await sb.from("notifications").insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
 }
 
 export async function notifyManagers(sb, company_id, type, title, body) {
   const { data: users } = await sb
-    .from('profiles').select('id')
-    .eq('company_id', company_id)
-    .in('role', ['manager', 'area_manager', 'store_manager']);
+    .from("profiles").select("id")
+    .eq("company_id", company_id)
+    .in("role", ["manager", "area_manager", "store_manager"]);
   if (!users?.length) return;
-  await sb.from('notifications').insert(
+  await sb.from("notifications").insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
 }
 
 export async function notifyBranch(sb, company_id, branch_id, type, title, body) {
   const { data: users } = await sb
-    .from('profiles').select('id')
-    .eq('company_id', company_id).eq('branch_id', branch_id);
+    .from("profiles").select("id")
+    .eq("company_id", company_id).eq("branch_id", branch_id);
   if (!users?.length) return;
-  await sb.from('notifications').insert(
+  await sb.from("notifications").insert(
+    users.map(u => ({ company_id, user_id: u.id, type, title, body }))
+  );
+}
+export async function notifyAll(sb, company_id, type, title, body) {
+  const { data: users } = await sb
+    .from("profiles").select("id").eq("company_id", company_id);
+  if (!users?.length) return;
+  await sb.from("notifications").insert(
+    users.map(u => ({ company_id, user_id: u.id, type, title, body }))
+  );
+}
+
+export async function notifyManagers(sb, company_id, type, title, body) {
+  const { data: users } = await sb
+    .from("profiles").select("id")
+    .eq("company_id", company_id)
+    .in("role", ["manager", "area_manager", "store_manager"]);
+  if (!users?.length) return;
+  await sb.from("notifications").insert(
+    users.map(u => ({ company_id, user_id: u.id, type, title, body }))
+  );
+}
+
+export async function notifyBranch(sb, company_id, branch_id, type, title, body) {
+  const { data: users } = await sb
+    .from("profiles").select("id")
+    .eq("company_id", company_id).eq("branch_id", branch_id);
+  if (!users?.length) return;
+  await sb.from("notifications").insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
 }

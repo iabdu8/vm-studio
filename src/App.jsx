@@ -11,6 +11,7 @@ import {
 import {
   getPromotions, createPromotion, deletePromotion,
   getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
+  notifyAll, notifyManagers, notifyBranch,
 } from "./services/enterprise.service.js";
 import { supabase } from "./lib/supabase.js";
 import { useOfflineSync } from "./hooks/useOfflineSync.js";
@@ -259,12 +260,22 @@ function AuthenticatedApp() {
     await submitWithFallback({ ...data, company_id:company.id, submitted_by:profile.id });
     if (isOnline) getSubmissions(company.id).then(setSubmissions);
     addLog("Submitted implementation", data.categoryName ?? "");
+    notifyManagers(supabase, company.id, "submission_new", "New Submission", profile.full_name + " submitted a VM report");
   };
 
   const handleReview = async (id, status) => {
     await reviewSubmission(id, status, status==="approved" ? 85 : null, profile.id);
     getSubmissions(company.id).then(setSubmissions);
     addLog(status==="approved" ? "Approved submission" : "Requested revision", "VM submission");
+    const sub = submissions.find(s => s.id === id);
+    if (sub?.submitted_by) {
+      supabase.from("notifications").insert({
+        company_id: company.id, user_id: sub.submitted_by,
+        type: status === "approved" ? "submission_approved" : "submission_revision",
+        title: status === "approved" ? "Submission Approved ✅" : "Revision Requested ↩️",
+        body: status === "approved" ? "Your VM report was approved!" : "Your VM report needs revision.",
+      });
+    }
   };
 
   const handleAddNote = async (submissionId, note) => {
@@ -277,6 +288,7 @@ function AuthenticatedApp() {
     await createTask({ ...payload, company_id:company.id, created_by:profile.id });
     getTasks(company.id).then(setTasks);
     addLog("Assigned new task", payload.title);
+    notifyAll(supabase, company.id, "task_created", "New Task Assigned", payload.title);
   };
 
   const handleUploadGuideline = async (title, category, file) => {
@@ -330,6 +342,7 @@ function AuthenticatedApp() {
       getCampaignProgress(data.id).then(setCampaignProgress);
     }
     addLog("Updated campaign", name);
+    notifyAll(supabase, company.id, "campaign_created", "New Campaign: " + name, "");
   };
 
   const handleSetBranchStatus = async (branch_id, status) => {
