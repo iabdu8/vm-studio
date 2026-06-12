@@ -1,12 +1,7 @@
-import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 
 export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHold, floorWalks, campaign, promotions = [] }) {
-  const [itemCode, setItemCode] = useState("");
-  const [itemNote, setItemNote] = useState("");
-  const [added,    setAdded]    = useState(false);
-
   const name     = user?.full_name ?? user?.name ?? "";
   const branch   = user?.branch?.name ?? user?.branch ?? "";
   const myTasks  = tasks.filter(t => t.assigned_to === "all" || t.assigned_to === user?.id);
@@ -16,13 +11,6 @@ export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHol
     .filter(s => (s.submitter?.id ?? s.submitted_by) === user?.id && s.score != null)
     .reduce((a, s) => a + s.score, 0);
   const subCount = submissions.filter(s => (s.submitter?.id ?? s.submitted_by) === user?.id).length;
-
-  const handleAddDemo = () => {
-    if (!itemCode.trim()) return;
-    onAddDemoHold({ item_code: itemCode.trim(), note: itemNote.trim(), vm: name, branch });
-    setItemCode(""); setItemNote(""); setAdded(true);
-    setTimeout(() => setAdded(false), 3000);
-  };
 
   return (
     <div>
@@ -88,57 +76,7 @@ export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHol
         ))}
       </div>
 
-      {/* ── DEMO HOLD ── */}
-      <div style={S.card} className="fu3">
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div style={S.h3}>Demo Hold</div>
-          {demoHolds?.length > 0 && (
-            <span style={{ fontSize:11, color:C.accentColor, fontWeight:700 }}>
-              {demoHolds.length} item(s) on hold
-            </span>
-          )}
-        </div>
-        <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-          <input
-            style={{ ...S.inp, marginTop:0, marginBottom:0, flex:1 }}
-            placeholder="Item / SKU code"
-            value={itemCode}
-            onChange={e => setItemCode(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleAddDemo()}
-          />
-          <button className="btnP" style={{ ...S.btnP, flexShrink:0, padding:"10px 16px" }}
-            onClick={handleAddDemo}>
-            + Hold
-          </button>
-        </div>
-        <input
-          style={{ ...S.inp, marginTop:0, marginBottom:8 }}
-          placeholder="Location / note (optional)"
-          value={itemNote}
-          onChange={e => setItemNote(e.target.value)}
-        />
-        {added && <div style={{ color:"#4ade80", fontSize:12, marginBottom:8 }}>✓ Added to demo hold</div>}
-
-        {/* Demo hold list */}
-        {demoHolds?.length > 0 && (
-          <div style={{ marginTop:8 }}>
-            {demoHolds.slice(0, 5).map((d, i) => (
-              <div key={i} style={{
-                display:"flex", justifyContent:"space-between", alignItems:"center",
-                padding:"7px 0", borderBottom:`1px solid ${C.accentColor}0a`, fontSize:13,
-              }}>
-                <div>
-                  <span style={{ fontWeight:700, color:C.accentColor }}>{d.item_code}</span>
-                  {d.note && <span style={{ color:C.mutedColor, marginLeft:8, fontSize:12 }}>{d.note}</span>}
-                </div>
-                <span style={{ ...S.muted, fontSize:11 }}>{d.time ?? ""}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── FLOOR WALK ── */}
+      {/* Floor Walk */}
       {floorWalks?.length > 0 && (
         <div style={S.card}>
           <div style={S.h3}>Floor Walk · This Week</div>
@@ -183,7 +121,7 @@ export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHol
               marginTop:5, flexShrink:0 }}/>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:11, color:C.accentColor, fontWeight:600 }}>
-                {t.category?.icon} {t.category?.name ?? "—"} · {t.subcategory?.name ?? "—"}
+                {t.category?.name ?? "—"} · {t.subcategory?.name ?? "—"}
               </div>
               <div style={{ fontSize:13, marginTop:1,
                 color: (t.is_done||t.done) ? C.mutedColor : C.textColor,

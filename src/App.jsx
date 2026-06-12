@@ -462,15 +462,16 @@ function AuthenticatedApp() {
                                      onCreatePromotion={handleCreatePromotion}
                                      onDeletePromotion={handleDeletePromotion} />}
         {mgrPage==="requests"   && <MgrRequests  submissions={submissions} onReview={handleReview} />}
-        {mgrPage==="assign"     && <MgrAssign    tasks={tasks} categories={categories}
-                                     branches={activeBranches} guidelines={guidelines}
+        {mgrPage==="assign"     && <>
+          <WeeklyPlan company={company} categories={categories} branches={activeBranches} profile={profile} />
+          <MgrAssign    tasks={tasks} categories={categories}
+                                     branches={activeBranches} company={company} guidelines={guidelines}
                                      floorWalks={floorWalks} profile={profile} onCreateTask={handleCreateTask}
                                      onDeleteTask={id => deleteTask(id).then(() => getTasks(company.id).then(setTasks))}
                                      onUploadGuideline={handleUploadGuideline}
-                                     onAddFloorWalk={handleAddFloorWalk} />}
+                                     onAddFloorWalk={handleAddFloorWalk} /></>}
         {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
-        {mgrPage==="plan"       && <WeeklyPlan   company={company} categories={categories}
-                                     branches={activeBranches} profile={profile} />}
+        
         {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}
                                      profile={profile} visits={visits}
                                      onVisitCreated={() => loadVisits(company.id)} />}

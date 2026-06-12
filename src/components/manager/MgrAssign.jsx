@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { S, C } from "../../styles/theme.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
 import { GuidelinesGrid } from "../shared/Guidelines.jsx";
+import { WeeklyPlan } from "./WeeklyPlan.jsx";
 
 function FloorWalkUpload({ onAdd }) {
   const [note,   setNote]   = useState("");
@@ -36,9 +37,9 @@ function FloorWalkUpload({ onAdd }) {
 }
 
 export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
-  onCreateTask, onDeleteTask, onUploadGuideline, onAddFloorWalk, profile }) {
+  onCreateTask, onDeleteTask, onUploadGuideline, onAddFloorWalk, profile, company }) {
 
-  const [tab,      setTab]      = useState("add");
+  const [tab,      setTab]      = useState("plan");
   const [catId,    setCatId]    = useState(categories[0]?.id ?? "");
   const [subId,    setSubId]    = useState(categories[0]?.subcategories?.[0]?.id ?? "");
   const [text,     setText]     = useState("");
@@ -53,7 +54,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
   const activeCat  = categories.find(c => c.id === catId);
   const activeSubs = activeCat?.subcategories ?? [];
 
-  // Manager's branch — auto-assign
   const managerBranch = profile?.branch_id
     ? branches.find(b => b.id === profile.branch_id)
     : null;
@@ -93,21 +93,37 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Task <span style={S.accent}>Assignment</span>
+        Plan <span style={S.accent}>&amp; Assign</span>
       </div>
 
-      {/* Show manager's branch */}
       {managerBranch && (
         <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>
-          📍 {managerBranch.name} — Tasks will be assigned to your branch
+          📍 {managerBranch.name}
         </div>
       )}
 
+      {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
-        {[["add","＋ New Task"],["all","All Tasks"],["floor","🚶 Floor Walk"],["guides","📖 Guidelines"]].map(([k,l]) => (
+        {[
+          ["plan",  "📅 Weekly Plan"],
+          ["add",   "＋ New Task"],
+          ["all",   "All Tasks"],
+          ["floor", "🚶 Floor Walk"],
+          ["guides","📖 Guidelines"],
+        ].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
+
+      {/* Weekly Plan */}
+      {tab === "plan" && (
+        <WeeklyPlan
+          company={company}
+          categories={categories}
+          branches={branches}
+          profile={profile}
+        />
+      )}
 
       {/* New Task */}
       {tab === "add" && (
@@ -120,7 +136,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
                 background: catId===c.id ? C.accentColor+"28" : "transparent",
                 color:      catId===c.id ? C.accentColor : C.mutedColor,
                 border:     catId===c.id ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
-                transition:"all .2s",
               }}>{c.name}</button>
             ))}
           </div>
