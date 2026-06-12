@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import { globalCss, S, C } from "../../styles/theme.js";
+import { useTheme } from "../../context/ThemeContext.jsx";
 import { compressAndPreview, formatBytes } from "../../lib/imageCompression.js";
 
 export function StyleTag() {
-  return <style dangerouslySetInnerHTML={{ __html: globalCss }} />;
+  const { mode } = useTheme();
+  return <style dangerouslySetInnerHTML={{ __html: globalCss(mode) }} />;
 }
 
 export function Avatar({ initials, size = 32 }) {
@@ -24,9 +26,7 @@ export function ImageUploader({ label, max = 10, files, onChange }) {
       const saved = compressed.reduce((a, f) => a + (f.originalSize - f.compressedSize), 0);
       setSavedKB(Math.round(saved / 1024));
       onChange([...files, ...compressed]);
-    } finally {
-      setCompressing(false);
-    }
+    } finally { setCompressing(false); }
     e.target.value = "";
   };
 
@@ -34,15 +34,11 @@ export function ImageUploader({ label, max = 10, files, onChange }) {
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div style={S.lbl}>{label} ({files.length}/{max})</div>
-        {savedKB > 0 && (
-          <div style={{ fontSize:10, color:"#4ade80" }}>↓ {savedKB}KB saved</div>
-        )}
+        {savedKB > 0 && <div style={{ fontSize:10, color:"#4ade80" }}>↓ {savedKB}KB saved</div>}
       </div>
       <div style={{ ...S.uploadZ, opacity: compressing ? .6 : 1 }}
         onClick={() => !compressing && ref.current.click()}>
-        {compressing
-          ? "⏳ Compressing…"
-          : files.length === 0
+        {compressing ? "⏳ Compressing…" : files.length === 0
           ? `＋ Tap to upload (max ${max})`
           : `${files.length} photo(s) · tap to add`}
         <input ref={ref} type="file" accept="image/*" multiple
@@ -53,25 +49,20 @@ export function ImageUploader({ label, max = 10, files, onChange }) {
           <div key={i} style={{ position:"relative" }}>
             <img src={f.url} alt="" style={{
               width:66, height:66, objectFit:"cover", borderRadius:8,
-              border:`1px solid ${C.accentColor}22`,
+              border:"1px solid color-mix(in srgb,var(--clr-accent) 22%,transparent)",
             }} />
             {f.compressedSize && (
-              <div style={{
-                position:"absolute", bottom:0, left:0, right:0,
+              <div style={{ position:"absolute", bottom:0, left:0, right:0,
                 background:"#000a", fontSize:8, color:"#fff",
-                textAlign:"center", borderRadius:"0 0 8px 8px", padding:"1px 0",
-              }}>
+                textAlign:"center", borderRadius:"0 0 8px 8px", padding:"1px 0" }}>
                 {formatBytes(f.compressedSize)}
               </div>
             )}
             <button onClick={() => onChange(files.filter((_, j) => j !== i))}
-              style={{
-                position:"absolute", top:-5, right:-5,
-                background:C.accentColor, color:"#0a0a0f",
+              style={{ position:"absolute", top:-5, right:-5,
+                background:"var(--clr-accent)", color:"var(--clr-primary)",
                 border:"none", borderRadius:"50%", width:17, height:17,
-                cursor:"pointer", fontSize:9, fontWeight:900,
-                lineHeight:"17px", padding:0,
-              }}>✕</button>
+                cursor:"pointer", fontSize:9, fontWeight:900, lineHeight:"17px", padding:0 }}>✕</button>
           </div>
         ))}
       </div>
