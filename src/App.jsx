@@ -11,7 +11,7 @@ import {
 import {
   getPromotions, createPromotion, deletePromotion,
   getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
-  notifyAll, notifyManagers, notifyBranch,
+  notifyAll, notifyManagers, notifyUser,
 } from "./services/enterprise.service.js";
 import { supabase } from "./lib/supabase.js";
 import { useOfflineSync } from "./hooks/useOfflineSync.js";
@@ -170,7 +170,7 @@ function SuperAdminApp() {
 function AuthenticatedApp() {
   const {
     profile, company, categories, branches,
-    isVM, isManager, isVMManager, isAreaManager, isStoreManager, isSuperAdmin
+    isVM, isManager, isAreaManager, isStoreManager, isSuperAdmin
   } = useApp();
   const { isOnline, queueSize, syncing, syncQueue, submitWithFallback } = useOfflineSync();
 
@@ -259,7 +259,7 @@ function AuthenticatedApp() {
     await submitWithFallback({ ...data, company_id:company.id, submitted_by:profile.id });
     if (isOnline) getSubmissions(company.id).then(setSubmissions);
     addLog("Submitted implementation", data.categoryName ?? "");
-    notifyManagers(supabase, company.id, "submission_new", "New Submission", (profile.full_name ?? "") + " submitted a VM report");
+    notifyManagers(company.id, "submission_new", "New Submission", (profile.full_name ?? "") + " submitted a VM report");
   };
 
   const handleReview = async (id, status) => {
@@ -268,12 +268,11 @@ function AuthenticatedApp() {
     addLog(status==="approved" ? "Approved submission" : "Requested revision", "VM submission");
     const sub = submissions.find(s => s.id === id);
     if (sub?.submitted_by) {
-      supabase.from("notifications").insert({
-        company_id: company.id, user_id: sub.submitted_by,
-        type: status === "approved" ? "submission_approved" : "submission_revision",
-        title: status === "approved" ? "Submission Approved ✅" : "Revision Requested ↩️",
-        body: status === "approved" ? "Your VM report was approved!" : "Your VM report needs revision.",
-      });
+      notifyUser(company.id, sub.submitted_by,
+        status === "approved" ? "submission_approved" : "submission_revision",
+        status === "approved" ? "Submission Approved ✅" : "Revision Requested ↩️",
+        status === "approved" ? "Your VM report was approved!" : "Your VM report needs revision."
+      );
     }
   };
 
@@ -287,13 +286,18 @@ function AuthenticatedApp() {
     await createTask({ ...payload, company_id:company.id, created_by:profile.id });
     getTasks(company.id).then(setTasks);
     addLog("Assigned new task", payload.title);
-    notifyAll(supabase, company.id, "task_created", "New Task Assigned", payload.title ?? "");
+    if (payload.assigned_to && payload.assigned_to !== "all") {
+      notifyUser(company.id, payload.assigned_to, "task_created", "New Task Assigned", payload.title ?? "");
+    } else {
+      notifyAll(company.id, "task_created", "New Task Assigned", payload.title ?? "");
+    }
   };
 
   const handleUploadGuideline = async (title, category, file) => {
     await uploadGuideline(company.id, profile.id, title, category, file);
     getGuidelines(company.id).then(setGuidelines);
     addLog("Uploaded guideline", title);
+    notifyAll(company.id, "guideline_new", "New Guideline Published", title);
   };
 
   const handleAddDemoHold = async ({ item_code, note }) => {
@@ -341,7 +345,7 @@ function AuthenticatedApp() {
       getCampaignProgress(data.id).then(setCampaignProgress);
     }
     addLog("Updated campaign", name);
-    notifyAll(supabase, company.id, "campaign_created", "New Campaign: " + name, "");
+    notifyAll(company.id, "campaign_created", "New Campaign: " + name, "");
   };
 
   const handleSetBranchStatus = async (branch_id, status) => {
@@ -374,7 +378,6 @@ function AuthenticatedApp() {
   if (!dataLoaded) return <LoadingScreen />;
   if (isSuperAdmin && !company) return <SuperAdminApp />;
 
-  // ── VM Shell ──────────────────────────────────────────────
   if (isVM) return (
     <div style={S.app}>
       <StyleTag />
@@ -402,7 +405,6 @@ function AuthenticatedApp() {
     </div>
   );
 
-  // ── Store Manager Shell ───────────────────────────────────
   if (isStoreManager) return (
     <div style={S.app}>
       <StyleTag />
@@ -429,7 +431,6 @@ function AuthenticatedApp() {
     </div>
   );
 
-  // ── Area Manager Shell ────────────────────────────────────
   if (isAreaManager) return (
     <div style={S.app}>
       <StyleTag />
@@ -459,7 +460,6 @@ function AuthenticatedApp() {
     </div>
   );
 
-  // ── VM Manager Shell ──────────────────────────────────────
   return (
     <div style={S.app}>
       <StyleTag />

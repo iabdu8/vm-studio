@@ -59,65 +59,38 @@ export async function setCampaignBranchStatus(campaign_id, branch_id, status) {
 }
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────
-export async function sendNotification(sb, { company_id, user_id, type, title, body }) {
-  await sb.from("notifications").insert({ company_id, user_id, type, title, body });
-}
-
-export async function notifyAll(sb, company_id, type, title, body) {
-  const { data: users } = await sb
+export async function notifyAll(company_id, type, title, body) {
+  const { data: users } = await supabase
     .from("profiles").select("id").eq("company_id", company_id);
   if (!users?.length) return;
-  await sb.from("notifications").insert(
+  await supabase.from("notifications").insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
 }
 
-export async function notifyManagers(sb, company_id, type, title, body) {
-  const { data: users } = await sb
+export async function notifyManagers(company_id, type, title, body) {
+  const { data: users } = await supabase
     .from("profiles").select("id")
     .eq("company_id", company_id)
     .in("role", ["manager", "area_manager", "store_manager"]);
   if (!users?.length) return;
-  await sb.from("notifications").insert(
+  await supabase.from("notifications").insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
 }
 
-export async function notifyBranch(sb, company_id, branch_id, type, title, body) {
-  const { data: users } = await sb
+export async function notifyBranch(company_id, branch_id, type, title, body) {
+  const { data: users } = await supabase
     .from("profiles").select("id")
     .eq("company_id", company_id).eq("branch_id", branch_id);
   if (!users?.length) return;
-  await sb.from("notifications").insert(
-    users.map(u => ({ company_id, user_id: u.id, type, title, body }))
-  );
-}
-export async function notifyAll(sb, company_id, type, title, body) {
-  const { data: users } = await sb
-    .from("profiles").select("id").eq("company_id", company_id);
-  if (!users?.length) return;
-  await sb.from("notifications").insert(
+  await supabase.from("notifications").insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
 }
 
-export async function notifyManagers(sb, company_id, type, title, body) {
-  const { data: users } = await sb
-    .from("profiles").select("id")
-    .eq("company_id", company_id)
-    .in("role", ["manager", "area_manager", "store_manager"]);
-  if (!users?.length) return;
-  await sb.from("notifications").insert(
-    users.map(u => ({ company_id, user_id: u.id, type, title, body }))
-  );
-}
-
-export async function notifyBranch(sb, company_id, branch_id, type, title, body) {
-  const { data: users } = await sb
-    .from("profiles").select("id")
-    .eq("company_id", company_id).eq("branch_id", branch_id);
-  if (!users?.length) return;
-  await sb.from("notifications").insert(
-    users.map(u => ({ company_id, user_id: u.id, type, title, body }))
-  );
+export async function notifyUser(company_id, user_id, type, title, body) {
+  await supabase.from("notifications").insert({
+    company_id, user_id, type, title, body
+  });
 }

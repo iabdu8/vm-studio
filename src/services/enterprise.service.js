@@ -97,3 +97,9 @@ export async function notifyBranch(sb, company_id, branch_id, type, title, body)
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
 }
+
+export async function notifyUser(company_id, user_id, type, title, body) {
+  await supabase.from('notifications').insert({
+    company_id, user_id, type, title, body
+  });
+}
