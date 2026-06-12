@@ -4,7 +4,7 @@ import { signIn, signOut } from "./services/auth.service.js";
 import {
   getTasks, createTask, updateTask, deleteTask,
   getSubmissions, reviewSubmission,
-  getGuidelines, uploadGuideline,
+  getGuidelines, uploadGuideline, deleteGuideline,
   getChatMessages, sendMessage, subscribeToChat,
   getActivityLog, logActivity,
 } from "./services/data.service.js";
@@ -297,6 +297,12 @@ function AuthenticatedApp() {
     }
   };
 
+  const handleDeleteGuideline = async (id) => {
+    await deleteGuideline(id);
+    setGuidelines(p => p.filter(x => x.id !== id));
+    addLog("Deleted guideline", id);
+  };
+
   const handleUploadGuideline = async (title, category, file) => {
     await uploadGuideline(company.id, profile.id, title, category, file);
     getGuidelines(company.id).then(setGuidelines);
@@ -489,7 +495,7 @@ function AuthenticatedApp() {
                                      branches={activeBranches} company={company} guidelines={guidelines}
                                      floorWalks={floorWalks} profile={profile} onCreateTask={handleCreateTask}
                                      onDeleteTask={id => deleteTask(id).then(() => getTasks(company.id).then(setTasks))}
-                                     onUploadGuideline={handleUploadGuideline}
+                                     onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline}
                                      onAddFloorWalk={handleAddFloorWalk} />}
         {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
         {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}

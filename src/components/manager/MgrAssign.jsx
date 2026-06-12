@@ -38,7 +38,7 @@ function FloorWalkUpload({ onAdd }) {
 }
 
 export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
-  onCreateTask, onDeleteTask, onUploadGuideline, onAddFloorWalk, profile, company }) {
+  onCreateTask, onDeleteTask, onUploadGuideline, onDeleteGuideline, onAddFloorWalk, profile, company }) {
 
   const [tab,        setTab]        = useState("plan");
   const [catId,      setCatId]      = useState(categories[0]?.id ?? "");
@@ -316,7 +316,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
             </button>
           </div>
           <div style={{ ...S.h3, marginTop:4, marginBottom:10 }}>Published ({guidelines.length})</div>
-          <GuidelinesGrid guidelines={guidelines} showAcks={true} companyId={company?.id}/>
+          <GuidelinesGrid guidelines={guidelines} showAcks={true} companyId={company?.id} onDelete={onDeleteGuideline}/>
         </div>
       )}
     </div>

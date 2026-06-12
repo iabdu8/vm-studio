@@ -189,3 +189,8 @@ export async function getActivityLog(company_id) {
   if (error) throw error;
   return data ?? [];
 }
+
+export async function deleteGuideline(id) {
+  const { error } = await supabase.from("guidelines").delete().eq("id", id);
+  if (error) throw error;
+}

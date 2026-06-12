@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 
-export function GuidelinesGrid({ guidelines, showAcks = false, companyId }) {
+export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDelete }) {
   const [acks, setAcks] = useState({});
 
   useEffect(() => {
@@ -41,17 +41,23 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId }) {
               </div>
               <div style={{ ...S.muted, fontSize:12 }}>{g.category}</div>
             </div>
-            {g.file_url && (
-              <a href={g.file_url} target="_blank" rel="noopener noreferrer"
-                style={{ textDecoration:"none", fontSize:12, padding:"6px 12px",
-                  background:"transparent", color:C.accentColor, border:`1px solid ${C.accentColor}33`,
-                  borderRadius:8, cursor:"pointer" }}>
-                Open
-              </a>
-            )}
+            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+              {g.file_url && (
+                <a href={g.file_url} target="_blank" rel="noopener noreferrer"
+                  style={{ textDecoration:"none", fontSize:12, padding:"6px 12px",
+                    background:"transparent", color:C.accentColor,
+                    border:`1px solid ${C.accentColor}33`, borderRadius:8, cursor:"pointer" }}>
+                  Open
+                </a>
+              )}
+              {onDelete && (
+                <button onClick={() => onDelete(g.id)}
+                  style={{ background:"none", border:"none", color:"#f87171",
+                    cursor:"pointer", fontSize:16, padding:"4px" }}>🗑️</button>
+              )}
+            </div>
           </div>
 
-          {/* Acknowledgements list for managers */}
           {showAcks && (
             <div style={{ borderTop:`1px solid ${C.accentColor}14`, paddingTop:10 }}>
               <div style={{ ...S.h3, marginBottom:6 }}>
@@ -64,8 +70,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId }) {
                   {(acks[g.id] ?? []).map((a, i) => (
                     <div key={i} style={{
                       fontSize:11, padding:"4px 10px", borderRadius:12,
-                      background:"#4ade8018", color:"#4ade80",
-                      border:"1px solid #4ade8033",
+                      background:"#4ade8018", color:"#4ade80", border:"1px solid #4ade8033",
                     }}>
                       ✓ {a.user?.full_name ?? "—"} · {new Date(a.acked_at).toLocaleDateString("en-GB")}
                     </div>
@@ -84,7 +89,6 @@ export function VMGuidelines({ guidelines, userId }) {
   const [acked,   setAcked]   = useState({});
   const [loading, setLoading] = useState({});
 
-  // Load existing acks for this user
   useEffect(() => {
     if (!userId || !guidelines.length) return;
     supabase.from("guideline_acks")
@@ -136,8 +140,8 @@ export function VMGuidelines({ guidelines, userId }) {
             {g.file_url && (
               <a href={g.file_url} target="_blank" rel="noopener noreferrer"
                 style={{ textDecoration:"none", fontSize:12, padding:"6px 12px",
-                  background:"transparent", color:C.accentColor, border:`1px solid ${C.accentColor}33`,
-                  borderRadius:8, cursor:"pointer" }}>
+                  background:"transparent", color:C.accentColor,
+                  border:`1px solid ${C.accentColor}33`, borderRadius:8, cursor:"pointer" }}>
                 Open
               </a>
             )}
