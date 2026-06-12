@@ -11,7 +11,7 @@ import {
 import {
   getPromotions, createPromotion, deletePromotion,
   getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
-  notifyAll, notifyManagers, notifyUser,
+  notifyAll, notifyManagers, notifyUser, notifyBranch,
 } from "./services/enterprise.service.js";
 import { supabase } from "./lib/supabase.js";
 import { useOfflineSync } from "./hooks/useOfflineSync.js";
@@ -255,11 +255,14 @@ function AuthenticatedApp() {
     getActivityLog(company.id).then(setLog);
   };
 
+  // ── HANDLERS ─────────────────────────────────────────────
+
   const handleSubmit = async (data) => {
     await submitWithFallback({ ...data, company_id:company.id, submitted_by:profile.id });
     if (isOnline) getSubmissions(company.id).then(setSubmissions);
     addLog("Submitted implementation", data.categoryName ?? "");
-    notifyManagers(company.id, "submission_new", "New Submission", (profile.full_name ?? "") + " submitted a VM report");
+    notifyManagers(company.id, "submission_new", "New Submission 📤",
+      (profile.full_name ?? "") + " submitted a VM report");
   };
 
   const handleReview = async (id, status) => {
@@ -287,9 +290,10 @@ function AuthenticatedApp() {
     getTasks(company.id).then(setTasks);
     addLog("Assigned new task", payload.title);
     if (payload.assigned_to && payload.assigned_to !== "all") {
-      notifyUser(company.id, payload.assigned_to, "task_created", "New Task Assigned", payload.title ?? "");
+      notifyUser(company.id, payload.assigned_to, "task_created",
+        "New Task Assigned 📋", payload.title ?? "");
     } else {
-      notifyAll(company.id, "task_created", "New Task Assigned", payload.title ?? "");
+      notifyAll(company.id, "task_created", "New Task Assigned 📋", payload.title ?? "");
     }
   };
 
@@ -297,7 +301,7 @@ function AuthenticatedApp() {
     await uploadGuideline(company.id, profile.id, title, category, file);
     getGuidelines(company.id).then(setGuidelines);
     addLog("Uploaded guideline", title);
-    notifyAll(company.id, "guideline_new", "New Guideline Published", title);
+    notifyAll(company.id, "guideline_new", "New Guideline Published 📖", title);
   };
 
   const handleAddDemoHold = async ({ item_code, note }) => {
@@ -330,6 +334,11 @@ function AuthenticatedApp() {
       .order("created_at", { ascending:false }).limit(10);
     setFloorWalks(updated ?? []);
     addLog("Added floor walk", note?.slice(0,40) ?? "");
+    // إشعار لكل الموظفين في الفرع
+    if (profile.branch_id) {
+      notifyBranch(company.id, profile.branch_id, "visit_created",
+        "New Floor Walk 🚶", "Manager published a new floor walk");
+    }
   };
 
   const handleSaveCampaign = async ({ name, date_from, date_to }) => {
@@ -345,7 +354,7 @@ function AuthenticatedApp() {
       getCampaignProgress(data.id).then(setCampaignProgress);
     }
     addLog("Updated campaign", name);
-    notifyAll(company.id, "campaign_created", "New Campaign: " + name, "");
+    notifyAll(company.id, "campaign_created", "New Campaign 📣", name);
   };
 
   const handleSetBranchStatus = async (branch_id, status) => {
@@ -358,6 +367,7 @@ function AuthenticatedApp() {
     await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds);
     getPromotions(company.id).then(setPromotions);
     addLog("Created promotion", payload.name);
+    notifyAll(company.id, "guideline_new", "New Promotion 🏷️", payload.name);
   };
 
   const handleDeletePromotion = async (id) => {
@@ -484,7 +494,11 @@ function AuthenticatedApp() {
         {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
         {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}
                                      profile={profile} visits={visits}
-                                     onVisitCreated={() => loadVisits(company.id)} />}
+                                     onVisitCreated={() => {
+                                       loadVisits(company.id);
+                                       notifyManagers(company.id, "visit_created",
+                                         "New Store Visit 🚶", profile.full_name + " submitted a visit report");
+                                     }} />}
         {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}
         {mgrPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                      setTeamMessages={setTeamChat} mgrMessages={mgrChat}
