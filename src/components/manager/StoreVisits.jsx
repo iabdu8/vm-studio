@@ -2,11 +2,7 @@ import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
-
-// ============================================================
-//  STORE VISITS
-//  Area Manager / VM Manager يوثّق زيارات الفروع
-// ============================================================
+import { notifyManagers, notifyBranch } from "../../services/enterprise.service.js";
 
 const STATUS_META = {
   draft:     { label:"Draft",     color:"#6b6880" },
@@ -23,7 +19,6 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
   const [photos,    setPhotos]    = useState([]);
   const [findings,  setFindings]  = useState([{ finding:"", recommendation:"" }]);
   const [saving,    setSaving]    = useState(false);
-  const [selected,  setSelected]  = useState(null);
 
   const addFinding = () => setFindings(p => [...p, { finding:"", recommendation:"" }]);
   const updateFinding = (i, key, val) =>
@@ -34,14 +29,12 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
     if (!branchId) return;
     setSaving(true);
     try {
-      // 1 — create visit
       const { data: visit } = await supabase
         .from("store_visits")
         .insert({ company_id:company.id, branch_id:branchId, visitor_id:profile.id,
           visit_date:visitDate, notes, status:"submitted" })
         .select().single();
 
-      // 2 — upload photos & add findings
       if (visit) {
         for (const p of photos) {
           const safeName = (p.file?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -55,6 +48,15 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           await supabase.from("visit_findings")
             .insert({ visit_id: visit.id, finding: f.finding, recommendation: f.recommendation });
         }
+
+        // إشعار للمديرين
+        notifyManagers(company.id, "visit_created", "New Store Visit 🚶",
+          (profile.full_name ?? "") + " submitted a visit report for " +
+          (branches.find(b => b.id === branchId)?.name ?? ""));
+
+        // إشعار لموظفي الفرع
+        notifyBranch(company.id, branchId, "visit_created", "Store Visit Report 🚶",
+          "A visit report was submitted for your branch");
       }
 
       onVisitCreated?.();
@@ -92,11 +94,9 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
         {showForm ? "Cancel" : "＋ New Visit Report"}
       </button>
 
-      {/* New visit form */}
       {showForm && (
         <div style={S.card}>
           <div style={S.h3}>Visit Details</div>
-
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <div>
               <div style={S.lbl}>Branch</div>
@@ -110,14 +110,11 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                 onChange={e => setVisitDate(e.target.value)} />
             </div>
           </div>
-
           <div style={S.lbl}>Notes</div>
           <textarea style={{ ...S.inp, minHeight:72, resize:"vertical" }}
             placeholder="General observations…"
             value={notes} onChange={e => setNotes(e.target.value)} />
-
           <ImageUploader label="Photos" max={20} files={photos} onChange={setPhotos} />
-
           <div style={{ ...S.h3, marginTop:12 }}>Findings & Recommendations</div>
           {findings.map((f, i) => (
             <div key={i} style={{ marginBottom:10, padding:"12px", background:C.surfaceHigh, borderRadius:10 }}>
@@ -136,12 +133,8 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                 value={f.recommendation} onChange={e => updateFinding(i, "recommendation", e.target.value)} />
             </div>
           ))}
-
           <button className="btnG" style={{ ...S.btnG, fontSize:12, marginBottom:14 }}
-            onClick={addFinding}>
-            ＋ Add Finding
-          </button>
-
+            onClick={addFinding}>＋ Add Finding</button>
           <button className="btnP" style={{ ...S.btnP, width:"100%" }}
             onClick={saveVisit} disabled={saving}>
             {saving ? "Saving…" : "Submit Visit Report →"}
@@ -149,7 +142,6 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
         </div>
       )}
 
-      {/* Visits list */}
       {visits.length === 0 && !showForm && (
         <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No visits recorded yet.</div>
       )}
@@ -161,9 +153,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           <div key={v.id} style={S.card}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
               <div>
-                <div style={{ fontWeight:700, fontSize:14 }}>
-                  📍 {branch?.name ?? "—"}
-                </div>
+                <div style={{ fontWeight:700, fontSize:14 }}>📍 {branch?.name ?? "—"}</div>
                 <div style={{ ...S.muted, fontSize:12, marginTop:3 }}>
                   {v.visit_date} · by {v.visitor?.full_name ?? "—"}
                 </div>
@@ -173,15 +163,12 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                 {meta.label}
               </span>
             </div>
-
             {v.notes && (
               <div style={{ fontSize:13, marginTop:8, padding:"8px 12px",
                 background:C.surfaceHigh, borderRadius:8, lineHeight:1.5 }}>
                 {v.notes}
               </div>
             )}
-
-            {/* Findings */}
             {v.findings?.length > 0 && (
               <div style={{ marginTop:10 }}>
                 <div style={S.h3}>Findings ({v.findings.length})</div>
@@ -189,16 +176,12 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                   <div key={i} style={{ padding:"8px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
                     <div style={{ fontSize:13, fontWeight:600 }}>🔍 {f.finding}</div>
                     {f.recommendation && (
-                      <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>
-                        💡 {f.recommendation}
-                      </div>
+                      <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>💡 {f.recommendation}</div>
                     )}
                     {!f.task_id && (
                       <button onClick={() => convertToTask(f)}
                         style={{ ...S.btnG, fontSize:11, padding:"4px 10px", marginTop:6 }}
-                        className="btnG">
-                        → Convert to Task
-                      </button>
+                        className="btnG">→ Convert to Task</button>
                     )}
                     {f.task_id && (
                       <span style={{ fontSize:11, color:"#4ade80", marginTop:4, display:"block" }}>
