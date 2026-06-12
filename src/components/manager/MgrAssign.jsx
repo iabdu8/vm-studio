@@ -271,7 +271,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
             </button>
           </div>
           <div style={{ ...S.h3, marginTop:4, marginBottom:10 }}>Published ({guidelines.length})</div>
-          <GuidelinesGrid guidelines={guidelines}/>
+          <GuidelinesGrid guidelines={guidelines} showAcks={true} companyId={company?.id}/>
         </div>
       )}
     </div>
