@@ -494,11 +494,7 @@ function AuthenticatedApp() {
         {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
         {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}
                                      profile={profile} visits={visits}
-                                     onVisitCreated={() => {
-                                       loadVisits(company.id);
-                                       notifyManagers(company.id, "visit_created",
-                                         "New Store Visit 🚶", profile.full_name + " submitted a visit report");
-                                     }} />}
+                                     onVisitCreated={() => loadVisits(company.id)} />}
         {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}
         {mgrPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                      setTeamMessages={setTeamChat} mgrMessages={mgrChat}
