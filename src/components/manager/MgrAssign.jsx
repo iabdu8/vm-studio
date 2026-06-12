@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
 import { GuidelinesGrid } from "../shared/Guidelines.jsx";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
+import { supabase } from "../../lib/supabase.js";
 
 function FloorWalkUpload({ onAdd }) {
   const [note,   setNote]   = useState("");
@@ -39,16 +40,18 @@ function FloorWalkUpload({ onAdd }) {
 export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
   onCreateTask, onDeleteTask, onUploadGuideline, onAddFloorWalk, profile, company }) {
 
-  const [tab,      setTab]      = useState("plan");
-  const [catId,    setCatId]    = useState(categories[0]?.id ?? "");
-  const [subId,    setSubId]    = useState(categories[0]?.subcategories?.[0]?.id ?? "");
-  const [text,     setText]     = useState("");
-  const [priority, setPriority] = useState("medium");
-  const [dueDate,  setDueDate]  = useState("Today");
-  const [gTitle,   setGTitle]   = useState("");
-  const [gCat,     setGCat]     = useState("General");
-  const [gFile,    setGFile]    = useState(null);
-  const [saving,   setSaving]   = useState(false);
+  const [tab,        setTab]        = useState("plan");
+  const [catId,      setCatId]      = useState(categories[0]?.id ?? "");
+  const [subId,      setSubId]      = useState(categories[0]?.subcategories?.[0]?.id ?? "");
+  const [assignedTo, setAssignedTo] = useState("all");
+  const [text,       setText]       = useState("");
+  const [priority,   setPriority]   = useState("medium");
+  const [dueDate,    setDueDate]    = useState("Today");
+  const [gTitle,     setGTitle]     = useState("");
+  const [gCat,       setGCat]       = useState("General");
+  const [gFile,      setGFile]      = useState(null);
+  const [saving,     setSaving]     = useState(false);
+  const [staff,      setStaff]      = useState([]);
   const gFileRef = useRef();
 
   const activeCat  = categories.find(c => c.id === catId);
@@ -57,6 +60,16 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
   const managerBranch = profile?.branch_id
     ? branches.find(b => b.id === profile.branch_id)
     : null;
+
+  // Load VM staff for this branch
+  useEffect(() => {
+    if (!company?.id) return;
+    supabase.from("profiles")
+      .select("id, full_name")
+      .eq("company_id", company.id)
+      .in("role", ["vm", "store_manager"])
+      .then(({ data }) => setStaff(data ?? []));
+  }, [company?.id]);
 
   const changeCat = (id) => {
     setCatId(id);
@@ -75,7 +88,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
         title:          text,
         priority,
         due_label:      dueDate,
-        assigned_to:    "all",
+        assigned_to:    assignedTo,
       });
       setText("");
     } finally { setSaving(false); }
@@ -89,6 +102,10 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
       setGTitle(""); setGFile(null);
     } finally { setSaving(false); }
   };
+
+  const assignedName = assignedTo === "all"
+    ? "All Staff"
+    : staff.find(s => s.id === assignedTo)?.full_name ?? "—";
 
   return (
     <div>
@@ -117,17 +134,33 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
 
       {/* Weekly Plan */}
       {tab === "plan" && (
-        <WeeklyPlan
-          company={company}
-          categories={categories}
-          branches={branches}
-          profile={profile}
-        />
+        <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile} />
       )}
 
       {/* New Task */}
       {tab === "add" && (
         <div style={S.card}>
+
+          {/* Assign to staff */}
+          <div style={S.h3}>Assign To</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
+            <button className="pill-btn" onClick={() => setAssignedTo("all")} style={{
+              padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+              background: assignedTo==="all" ? C.accentColor+"28" : "transparent",
+              color:      assignedTo==="all" ? C.accentColor : C.mutedColor,
+              border:     assignedTo==="all" ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
+            }}>👥 All Staff</button>
+            {staff.map(s => (
+              <button key={s.id} className="pill-btn" onClick={() => setAssignedTo(s.id)} style={{
+                padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                background: assignedTo===s.id ? C.accentColor+"28" : "transparent",
+                color:      assignedTo===s.id ? C.accentColor : C.mutedColor,
+                border:     assignedTo===s.id ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
+              }}>👤 {s.full_name}</button>
+            ))}
+          </div>
+
+          {/* Category */}
           <div style={S.h3}>Category</div>
           <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
             {categories.map(c => (
@@ -174,11 +207,18 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
             placeholder="Describe the task clearly…"
             value={text} onChange={e => setText(e.target.value)}/>
 
+          {/* Summary */}
+          {text && (
+            <div style={{ padding:"10px 12px", background:C.surfaceHigh, borderRadius:8,
+              fontSize:12, color:C.mutedColor, marginBottom:12, lineHeight:1.6 }}>
+              Assigning to: <strong style={{ color:C.accentColor }}>{assignedName}</strong>
+              {managerBranch && <> · 📍 {managerBranch.name}</>}
+            </div>
+          )}
+
           <button className="btnP" style={{ ...S.btnP, width:"100%" }}
             onClick={addTask} disabled={saving}>
-            {saving ? "Saving…" : managerBranch
-              ? `Assign to ${managerBranch.name} →`
-              : "Assign to All Branches →"}
+            {saving ? "Saving…" : `Assign to ${assignedName} →`}
           </button>
         </div>
       )}
@@ -201,6 +241,11 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
                   <div style={{ display:"flex", gap:6, marginTop:6, flexWrap:"wrap" }}>
                     <span style={S.chip(t.priority)}>{t.priority}</span>
                     <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
+                    {t.assigned_to && t.assigned_to !== "all" && (
+                      <span style={{ fontSize:11, color:"#818cf8" }}>
+                        👤 {staff.find(s=>s.id===t.assigned_to)?.full_name ?? t.assigned_to}
+                      </span>
+                    )}
                     {t.branch_id && branches?.find(b=>b.id===t.branch_id) && (
                       <span style={{ ...S.muted, fontSize:11 }}>
                         📍 {branches.find(b=>b.id===t.branch_id)?.name}
