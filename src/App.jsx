@@ -381,6 +381,11 @@ function AuthenticatedApp() {
     setPromotions(p => p.filter(x => x.id !== id));
   };
 
+  const handleDeleteVisit = async (id) => {
+    await supabase.from("store_visits").delete().eq("id", id);
+    setVisits(p => p.filter(x => x.id !== id));
+  };
+
   const handleDeleteDemoHold = async (id) => {
     await supabase.from("demo_holds").delete().eq("id", id);
     setDemoHolds(p => p.filter(x => x.id !== id));
@@ -459,7 +464,7 @@ function AuthenticatedApp() {
         {amPage==="requests"  && <MgrRequests submissions={submissions} onReview={handleReview} />}
         {amPage==="visits"    && <StoreVisits company={company} branches={activeBranches}
                                    profile={profile} visits={visits}
-                                   onVisitCreated={() => loadVisits(company.id)} />}
+                                   onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} />}
         {amPage==="chat"      && <Chat user={profile} teamMessages={teamChat}
                                    setTeamMessages={setTeamChat} mgrMessages={mgrChat}
                                    setMgrMessages={setMgrChat}
@@ -500,7 +505,7 @@ function AuthenticatedApp() {
         {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
         {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}
                                      profile={profile} visits={visits}
-                                     onVisitCreated={() => loadVisits(company.id)} />}
+                                     onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} />}
         {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}
         {mgrPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                      setTeamMessages={setTeamChat} mgrMessages={mgrChat}

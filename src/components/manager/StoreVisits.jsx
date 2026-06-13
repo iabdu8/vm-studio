@@ -1,3 +1,4 @@
+import { printHTML } from "../../lib/printReport.js";
 import { useState, useRef } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
@@ -10,7 +11,7 @@ const STATUS_META = {
   closed:    { label:"Closed",    color:"#4ade80" },
 };
 
-export function StoreVisits({ company, branches, profile, visits, onVisitCreated }) {
+export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit }) {
   const [showForm,  setShowForm]  = useState(false);
   const [branchId,  setBranchId]  = useState(branches[0]?.id ?? "");
   const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0,10));
@@ -113,8 +114,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
     <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
     </body></html>`;
 
-    const win = window.open("", "_blank", "width=900,height=700");
-    win.document.write(html); win.document.close();
+    printHTML(html);
   };
 
   const convertToTask = async (finding) => {
@@ -252,6 +252,11 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                 </span>
                 <button className="btnG" style={{ ...S.btnG, fontSize:11, padding:"4px 10px" }}
                   onClick={() => printVisit(v)}>🖨️ Print</button>
+                {onDeleteVisit && (
+                  <button onClick={() => onDeleteVisit(v.id)}
+                    style={{ background:"none", border:"none", color:"#f87171",
+                      cursor:"pointer", fontSize:16, padding:"4px" }}>🗑️</button>
+                )}
               </div>
             </div>
 

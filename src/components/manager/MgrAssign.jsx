@@ -1,3 +1,4 @@
+import { printHTML } from "../../lib/printReport.js";
 import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
@@ -68,9 +69,7 @@ function FloorWalkUpload({ onAdd }) {
     <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
     </body></html>`;
 
-    const win = window.open("", "_blank", "width=900,height=700");
-    win.document.write(html);
-    win.document.close();
+    printHTML(html);
   };
 
   return (
@@ -218,8 +217,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
       </div>`).join("")}
     <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
     </body></html>`;
-    const win = window.open("", "_blank", "width=900,height=700");
-    win.document.write(html); win.document.close();
+    printHTML(html);
   };
 
   return (
