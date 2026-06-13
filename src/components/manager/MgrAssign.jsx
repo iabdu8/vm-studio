@@ -5,11 +5,31 @@ import { GuidelinesGrid } from "../shared/Guidelines.jsx";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
 import { supabase } from "../../lib/supabase.js";
 
+// ============================================================
+//  FLOOR WALK — Photo + Comment per photo
+// ============================================================
 function FloorWalkUpload({ onAdd }) {
-  const [note,   setNote]   = useState("");
-  const [photos, setPhotos] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [done,   setDone]   = useState(false);
+  const [note,    setNote]    = useState("");
+  const [photos,  setPhotos]  = useState([]); // [{url, file, comment}]
+  const [saving,  setSaving]  = useState(false);
+  const [done,    setDone]    = useState(false);
+  const cameraRef = useRef();
+
+  const handleFiles = (e) => {
+    const files = Array.from(e.target.files);
+    const newPhotos = files.map(file => ({
+      file,
+      url: URL.createObjectURL(file),
+      comment: "",
+    }));
+    setPhotos(p => [...p, ...newPhotos]);
+    e.target.value = "";
+  };
+
+  const updateComment = (i, val) =>
+    setPhotos(p => p.map((ph, idx) => idx === i ? { ...ph, comment: val } : ph));
+
+  const removePhoto = (i) => setPhotos(p => p.filter((_, idx) => idx !== i));
 
   const submit = async () => {
     if (!note.trim() && !photos.length) return;
@@ -20,19 +40,102 @@ function FloorWalkUpload({ onAdd }) {
     setSaving(false);
   };
 
+  const printReport = () => {
+    const date = new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
+    const photoRows = photos.map((p, i) => `
+      <div style="page-break-inside:avoid; margin-bottom:20px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden">
+        <img src="${p.url}" style="width:100%; max-height:300px; object-fit:cover; display:block"/>
+        <div style="padding:10px 14px;">
+          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px">Photo ${i+1}</div>
+          <div style="font-size:14px; color:#1a1a2e">${p.comment || "—"}</div>
+        </div>
+      </div>
+    `).join("");
+
+    const html = `<!DOCTYPE html><html><head>
+    <style>
+      body { font-family:'DM Sans',sans-serif; padding:32px; color:#1a1a2e; }
+      h1 { font-size:24px; color:#c8a96e; margin-bottom:4px; }
+      .meta { color:#9ca3af; font-size:13px; margin-bottom:24px; }
+      .note { background:#f9f9f9; border-left:4px solid #c8a96e; padding:12px 16px; 
+        margin-bottom:24px; border-radius:0 8px 8px 0; font-size:14px; line-height:1.6; }
+      @media print { body { padding:16px; } }
+    </style></head><body>
+    <h1>Floor Walk Report</h1>
+    <div class="meta">${date}</div>
+    ${note ? `<div class="note">${note}</div>` : ""}
+    ${photoRows}
+    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
+    </body></html>`;
+
+    const win = window.open("", "_blank", "width=900,height=700");
+    win.document.write(html);
+    win.document.close();
+  };
+
   return (
     <div style={S.card}>
-      <div style={S.h3}>Add Floor Walk</div>
-      <div style={S.lbl}>Instructions / Notes</div>
-      <textarea style={{ ...S.inp, minHeight:80, resize:"vertical" }}
-        placeholder="Write floor walk instructions for the team…"
+      <div style={S.h3}>New Floor Walk Report</div>
+
+      <div style={S.lbl}>General Notes</div>
+      <textarea style={{ ...S.inp, minHeight:72, resize:"vertical" }}
+        placeholder="Overall observations, instructions…"
         value={note} onChange={e => setNote(e.target.value)}/>
-      <ImageUploader label="Reference Photos" max={20} files={photos} onChange={setPhotos}/>
-      {done && <div style={{ color:"#4ade80", fontSize:12, marginBottom:8 }}>✓ Floor walk added!</div>}
-      <button className="btnP" style={{ ...S.btnP, width:"100%" }}
-        onClick={submit} disabled={saving}>
-        {saving ? "Saving…" : "Publish Floor Walk →"}
-      </button>
+
+      {/* Photo capture */}
+      <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+        <button className="btnG" style={{ ...S.btnG, flex:1, textAlign:"center" }}
+          onClick={() => { cameraRef.current.setAttribute("capture","environment"); cameraRef.current.click(); }}>
+          📷 Take Photo
+        </button>
+        <button className="btnG" style={{ ...S.btnG, flex:1, textAlign:"center" }}
+          onClick={() => { cameraRef.current.removeAttribute("capture"); cameraRef.current.click(); }}>
+          🖼️ Upload Photo
+        </button>
+        <input ref={cameraRef} type="file" accept="image/*" multiple
+          style={{ display:"none" }} onChange={handleFiles}/>
+      </div>
+
+      {/* Photos with comments */}
+      {photos.map((p, i) => (
+        <div key={i} style={{ marginBottom:14, border:`1px solid ${C.accentColor}18`,
+          borderRadius:12, overflow:"hidden" }}>
+          <div style={{ position:"relative" }}>
+            <img src={p.url} alt="" style={{ width:"100%", maxHeight:200,
+              objectFit:"cover", display:"block" }}/>
+            <button onClick={() => removePhoto(i)} style={{
+              position:"absolute", top:8, right:8, background:"#000a", border:"none",
+              color:"#fff", borderRadius:"50%", width:28, height:28, cursor:"pointer",
+              fontSize:14, display:"flex", alignItems:"center", justifyContent:"center",
+            }}>✕</button>
+            <div style={{ position:"absolute", bottom:8, left:8,
+              background:"#000a", color:"#fff", fontSize:11, padding:"2px 8px", borderRadius:10 }}>
+              Photo {i+1}
+            </div>
+          </div>
+          <div style={{ padding:"10px 12px", background:C.surfaceHigh }}>
+            <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:C.surfaceColor }}
+              placeholder="Add comment for this photo…"
+              value={p.comment}
+              onChange={e => updateComment(i, e.target.value)}/>
+          </div>
+        </div>
+      ))}
+
+      {done && <div style={{ color:"#4ade80", fontSize:12, marginBottom:8 }}>✓ Floor walk published!</div>}
+
+      <div style={{ display:"flex", gap:8 }}>
+        <button className="btnP" style={{ ...S.btnP, flex:1 }}
+          onClick={submit} disabled={saving}>
+          {saving ? "Publishing…" : "Publish Floor Walk →"}
+        </button>
+        {photos.length > 0 && (
+          <button className="btnG" style={{ ...S.btnG, flexShrink:0 }}
+            onClick={printReport}>
+            🖨️ Print
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -56,40 +159,27 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
 
   const activeCat  = categories.find(c => c.id === catId);
   const activeSubs = activeCat?.subcategories ?? [];
-
   const managerBranch = profile?.branch_id
-    ? branches.find(b => b.id === profile.branch_id)
-    : null;
+    ? branches.find(b => b.id === profile.branch_id) : null;
 
-  // Load VM staff for this branch
   useEffect(() => {
     if (!company?.id) return;
-    supabase.from("profiles")
-      .select("id, full_name")
-      .eq("company_id", company.id)
-      .in("role", ["vm", "store_manager"])
+    supabase.from("profiles").select("id, full_name")
+      .eq("company_id", company.id).in("role", ["vm","store_manager"])
       .then(({ data }) => setStaff(data ?? []));
   }, [company?.id]);
 
   const changeCat = (id) => {
     setCatId(id);
-    const cat = categories.find(c => c.id === id);
-    setSubId(cat?.subcategories?.[0]?.id ?? "");
+    setSubId(categories.find(c => c.id === id)?.subcategories?.[0]?.id ?? "");
   };
 
   const addTask = async () => {
     if (!text.trim()) return;
     setSaving(true);
     try {
-      await onCreateTask({
-        category_id:    catId  || null,
-        subcategory_id: subId  || null,
-        branch_id:      managerBranch?.id ?? null,
-        title:          text,
-        priority,
-        due_label:      dueDate,
-        assigned_to:    assignedTo,
-      });
+      await onCreateTask({ category_id:catId||null, subcategory_id:subId||null,
+        branch_id:managerBranch?.id??null, title:text, priority, due_label:dueDate, assigned_to:assignedTo });
       setText("");
     } finally { setSaving(false); }
   };
@@ -97,82 +187,87 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
   const uploadGuide = async () => {
     if (!gTitle.trim()) return;
     setSaving(true);
-    try {
-      await onUploadGuideline(gTitle, gCat, gFile);
-      setGTitle(""); setGFile(null);
-    } finally { setSaving(false); }
+    try { await onUploadGuideline(gTitle, gCat, gFile); setGTitle(""); setGFile(null); }
+    finally { setSaving(false); }
   };
 
-  const assignedName = assignedTo === "all"
-    ? "All Staff"
+  const assignedName = assignedTo === "all" ? "All Staff"
     : staff.find(s => s.id === assignedTo)?.full_name ?? "—";
+
+  const printFloorWalk = (fw) => {
+    const html = `<!DOCTYPE html><html><head>
+    <style>
+      body { font-family:'DM Sans',sans-serif; padding:32px; color:#1a1a2e; }
+      h1 { font-size:24px; color:#c8a96e; margin-bottom:4px; }
+      .meta { color:#9ca3af; font-size:13px; margin-bottom:20px; }
+      .note { background:#f9f9f9; border-left:4px solid #c8a96e; padding:12px 16px;
+        margin-bottom:24px; border-radius:0 8px 8px 0; font-size:14px; }
+      .photo-block { page-break-inside:avoid; margin-bottom:20px;
+        border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; }
+      .photo-block img { width:100%; max-height:280px; object-fit:cover; display:block; }
+      .caption { padding:10px 14px; font-size:13px; color:#1a1a2e; }
+      @media print { body { padding:16px; } }
+    </style></head><body>
+    <h1>Floor Walk Report</h1>
+    <div class="meta">${fw.date ?? ""} · By ${fw.manager ?? ""}</div>
+    ${fw.note ? `<div class="note">${fw.note}</div>` : ""}
+    ${(fw.photos ?? []).map((p, i) => `
+      <div class="photo-block">
+        <img src="${p.url ?? p}"/>
+        <div class="caption">${p.comment ?? `Photo ${i+1}`}</div>
+      </div>`).join("")}
+    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
+    </body></html>`;
+    const win = window.open("", "_blank", "width=900,height=700");
+    win.document.write(html); win.document.close();
+  };
 
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
         Plan <span style={S.accent}>&amp; Assign</span>
       </div>
+      {managerBranch && <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>📍 {managerBranch.name}</div>}
 
-      {managerBranch && (
-        <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>
-          📍 {managerBranch.name}
-        </div>
-      )}
-
-      {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
-        {[
-          ["plan",  "📅 Weekly Plan"],
-          ["add",   "＋ New Task"],
-          ["all",   "All Tasks"],
-          ["floor", "🚶 Floor Walk"],
-          ["guides","📖 Guidelines"],
-        ].map(([k,l]) => (
+        {[["plan","📅 Weekly Plan"],["add","＋ New Task"],["all","All Tasks"],
+          ["floor","🚶 Floor Walk"],["guides","📖 Guidelines"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
 
-      {/* Weekly Plan */}
-      {tab === "plan" && (
-        <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile} />
-      )}
+      {tab === "plan" && <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile}/>}
 
-      {/* New Task */}
       {tab === "add" && (
         <div style={S.card}>
-
-          {/* Assign to staff */}
           <div style={S.h3}>Assign To</div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
             <button className="pill-btn" onClick={() => setAssignedTo("all")} style={{
               padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-              background: assignedTo==="all" ? C.accentColor+"28" : "transparent",
-              color:      assignedTo==="all" ? C.accentColor : C.mutedColor,
-              border:     assignedTo==="all" ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
+              background:assignedTo==="all"?C.accentColor+"28":"transparent",
+              color:assignedTo==="all"?C.accentColor:C.mutedColor,
+              border:assignedTo==="all"?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
             }}>👥 All Staff</button>
             {staff.map(s => (
               <button key={s.id} className="pill-btn" onClick={() => setAssignedTo(s.id)} style={{
                 padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                background: assignedTo===s.id ? C.accentColor+"28" : "transparent",
-                color:      assignedTo===s.id ? C.accentColor : C.mutedColor,
-                border:     assignedTo===s.id ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
+                background:assignedTo===s.id?C.accentColor+"28":"transparent",
+                color:assignedTo===s.id?C.accentColor:C.mutedColor,
+                border:assignedTo===s.id?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
               }}>👤 {s.full_name}</button>
             ))}
           </div>
-
-          {/* Category */}
           <div style={S.h3}>Category</div>
           <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
             {categories.map(c => (
               <button key={c.id} className="pill-btn" onClick={() => changeCat(c.id)} style={{
                 padding:"7px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                background: catId===c.id ? C.accentColor+"28" : "transparent",
-                color:      catId===c.id ? C.accentColor : C.mutedColor,
-                border:     catId===c.id ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
+                background:catId===c.id?C.accentColor+"28":"transparent",
+                color:catId===c.id?C.accentColor:C.mutedColor,
+                border:catId===c.id?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
               }}>{c.name}</button>
             ))}
           </div>
-
           {activeSubs.length > 0 && (
             <>
               <div style={S.lbl}>Section</div>
@@ -181,7 +276,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
               </select>
             </>
           )}
-
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             <div>
               <div style={S.lbl}>Priority</div>
@@ -194,28 +288,21 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
             <div>
               <div style={S.lbl}>Due</div>
               <select style={S.sel} value={dueDate} onChange={e => setDueDate(e.target.value)}>
-                <option>Today</option>
-                <option>Tomorrow</option>
-                <option>This week</option>
-                <option>Next week</option>
+                <option>Today</option><option>Tomorrow</option>
+                <option>This week</option><option>Next week</option>
               </select>
             </div>
           </div>
-
           <div style={S.lbl}>Task Description</div>
           <textarea style={{ ...S.inp, minHeight:76, resize:"vertical" }}
-            placeholder="Describe the task clearly…"
-            value={text} onChange={e => setText(e.target.value)}/>
-
-          {/* Summary */}
+            placeholder="Describe the task clearly…" value={text} onChange={e => setText(e.target.value)}/>
           {text && (
             <div style={{ padding:"10px 12px", background:C.surfaceHigh, borderRadius:8,
-              fontSize:12, color:C.mutedColor, marginBottom:12, lineHeight:1.6 }}>
+              fontSize:12, color:C.mutedColor, marginBottom:12 }}>
               Assigning to: <strong style={{ color:C.accentColor }}>{assignedName}</strong>
               {managerBranch && <> · 📍 {managerBranch.name}</>}
             </div>
           )}
-
           <button className="btnP" style={{ ...S.btnP, width:"100%" }}
             onClick={addTask} disabled={saving}>
             {saving ? "Saving…" : `Assign to ${assignedName} →`}
@@ -223,7 +310,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
         </div>
       )}
 
-      {/* All Tasks */}
       {tab === "all" && (
         <div>
           {tasks.length === 0 && <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>}
@@ -266,7 +352,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
         </div>
       )}
 
-      {/* Floor Walk */}
       {tab === "floor" && (
         <div>
           <FloorWalkUpload onAdd={onAddFloorWalk}/>
@@ -274,17 +359,34 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
             <div style={S.card}>
               <div style={S.h3}>Previous Floor Walks ({floorWalks.length})</div>
               {floorWalks.map((fw, i) => (
-                <div key={i} style={{ padding:"10px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                  {fw.note && <div style={{ fontSize:13, marginBottom:6 }}>{fw.note}</div>}
+                <div key={i} style={{ padding:"12px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
+                  {fw.note && <div style={{ fontSize:13, marginBottom:8, lineHeight:1.5 }}>{fw.note}</div>}
                   {fw.photos?.length > 0 && (
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:8 }}>
                       {fw.photos.map((p, j) => (
-                        <img key={j} src={p.url ?? p} alt=""
-                          style={{ width:60, height:60, objectFit:"cover", borderRadius:6 }}/>
+                        <div key={j} style={{ position:"relative" }}>
+                          <img src={p.url ?? p} alt=""
+                            style={{ width:72, height:72, objectFit:"cover", borderRadius:8,
+                              border:`1px solid ${C.accentColor}22` }}/>
+                          {p.comment && (
+                            <div style={{ position:"absolute", bottom:0, left:0, right:0,
+                              background:"#000b", color:"#fff", fontSize:9, padding:"2px 4px",
+                              borderRadius:"0 0 8px 8px", textAlign:"center",
+                              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                              {p.comment}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
-                  <div style={{ ...S.muted, fontSize:11, marginTop:4 }}>{fw.date ?? ""}</div>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <div style={{ ...S.muted, fontSize:11 }}>By {fw.manager} · {fw.date ?? ""}</div>
+                    <button className="btnG" style={{ ...S.btnG, fontSize:11, padding:"4px 10px" }}
+                      onClick={() => printFloorWalk(fw)}>
+                      🖨️ Print Report
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -292,7 +394,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
         </div>
       )}
 
-      {/* Guidelines */}
       {tab === "guides" && (
         <div>
           <div style={S.card}>
