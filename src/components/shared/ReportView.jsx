@@ -64,7 +64,7 @@ export function ReportView({ report, onClose }) {
           ${f.recommendation ? `<div class="finding-rec">💡 ${f.recommendation}</div>` : ""}
         </div>`).join("")}` : ""}
     <div class="footer">
-      <span>VM-Studio · Visual Merchandising Operations</span>
+      <span>Vismo · Visual Merchandising Operations</span>
       <span>${branch} · ${date}</span>
     </div>
     </body></html>`;

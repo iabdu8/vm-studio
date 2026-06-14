@@ -1,7 +1,7 @@
 export const DARK = {
   primaryColor: "#0a0a0f",
-  accentColor:  "#c8a96e",
-  accentSoft:   "#c8a96e18",
+  accentColor:  "#4F46E5",
+  accentSoft:   "#4F46E518",
   surfaceColor: "#13131a",
   surfaceHigh:  "#1c1c27",
   textColor:    "#f0ede8",
@@ -10,10 +10,10 @@ export const DARK = {
 
 export const LIGHT = {
   primaryColor: "#f5f4f0",
-  accentColor:  "#8a6d3e",
-  accentSoft:   "#8a6d3e18",
+  accentColor:  "#4338CA",
+  accentSoft:   "#4338CA18",
   surfaceColor: "#ffffff",
-  surfaceHigh:  "#ece9e3",
+  surfaceHigh:  "#eeedf8",
   textColor:    "#1a1a2e",
   mutedColor:   "#8892a4",
 };
@@ -50,12 +50,12 @@ export const S = {
   sel: { width:"100%", background:"var(--clr-primary)", border:"1px solid color-mix(in srgb,var(--clr-accent) 18%,transparent)", borderRadius:10, padding:"10px 14px", color:"var(--clr-text)", fontSize:14, marginTop:5, marginBottom:13, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" },
   lbl:     { fontSize:11, color:"var(--clr-muted)", fontWeight:600, letterSpacing:1, textTransform:"uppercase" },
   uploadZ: { border:"2px dashed color-mix(in srgb,var(--clr-accent) 28%,transparent)", borderRadius:12, padding:"16px", textAlign:"center", cursor:"pointer", color:"var(--clr-muted)", fontSize:13, marginBottom:8 },
-  btnP: { background:"var(--clr-accent)", color:"var(--clr-primary)", border:"none", padding:"10px 20px", borderRadius:10, cursor:"pointer", fontWeight:700, fontSize:13, letterSpacing:.3, transition:"all .2s", fontFamily:"'DM Sans',sans-serif" },
+  btnP: { background:"var(--clr-accent)", color:"#ffffff", border:"none", padding:"10px 20px", borderRadius:10, cursor:"pointer", fontWeight:700, fontSize:13, letterSpacing:.3, transition:"all .2s", fontFamily:"'DM Sans',sans-serif" },
   btnG: { background:"transparent", color:"var(--clr-muted)", border:"1px solid color-mix(in srgb,var(--clr-muted) 33%,transparent)", padding:"9px 16px", borderRadius:10, cursor:"pointer", fontWeight:500, fontSize:13, transition:"all .2s", fontFamily:"'DM Sans',sans-serif" },
   btnD: { background:"var(--clr-surface-high)", color:"var(--clr-text)", border:"1px solid color-mix(in srgb,var(--clr-accent) 18%,transparent)", padding:"9px 16px", borderRadius:10, cursor:"pointer", fontWeight:500, fontSize:13, transition:"all .2s", fontFamily:"'DM Sans',sans-serif" },
-  dFont:  { fontFamily:"'Cormorant Garamond',serif" },
-  h1:     { fontSize:24, fontWeight:700, fontFamily:"'Cormorant Garamond',serif", marginBottom:2 },
-  h2:     { fontSize:17, fontWeight:600, fontFamily:"'Cormorant Garamond',serif", marginBottom:12 },
+  dFont:  { fontFamily:"'DM Sans',sans-serif" },
+  h1:     { fontSize:24, fontWeight:700, fontFamily:"'DM Sans',sans-serif", marginBottom:2 },
+  h2:     { fontSize:17, fontWeight:600, fontFamily:"'DM Sans',sans-serif", marginBottom:12 },
   h3:     { fontSize:11, fontWeight:700, color:"var(--clr-muted)", letterSpacing:1.5, marginBottom:10, textTransform:"uppercase" },
   accent: { color:"var(--clr-accent)" },
   muted:  { color:"var(--clr-muted)", fontSize:13 },
@@ -67,7 +67,7 @@ export const S = {
     transition:"all .2s", whiteSpace:"nowrap", fontFamily:"'DM Sans',sans-serif",
   }),
   chip: (s) => {
-    const m = { pending:"#d4a82a", approved:"#4ade80", revision:"#f87171", high:"#f87171", medium:"#d4a82a", low:"#4ade80", vm:"#818cf8", manager:"#c8a96e", super_admin:"#a855f7" };
+    const m = { pending:"#d4a82a", approved:"#4ade80", revision:"#f87171", high:"#f87171", medium:"#d4a82a", low:"#4ade80", vm:"#818cf8", manager:"#4F46E5", super_admin:"#a855f7" };
     return { display:"inline-block", background:(m[s]||"#888")+"22", color:m[s]||"#888", padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:700 };
   },
   avatar: (size=32) => ({
@@ -78,7 +78,7 @@ export const S = {
   bubble: (mine) => ({
     alignSelf: mine?"flex-end":"flex-start",
     background: mine ? "var(--clr-accent)" : "var(--clr-surface-high)",
-    color: mine ? "var(--clr-primary)" : "var(--clr-text)",
+    color: mine ? "#ffffff" : "var(--clr-text)",
     padding:"9px 14px",
     borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
     maxWidth:"75%", fontSize:13, lineHeight:1.5,
@@ -93,7 +93,7 @@ export const S = {
 export const globalCss = (mode = "dark") => {
   const t = mode === "light" ? LIGHT : DARK;
   return `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --clr-primary:      ${t.primaryColor};

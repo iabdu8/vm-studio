@@ -1,3 +1,4 @@
+import { Logo } from "./Logo.jsx";
 import { useState, useEffect } from "react";
 import { useTheme } from "../../context/ThemeContext.jsx";
 import { S, C } from "../../styles/theme.js";
@@ -43,11 +44,7 @@ export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           {logo
             ? <img src={logo} alt={company?.name ?? ""} style={{ height:34, maxWidth:130, objectFit:"contain" }} />
-            : <svg width="110" height="32" viewBox="0 0 200 48" xmlns="http://www.w3.org/2000/svg">
-                <rect x="0" y="4" width="10" height="40" rx="5" fill="#4F46E5"/>
-                <rect x="14" y="12" width="4" height="24" rx="2" fill="#4F46E5" opacity="0.35"/>
-                <text x="26" y="36" fontFamily="DM Sans, sans-serif" fontSize="32" fontWeight="700" letterSpacing="-1" fill="currentColor">Vismo</text>
-              </svg>
+          : <Logo size="md" />
           }
         </div>
 
