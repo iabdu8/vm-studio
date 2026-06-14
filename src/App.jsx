@@ -46,7 +46,7 @@ function LoadingScreen() {
   return (
     <div style={{ ...S.loginBg, flexDirection:"column", gap:16 }}>
       <StyleTag />
-      <div style={{ ...S.dFont, fontSize:32, color:C.accentColor }}>VM-Studio</div>
+      <div style={{ ...S.dFont, fontSize:32, color:C.accentColor }}>Vismo</div>
       <div style={{ color:C.mutedColor, fontSize:13 }}>Loading…</div>
     </div>
   );
@@ -131,7 +131,7 @@ function LoginScreen() {
     <div style={S.loginBg}>
       <StyleTag />
       <div style={S.loginCard} className="fu">
-        <div style={{ ...S.dFont, fontSize:38, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:6 }}>VM-Studio</div>
+        <div style={{ ...S.dFont, fontSize:38, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:6 }}>Vismo</div>
         <div style={{ ...S.muted, fontSize:12, letterSpacing:.5, marginBottom:32 }}>Visual Merchandising Operations Platform</div>
         <div style={S.lbl}>Email</div>
         <input style={S.inp} type="email" placeholder="Email address"
