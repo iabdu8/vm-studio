@@ -6,6 +6,10 @@ import { supabase } from "../../lib/supabase.js";
 function FilePreview({ url, title, onClose }) {
   if (!url) return null;
   const isPDF = url.toLowerCase().includes(".pdf") || url.toLowerCase().includes("application/pdf");
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const pdfSrc = isPDF
+    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+    : url;
 
   return (
     <div style={{
@@ -17,14 +21,22 @@ function FilePreview({ url, title, onClose }) {
         display:"flex", justifyContent:"space-between", alignItems:"center",
         padding:"12px 20px", background:"var(--clr-surface)",
         borderBottom:`1px solid ${C.accentColor}22`,
+        flexShrink:0,
       }}>
-        <div style={{ fontWeight:700, fontSize:14 }}>{title}</div>
-        <div style={{ display:"flex", gap:8 }}>
+        <div style={{ fontWeight:700, fontSize:14, flex:1, marginRight:12,
+          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{title}</div>
+        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
           <a href={url} download target="_blank" rel="noopener noreferrer"
             style={{ textDecoration:"none", fontSize:12, padding:"6px 14px",
               background:C.accentColor+"22", color:C.accentColor,
               border:`1px solid ${C.accentColor}44`, borderRadius:8, cursor:"pointer" }}>
             ⬇️ Download
+          </a>
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            style={{ textDecoration:"none", fontSize:12, padding:"6px 14px",
+              background:"transparent", color:C.mutedColor,
+              border:`1px solid ${C.mutedColor}33`, borderRadius:8, cursor:"pointer" }}>
+            ↗ New Tab
           </a>
           <button onClick={onClose} style={{ background:"none", border:"none",
             color:C.mutedColor, cursor:"pointer", fontSize:22, lineHeight:1 }}>✕</button>
@@ -32,20 +44,10 @@ function FilePreview({ url, title, onClose }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ flex:1, overflow:"hidden", display:"flex",
+        alignItems:"center", justifyContent:"center", background:"#111" }}>
         {isPDF ? (
-          <object data={url} type="application/pdf" style={{ width:"100%", height:"100%", border:"none" }}>
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
-              justifyContent:"center", height:"100%", gap:16 }}>
-              <div style={{ fontSize:48 }}>📄</div>
-              <div style={{ color:"#fff", fontSize:14 }}>Cannot preview PDF in this browser</div>
-              <a href={url} target="_blank" rel="noopener noreferrer"
-                style={{ padding:"10px 20px", background:"#C8A96E", color:"#000",
-                  borderRadius:8, textDecoration:"none", fontWeight:700 }}>
-                Open PDF in New Tab
-              </a>
-            </div>
-          </object>
+          <iframe src={pdfSrc} style={{ width:"100%", height:"100%", border:"none" }} title={title}/>
         ) : (
           <img src={url} alt={title}
             style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain" }}/>

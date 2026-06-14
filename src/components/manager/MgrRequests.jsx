@@ -2,7 +2,18 @@ import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 
 export function MgrRequests({ submissions, onReview }) {
-  const [filter, setFilter] = useState("pending");
+  const [filter,       setFilter]       = useState("pending");
+  const [revisionId,   setRevisionId]   = useState(null);
+  const [revisionNote, setRevisionNote] = useState("");
+  const [saving,       setSaving]       = useState(false);
+
+  const submitRevision = async () => {
+    if (!revisionNote.trim()) return;
+    setSaving(true);
+    await onReview(revisionId, "revision", revisionNote);
+    setRevisionId(null); setRevisionNote("");
+    setSaving(false);
+  };
 
   const shown = filter === "all"
     ? submissions
@@ -94,7 +105,7 @@ export function MgrRequests({ submissions, onReview }) {
                 </button>
                 <button className="btnG"
                   style={{ ...S.btnG, fontSize:12, padding:"8px 14px", color:"#f87171", borderColor:"#f8717133" }}
-                  onClick={() => onReview(s.id, "revision")}>
+                  onClick={() => { setRevisionId(s.id); setRevisionNote(""); }}>
                   ↩ Needs Revision
                 </button>
               </div>
@@ -102,6 +113,37 @@ export function MgrRequests({ submissions, onReview }) {
           </div>
         );
       })}
+      {/* Revision Modal */}
+      {revisionId && (
+        <div style={{
+          position:"fixed", inset:0, background:"#00000088", zIndex:600,
+          display:"flex", alignItems:"center", justifyContent:"center", padding:20,
+        }}>
+          <div style={{ background:"var(--clr-surface)", borderRadius:20, padding:28,
+            width:"100%", maxWidth:420, border:"1px solid #f8717133" }}>
+            <div style={{ fontWeight:700, fontSize:16, marginBottom:6 }}>↩ Needs Revision</div>
+            <div style={{ ...S.muted, fontSize:12, marginBottom:16 }}>
+              Write what needs to be fixed — the VM will see this message in their Tasks.
+            </div>
+            <textarea
+              style={{ ...S.inp, minHeight:100, resize:"vertical" }}
+              placeholder="e.g. The after photo is blurry, please retake..."
+              value={revisionNote}
+              onChange={e => setRevisionNote(e.target.value)}
+              autoFocus
+            />
+            <div style={{ display:"flex", gap:8, marginTop:8 }}>
+              <button className="btnP" style={{ ...S.btnP, flex:1,
+                background:"#f87171", color:"#fff" }}
+                onClick={submitRevision} disabled={saving || !revisionNote.trim()}>
+                {saving ? "Sending…" : "Send Revision →"}
+              </button>
+              <button className="btnG" style={{ ...S.btnG }}
+                onClick={() => setRevisionId(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

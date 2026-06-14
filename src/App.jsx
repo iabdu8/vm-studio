@@ -280,8 +280,8 @@ function AuthenticatedApp() {
       (profile.full_name ?? "") + " submitted a VM report");
   };
 
-  const handleReview = async (id, status) => {
-    await reviewSubmission(id, status, status==="approved" ? 85 : null, profile.id);
+  const handleReview = async (id, status, revisionNote) => {
+    await reviewSubmission(id, status, status==="approved" ? 85 : null, profile.id, revisionNote);
     getSubmissions(company.id).then(setSubmissions);
     addLog(status==="approved" ? "Approved submission" : "Requested revision", "VM submission");
     const sub = submissions.find(s => s.id === id);
@@ -289,7 +289,7 @@ function AuthenticatedApp() {
       notifyUser(company.id, sub.submitted_by,
         status === "approved" ? "submission_approved" : "submission_revision",
         status === "approved" ? "Submission Approved ✅" : "Revision Requested ↩️",
-        status === "approved" ? "Your VM report was approved!" : "Your VM report needs revision."
+        status === "approved" ? "Your VM report was approved!" : (revisionNote || "Your VM report needs revision.")
       );
     }
   };
@@ -424,7 +424,8 @@ function AuthenticatedApp() {
                                     chat={teamChat} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
                                     floorWalks={floorWalks} campaign={campaign} promotions={promotions} />}
         {vmPage==="tasks"      && <VMTasks      user={profile} categories={categories} branches={activeBranches}
-                                    tasks={tasks} setTasks={setTasks} onSubmit={handleSubmit}
+                                    tasks={tasks} setTasks={setTasks} submissions={submissions}
+                                    onSubmit={handleSubmit}
                                     onTaskToggle={(id, done) => updateTask(id, { is_done:done })
                                       .then(() => getTasks(company.id).then(setTasks))} />}
         {vmPage==="demo"       && <VMDemoHold   demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}

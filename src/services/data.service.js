@@ -83,10 +83,12 @@ export async function createSubmission(payload, beforeFiles, afterFiles) {
   return sub;
 }
 
-export async function reviewSubmission(id, status, score, reviewer_id) {
+export async function reviewSubmission(id, status, score, reviewer_id, manager_note) {
+  const updates = { status, score, reviewed_by: reviewer_id, reviewed_at: new Date().toISOString() };
+  if (manager_note) updates.note = manager_note;
   const { data, error } = await supabase
     .from("submissions")
-    .update({ status, score, reviewed_by: reviewer_id, reviewed_at: new Date().toISOString() })
+    .update(updates)
     .eq("id", id).select().single();
   if (error) throw error;
   return data;

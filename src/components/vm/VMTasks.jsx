@@ -3,7 +3,7 @@ import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
 
-export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit, onTaskToggle }) {
+export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit, onTaskToggle, submissions = [] }) {
   const [catId,    setCatId]    = useState(categories[0]?.id ?? "");
   const [subId,    setSubId]    = useState(categories[0]?.subcategories?.[0]?.id ?? "");
   const [branchId, setBranchId] = useState(user?.branch_id ?? branches[0]?.id ?? "");
@@ -102,6 +102,30 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
               </div>
             </div>
           )}
+
+          {/* Revision notes from manager */}
+          {(() => {
+            const revisions = submissions.filter(s =>
+              s.status === "revision" && s.submitted_by === user?.id && s.note
+            );
+            if (!revisions.length) return null;
+            return (
+              <div style={{ ...S.card, borderLeft:"4px solid #f87171", background:"#f8717108" }}>
+                <div style={{ ...S.h3, color:"#f87171", marginBottom:10 }}>↩ Revision Requested</div>
+                {revisions.map((s, i) => (
+                  <div key={i} style={{ padding:"10px 0", borderBottom:i < revisions.length-1 ? "1px solid #f8717122" : "none" }}>
+                    <div style={{ fontSize:12, color:"#f87171", fontWeight:600, marginBottom:4 }}>
+                      {s.category_name ?? ""} {s.subcategory_name ? "· " + s.subcategory_name : ""}
+                    </div>
+                    <div style={{ fontSize:13, lineHeight:1.5 }}>{s.note}</div>
+                    <div style={{ fontSize:11, color:"#9ca3af", marginTop:4 }}>
+                      {s.reviewed_at ? new Date(s.reviewed_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }) : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {myAllTasks.length === 0 && (
             <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>
