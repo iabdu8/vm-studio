@@ -30,7 +30,6 @@ import { VMHome }             from "./components/vm/VMHome.jsx";
 import { VMTasks }            from "./components/vm/VMTasks.jsx";
 import { VMPlan }             from "./components/vm/VMPlan.jsx";
 import { VMVisits }           from "./components/vm/VMVisits.jsx";
-import { VMDemoHold }         from "./components/vm/VMDemoHold.jsx";
 import { MgrOverview }        from "./components/manager/MgrOverview.jsx";
 import { MgrRequests }        from "./components/manager/MgrRequests.jsx";
 import { MgrAssign }          from "./components/manager/MgrAssign.jsx";

@@ -1,146 +1,11 @@
-import { printHTML } from "../../lib/printReport.js";
 import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
-import { ImageUploader } from "../shared/Atoms.jsx";
 import { GuidelinesGrid } from "../shared/Guidelines.jsx";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
 import { supabase } from "../../lib/supabase.js";
 
-// ============================================================
-//  FLOOR WALK — Photo + Comment per photo
-// ============================================================
-function FloorWalkUpload({ onAdd }) {
-  const [note,    setNote]    = useState("");
-  const [photos,  setPhotos]  = useState([]); // [{url, file, comment}]
-  const [saving,  setSaving]  = useState(false);
-  const [done,    setDone]    = useState(false);
-  const cameraRef = useRef();
-
-  const handleFiles = (e) => {
-    const files = Array.from(e.target.files);
-    const newPhotos = files.map(file => ({
-      file,
-      url: URL.createObjectURL(file),
-      comment: "",
-    }));
-    setPhotos(p => [...p, ...newPhotos]);
-    e.target.value = "";
-  };
-
-  const updateComment = (i, val) =>
-    setPhotos(p => p.map((ph, idx) => idx === i ? { ...ph, comment: val } : ph));
-
-  const removePhoto = (i) => setPhotos(p => p.filter((_, idx) => idx !== i));
-
-  const submit = async () => {
-    if (!note.trim() && !photos.length) return;
-    setSaving(true);
-    await onAdd({ note, photos });
-    setNote(""); setPhotos([]); setDone(true);
-    setTimeout(() => setDone(false), 3000);
-    setSaving(false);
-  };
-
-  const printReport = () => {
-    const date = new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
-    const photoRows = photos.map((p, i) => `
-      <div style="page-break-inside:avoid; margin-bottom:20px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden">
-        <img src="${p.url}" style="width:100%; max-height:300px; object-fit:cover; display:block"/>
-        <div style="padding:10px 14px;">
-          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px">Photo ${i+1}</div>
-          <div style="font-size:14px; color:#1a1a2e">${p.comment || "—"}</div>
-        </div>
-      </div>
-    `).join("");
-
-    const html = `<!DOCTYPE html><html><head>
-    <style>
-      body { font-family:'DM Sans',sans-serif; padding:32px; color:#1a1a2e; }
-      h1 { font-size:24px; color:#c8a96e; margin-bottom:4px; }
-      .meta { color:#9ca3af; font-size:13px; margin-bottom:24px; }
-      .note { background:#f9f9f9; border-left:4px solid #c8a96e; padding:12px 16px; 
-        margin-bottom:24px; border-radius:0 8px 8px 0; font-size:14px; line-height:1.6; }
-      @media print { body { padding:16px; } }
-    </style></head><body>
-    <h1>Floor Walk Report</h1>
-    <div class="meta">${date}</div>
-    ${note ? `<div class="note">${note}</div>` : ""}
-    ${photoRows}
-    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
-    </body></html>`;
-
-    printHTML(html);
-  };
-
-  return (
-    <div style={S.card}>
-      <div style={S.h3}>New Floor Walk Report</div>
-
-      <div style={S.lbl}>General Notes</div>
-      <textarea style={{ ...S.inp, minHeight:72, resize:"vertical" }}
-        placeholder="Overall observations, instructions…"
-        value={note} onChange={e => setNote(e.target.value)}/>
-
-      {/* Photo capture */}
-      <div style={{ display:"flex", gap:8, marginBottom:14 }}>
-        <button className="btnG" style={{ ...S.btnG, flex:1, textAlign:"center" }}
-          onClick={() => { cameraRef.current.setAttribute("capture","environment"); cameraRef.current.click(); }}>
-          📷 Take Photo
-        </button>
-        <button className="btnG" style={{ ...S.btnG, flex:1, textAlign:"center" }}
-          onClick={() => { cameraRef.current.removeAttribute("capture"); cameraRef.current.click(); }}>
-          🖼️ Upload Photo
-        </button>
-        <input ref={cameraRef} type="file" accept="image/*" multiple
-          style={{ display:"none" }} onChange={handleFiles}/>
-      </div>
-
-      {/* Photos with comments */}
-      {photos.map((p, i) => (
-        <div key={i} style={{ marginBottom:14, border:`1px solid ${C.accentColor}18`,
-          borderRadius:12, overflow:"hidden" }}>
-          <div style={{ position:"relative" }}>
-            <img src={p.url} alt="" style={{ width:"100%", maxHeight:200,
-              objectFit:"cover", display:"block" }}/>
-            <button onClick={() => removePhoto(i)} style={{
-              position:"absolute", top:8, right:8, background:"#000a", border:"none",
-              color:"#fff", borderRadius:"50%", width:28, height:28, cursor:"pointer",
-              fontSize:14, display:"flex", alignItems:"center", justifyContent:"center",
-            }}>✕</button>
-            <div style={{ position:"absolute", bottom:8, left:8,
-              background:"#000a", color:"#fff", fontSize:11, padding:"2px 8px", borderRadius:10 }}>
-              Photo {i+1}
-            </div>
-          </div>
-          <div style={{ padding:"10px 12px", background:C.surfaceHigh }}>
-            <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:C.surfaceColor }}
-              placeholder="Add comment for this photo…"
-              value={p.comment}
-              onChange={e => updateComment(i, e.target.value)}/>
-          </div>
-        </div>
-      ))}
-
-      {done && <div style={{ color:"#4ade80", fontSize:12, marginBottom:8 }}>✓ Floor walk published!</div>}
-
-      <div style={{ display:"flex", gap:8 }}>
-        <button className="btnP" style={{ ...S.btnP, flex:1 }}
-          onClick={submit} disabled={saving}>
-          {saving ? "Publishing…" : "Publish Floor Walk →"}
-        </button>
-        {photos.length > 0 && (
-          <button className="btnG" style={{ ...S.btnG, flexShrink:0 }}
-            onClick={printReport}>
-            🖨️ Print
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
-  onCreateTask, onDeleteTask, onUploadGuideline, onDeleteGuideline, onAddFloorWalk, profile, company }) {
+export function MgrAssign({ tasks, categories, branches, guidelines,
+  onCreateTask, onDeleteTask, onUploadGuideline, onDeleteGuideline, profile, company }) {
 
   const [tab,        setTab]        = useState("plan");
   const [catId,      setCatId]      = useState(categories[0]?.id ?? "");
@@ -193,33 +58,6 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
   const assignedName = assignedTo === "all" ? "All Staff"
     : staff.find(s => s.id === assignedTo)?.full_name ?? "—";
 
-  const printFloorWalk = (fw) => {
-    const html = `<!DOCTYPE html><html><head>
-    <style>
-      body { font-family:'DM Sans',sans-serif; padding:32px; color:#1a1a2e; }
-      h1 { font-size:24px; color:#c8a96e; margin-bottom:4px; }
-      .meta { color:#9ca3af; font-size:13px; margin-bottom:20px; }
-      .note { background:#f9f9f9; border-left:4px solid #c8a96e; padding:12px 16px;
-        margin-bottom:24px; border-radius:0 8px 8px 0; font-size:14px; }
-      .photo-block { page-break-inside:avoid; margin-bottom:20px;
-        border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; }
-      .photo-block img { width:100%; max-height:280px; object-fit:cover; display:block; }
-      .caption { padding:10px 14px; font-size:13px; color:#1a1a2e; }
-      @media print { body { padding:16px; } }
-    </style></head><body>
-    <h1>Floor Walk Report</h1>
-    <div class="meta">${fw.date ?? ""} · By ${fw.manager ?? ""}</div>
-    ${fw.note ? `<div class="note">${fw.note}</div>` : ""}
-    ${(fw.photos ?? []).map((p, i) => `
-      <div class="photo-block">
-        <img src="${p.url ?? p}"/>
-        <div class="caption">${p.comment ?? `Photo ${i+1}`}</div>
-      </div>`).join("")}
-    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
-    </body></html>`;
-    printHTML(html);
-  };
-
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
@@ -227,15 +65,18 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
       </div>
       {managerBranch && <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>📍 {managerBranch.name}</div>}
 
+      {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
         {[["plan","📅 Weekly Plan"],["add","＋ New Task"],["all","All Tasks"],
-          ["floor","🚶 Floor Walk"],["guides","📖 Guidelines"]].map(([k,l]) => (
+          ["guides","📖 Guidelines"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
 
+      {/* Weekly Plan */}
       {tab === "plan" && <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile}/>}
 
+      {/* New Task */}
       {tab === "add" && (
         <div style={S.card}>
           <div style={S.h3}>Assign To</div>
@@ -308,6 +149,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
         </div>
       )}
 
+      {/* All Tasks */}
       {tab === "all" && (
         <div>
           {tasks.length === 0 && <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>}
@@ -350,48 +192,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines, floorWalks,
         </div>
       )}
 
-      {tab === "floor" && (
-        <div>
-          <FloorWalkUpload onAdd={onAddFloorWalk}/>
-          {floorWalks?.length > 0 && (
-            <div style={S.card}>
-              <div style={S.h3}>Previous Floor Walks ({floorWalks.length})</div>
-              {floorWalks.map((fw, i) => (
-                <div key={i} style={{ padding:"12px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                  {fw.note && <div style={{ fontSize:13, marginBottom:8, lineHeight:1.5 }}>{fw.note}</div>}
-                  {fw.photos?.length > 0 && (
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:8 }}>
-                      {fw.photos.map((p, j) => (
-                        <div key={j} style={{ position:"relative" }}>
-                          <img src={p.url ?? p} alt=""
-                            style={{ width:72, height:72, objectFit:"cover", borderRadius:8,
-                              border:`1px solid ${C.accentColor}22` }}/>
-                          {p.comment && (
-                            <div style={{ position:"absolute", bottom:0, left:0, right:0,
-                              background:"#000b", color:"#fff", fontSize:9, padding:"2px 4px",
-                              borderRadius:"0 0 8px 8px", textAlign:"center",
-                              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                              {p.comment}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                    <div style={{ ...S.muted, fontSize:11 }}>By {fw.manager} · {fw.date ?? ""}</div>
-                    <button className="btnG" style={{ ...S.btnG, fontSize:11, padding:"4px 10px" }}
-                      onClick={() => printFloorWalk(fw)}>
-                      🖨️ Print Report
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* Guidelines */}
       {tab === "guides" && (
         <div>
           <div style={S.card}>
