@@ -415,7 +415,7 @@ function AuthenticatedApp() {
         {vmPage==="demo"       && <VMDemoHold   demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
                                     onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
         {vmPage==="plan"       && <VMPlan       profile={profile} />}
-        {vmPage==="visits"     && <VMVisits     profile={profile} />}
+        {vmPage==="visits"     && <VMVisits     profile={profile} floorWalks={floorWalks} />}
         {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
         {vmPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                     setTeamMessages={setTeamChat} mgrMessages={mgrChat}
