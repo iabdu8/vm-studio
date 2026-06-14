@@ -1,8 +1,9 @@
+import React from "react";
+import { ReportView } from "../shared/ReportView.jsx";
 import { useState, useRef } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { notifyManagers, notifyBranch } from "../../services/enterprise.service.js";
-import { ReportView } from "../shared/ReportView.jsx";
 
 const STATUS_META = {
   draft:     { label:"Draft",     color:"#6b6880" },
@@ -11,7 +12,8 @@ const STATUS_META = {
   closed:    { label:"Closed",    color:"#4ade80" },
 };
 
-export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit }) {
+export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit, floorWalks = [], onAddFloorWalk }) {
+  const [activeTab,  setActiveTab]  = useState("visits");
   const [showForm,   setShowForm]   = useState(false);
   const [branchId,   setBranchId]   = useState(branches[0]?.id ?? "");
   const [visitDate,  setVisitDate]  = useState(new Date().toISOString().slice(0,10));
@@ -109,12 +111,21 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
         Document and follow up on branch visits
       </div>
 
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:6, marginBottom:14 }}>
+        {[["visits","🚶 Store Visits"],["floor","📋 Floor Walks"]].map(([k,l]) => (
+          <button key={k} className="tab-btn" style={S.tab(activeTab===k)} onClick={() => setActiveTab(k)}>{l}</button>
+        ))}
+      </div>
+
+      {activeTab === "visits" && (
       <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
         onClick={() => setShowForm(!showForm)}>
         {showForm ? "Cancel" : "＋ New Visit Report"}
       </button>
+      )}
 
-      {showForm && (
+      {activeTab === "visits" && showForm && (
         <div style={S.card}>
           <div style={S.h3}>Visit Details</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -194,11 +205,11 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
         </div>
       )}
 
-      {visits.length === 0 && !showForm && (
+      {activeTab === "visits" && visits.length === 0 && !showForm && (
         <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No visits recorded yet.</div>
       )}
 
-      {visits.map(v => {
+      {activeTab === "visits" && visits.map(v => {
         const meta = STATUS_META[v.status] ?? STATUS_META.draft;
         const branch = branches.find(b => b.id === v.branch_id);
         const photoCount = (v.findings ?? []).filter(f => f.finding === "Photo").length;
@@ -231,6 +242,97 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           </div>
         );
       })}
+      {/* Floor Walk Tab */}
+      {activeTab === "floor" && (
+        <div>
+          <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
+            onClick={() => setShowForm(f => !f)}>
+            {showForm ? "Cancel" : "＋ New Floor Walk"}
+          </button>
+
+          {showForm && onAddFloorWalk && (() => {
+            const FloorForm = () => {
+              const [fNote, setFNote] = React.useState("");
+              const [fPhotos, setFPhotos] = React.useState([]);
+              const [fSaving, setFSaving] = React.useState(false);
+              const camRef = React.useRef();
+              const handleFiles = (e) => {
+                const files = Array.from(e.target.files);
+                setFPhotos(p => [...p, ...files.map(f => ({ file:f, url:URL.createObjectURL(f), comment:"" }))]);
+                e.target.value = "";
+              };
+              const submit = async () => {
+                setFSaving(true);
+                await onAddFloorWalk({ note:fNote, photos:fPhotos });
+                setFNote(""); setFPhotos([]); setShowForm(false);
+                setFSaving(false);
+              };
+              return (
+                <div style={S.card}>
+                  <div style={S.h3}>Floor Walk Details</div>
+                  <div style={S.lbl}>Notes / Instructions</div>
+                  <textarea style={{ ...S.inp, minHeight:72, resize:"vertical" }}
+                    placeholder="Floor walk instructions..." value={fNote} onChange={e => setFNote(e.target.value)}/>
+                  <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+                    <button className="btnG" style={{ ...S.btnG, flex:1 }}
+                      onClick={() => { camRef.current.setAttribute("capture","environment"); camRef.current.click(); }}>
+                      📷 Take Photo
+                    </button>
+                    <button className="btnG" style={{ ...S.btnG, flex:1 }}
+                      onClick={() => { camRef.current.removeAttribute("capture"); camRef.current.click(); }}>
+                      🖼️ Upload
+                    </button>
+                    <input ref={camRef} type="file" accept="image/*" multiple
+                      style={{ display:"none" }} onChange={handleFiles}/>
+                  </div>
+                  {fPhotos.map((p, i) => (
+                    <div key={i} style={{ marginBottom:10, border:`1px solid ${C.accentColor}18`, borderRadius:10, overflow:"hidden" }}>
+                      <img src={p.url} alt="" style={{ width:"100%", maxHeight:160, objectFit:"cover", display:"block" }}/>
+                      <div style={{ padding:"8px 12px", background:C.surfaceHigh }}>
+                        <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:"var(--clr-surface)" }}
+                          placeholder="Comment..." value={p.comment}
+                          onChange={e => setFPhotos(prev => prev.map((ph,idx) => idx===i ? {...ph,comment:e.target.value} : ph))}/>
+                      </div>
+                    </div>
+                  ))}
+                  <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={submit} disabled={fSaving}>
+                    {fSaving ? "Publishing..." : "Publish Floor Walk →"}
+                  </button>
+                </div>
+              );
+            };
+            return <FloorForm/>;
+          })()}
+
+          {floorWalks.length === 0 && !showForm && (
+            <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No floor walks yet.</div>
+          )}
+
+          {floorWalks.map((fw, i) => (
+            <div key={i} style={{ ...S.card, cursor:"pointer" }} onClick={() => setActiveReport({
+              type:"Floor Walk Report",
+              title:`Floor Walk — ${fw.manager ?? ""}`,
+              branch: branches[0]?.name ?? "",
+              date: fw.date ?? "",
+              by: fw.manager ?? "—",
+              notes: fw.note,
+              photos: (fw.photos ?? []).map(p => ({ image_url: p.url ?? p, recommendation: p.comment ?? "" })),
+              findings: [],
+            })}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:14 }}>📋 Floor Walk</div>
+                  <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>By {fw.manager} · {fw.date ?? ""}</div>
+                  {fw.photos?.length > 0 && (
+                    <div style={{ fontSize:11, color:C.accentColor, marginTop:4 }}>📷 {fw.photos.length} photos</div>
+                  )}
+                </div>
+                <span style={{ fontSize:11, color:C.accentColor }}>Tap to view →</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

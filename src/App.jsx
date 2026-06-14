@@ -425,11 +425,12 @@ function AuthenticatedApp() {
                                     floorWalks={floorWalks} campaign={campaign} promotions={promotions} />}
         {vmPage==="tasks"      && <VMTasks      user={profile} categories={categories} branches={activeBranches}
                                     tasks={tasks} setTasks={setTasks} submissions={submissions}
+                                    demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
+                                    onDeleteDemoHold={handleDeleteDemoHold}
+                                    company={company} profile={profile}
                                     onSubmit={handleSubmit}
                                     onTaskToggle={(id, done) => updateTask(id, { is_done:done })
                                       .then(() => getTasks(company.id).then(setTasks))} />}
-        {vmPage==="demo"       && <VMDemoHold   demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
-                                    onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
         {vmPage==="plan"       && <VMPlan       profile={profile} />}
         {vmPage==="visits"     && <VMVisits     profile={profile} floorWalks={floorWalks} />}
         {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
@@ -520,8 +521,10 @@ function AuthenticatedApp() {
                                      onAddFloorWalk={handleAddFloorWalk} />}
         {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
         {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}
-                                     profile={profile} visits={visits}
-                                     onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} />}
+                                     profile={profile} visits={visits} floorWalks={floorWalks}
+                                     onVisitCreated={() => loadVisits(company.id)}
+                                     onDeleteVisit={handleDeleteVisit}
+                                     onAddFloorWalk={handleAddFloorWalk} />}
         {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}
         {mgrPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                      setTeamMessages={setTeamChat} mgrMessages={mgrChat}
