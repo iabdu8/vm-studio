@@ -259,9 +259,23 @@ function AuthenticatedApp() {
   // ── HANDLERS ─────────────────────────────────────────────
 
   const handleSubmit = async (data) => {
-    await submitWithFallback({ ...data, company_id:company.id, submitted_by:profile.id });
+    const { before, after, note, category_id, subcategory_id, branch_id,
+            category_name, subcategory_name, branch_name } = data;
+    const payload = {
+      company_id: company.id,
+      submitted_by: profile.id,
+      category_id:    category_id    || null,
+      subcategory_id: subcategory_id || null,
+      branch_id:      branch_id      || null,
+      category_name:    category_name    || null,
+      subcategory_name: subcategory_name || null,
+      branch_name:      branch_name      || null,
+      note: note || null,
+      status: "pending",
+    };
+    await submitWithFallback({ ...payload, before, after });
     if (isOnline) getSubmissions(company.id).then(setSubmissions);
-    addLog("Submitted implementation", data.categoryName ?? "");
+    addLog("Submitted implementation", category_name ?? "");
     notifyManagers(company.id, "submission_new", "New Submission 📤",
       (profile.full_name ?? "") + " submitted a VM report");
   };

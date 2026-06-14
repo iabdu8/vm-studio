@@ -45,9 +45,9 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
         category_id:     catId    || null,
         subcategory_id:  subId    || null,
         branch_id:       branchId || null,
-        categoryName:    activeCat?.name ?? "",
-        subcategoryName: activeSub?.name ?? "",
-        branchName:      activeBranch?.name ?? "",
+        category_name:    activeCat?.name ?? "",
+        subcategory_name: activeSub?.name ?? "",
+        branch_name:      activeBranch?.name ?? "",
         before, after, note,
       });
       setBefore([]); setAfter([]); setNote("");
