@@ -59,6 +59,7 @@ function FilePreview({ url, title, onClose }) {
 export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDelete }) {
   const [acks,    setAcks]    = useState({});
   const [preview, setPreview] = useState(null);
+  const [search,  setSearch]  = useState("");
 
   useEffect(() => {
     if (!showAcks || !guidelines.length || !companyId) return;
@@ -76,6 +77,11 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
       });
   }, [guidelines.length, showAcks]);
 
+  const filtered = guidelines.filter(g =>
+    g.title?.toLowerCase().includes(search.toLowerCase()) ||
+    g.category?.toLowerCase().includes(search.toLowerCase())
+  );
+
   if (!guidelines.length) return (
     <div style={{ ...S.muted, textAlign:"center", padding:20 }}>No guidelines published yet.</div>
   );
@@ -84,7 +90,25 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
     <>
       {preview && <FilePreview url={preview.url} title={preview.title} onClose={() => setPreview(null)}/>}
       <div>
-        {guidelines.map(g => (
+        <div style={{ position:"relative", marginBottom:14 }}>
+          <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
+            fontSize:14, color:C.mutedColor }}>🔍</span>
+          <input style={{ ...S.inp, paddingLeft:36, marginBottom:0 }}
+            placeholder="Search guidelines..."
+            value={search} onChange={e => setSearch(e.target.value)}/>
+          {search && (
+            <button onClick={() => setSearch("")}
+              style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+                background:"none", border:"none", color:C.mutedColor,
+                cursor:"pointer", fontSize:16 }}>✕</button>
+          )}
+        </div>
+        {filtered.length === 0 && search && (
+          <div style={{ ...S.muted, textAlign:"center", padding:20 }}>
+            No results for "{search}"
+          </div>
+        )}
+        {filtered.map(g => (
           <div key={g.id} style={S.card}>
             <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom: showAcks ? 10 : 0 }}>
               <div style={{ fontSize:28 }}>{g.file_type==="img" ? "🖼️" : g.file_type==="pdf" ? "📄" : "📎"}</div>
@@ -156,6 +180,7 @@ export function VMGuidelines({ guidelines, userId }) {
   const [acked,   setAcked]   = useState({});
   const [loading, setLoading] = useState({});
   const [preview, setPreview] = useState(null);
+  const [search,  setSearch]  = useState("");
 
   useEffect(() => {
     if (!userId || !guidelines.length) return;
@@ -179,6 +204,11 @@ export function VMGuidelines({ guidelines, userId }) {
     setLoading(p => ({ ...p, [guidelineId]: false }));
   };
 
+  const filtered = guidelines.filter(g =>
+    g.title?.toLowerCase().includes(search.toLowerCase()) ||
+    g.category?.toLowerCase().includes(search.toLowerCase())
+  );
+
   if (!guidelines.length) return (
     <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No guidelines published yet.</div>
   );
@@ -190,10 +220,29 @@ export function VMGuidelines({ guidelines, userId }) {
         <div style={{ ...S.h1, marginBottom:2 }} className="fu">
           VM <span style={S.accent}>Guidelines</span>
         </div>
-        <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
+        <div style={{ ...S.muted, marginBottom:12, fontSize:12 }}>
           Review and acknowledge all guidelines
         </div>
-        {guidelines.map(g => (
+        {/* Search bar */}
+        <div style={{ position:"relative", marginBottom:16 }}>
+          <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
+            fontSize:14, color:C.mutedColor }}>🔍</span>
+          <input style={{ ...S.inp, paddingLeft:36, marginBottom:0 }}
+            placeholder="Search guidelines by title or category..."
+            value={search} onChange={e => setSearch(e.target.value)}/>
+          {search && (
+            <button onClick={() => setSearch("")}
+              style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+                background:"none", border:"none", color:C.mutedColor,
+                cursor:"pointer", fontSize:16 }}>✕</button>
+          )}
+        </div>
+        {filtered.length === 0 && search && (
+          <div style={{ ...S.muted, textAlign:"center", padding:24 }}>
+            No guidelines found for "{search}"
+          </div>
+        )}
+        {filtered.map(g => (
           <div key={g.id} style={S.card}>
             <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:12 }}>
               <div style={{ fontSize:28 }}>{g.file_type==="img" ? "🖼️" : g.file_type==="pdf" ? "📄" : "📎"}</div>
