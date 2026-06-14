@@ -34,7 +34,18 @@ function FilePreview({ url, title, onClose }) {
       {/* Content */}
       <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
         {isPDF ? (
-          <iframe src={url} style={{ width:"100%", height:"100%", border:"none" }} title={title}/>
+          <object data={url} type="application/pdf" style={{ width:"100%", height:"100%", border:"none" }}>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
+              justifyContent:"center", height:"100%", gap:16 }}>
+              <div style={{ fontSize:48 }}>📄</div>
+              <div style={{ color:"#fff", fontSize:14 }}>Cannot preview PDF in this browser</div>
+              <a href={url} target="_blank" rel="noopener noreferrer"
+                style={{ padding:"10px 20px", background:"#C8A96E", color:"#000",
+                  borderRadius:8, textDecoration:"none", fontWeight:700 }}>
+                Open PDF in New Tab
+              </a>
+            </div>
+          </object>
         ) : (
           <img src={url} alt={title}
             style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain" }}/>
