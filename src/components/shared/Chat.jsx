@@ -1,139 +1,177 @@
 import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { Avatar } from "./Atoms.jsx";
-import { uid, nowTime } from "../../utils.js";
+import { supabase } from "../../lib/supabase.js";
 
-// ── Single chat room ──
-function ChatRoom({ user, messages, setMessages, placeholder = "Type a message…" }) {
-  const [text, setText] = useState("");
+// ── Single chat room ──────────────────────────────────────────
+function ChatRoom({ user, room, companyId, onSend }) {
+  const [messages, setMessages] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [text,     setText]     = useState("");
   const bottomRef = useRef();
+
+  useEffect(() => {
+    if (!companyId || !room) return;
+    setLoading(true);
+    supabase.from("chat_messages")
+      .select("*, sender:profiles(full_name, role)")
+      .eq("company_id", companyId)
+      .eq("room", room)
+      .order("created_at")
+      .limit(100)
+      .then(({ data }) => { setMessages(data ?? []); setLoading(false); });
+
+    const sub = supabase.channel(`chat-${companyId}-${room}`)
+      .on("postgres_changes", {
+        event:"INSERT", schema:"public", table:"chat_messages",
+        filter:`company_id=eq.${companyId}`,
+      }, payload => {
+        if (payload.new.room === room) {
+          // fetch sender info
+          supabase.from("chat_messages")
+            .select("*, sender:profiles(full_name, role)")
+            .eq("id", payload.new.id)
+            .single()
+            .then(({ data }) => {
+              if (data) setMessages(p => [...p, data]);
+            });
+        }
+      })
+      .subscribe();
+
+    return () => sub.unsubscribe();
+  }, [companyId, room]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior:"smooth" });
   }, [messages]);
 
-  const send = () => {
+  const send = async () => {
     if (!text.trim()) return;
-    setMessages([...messages, {
-      id: uid(), from: user.name, avatar: user.avatar,
-      role: user.role, text, time: nowTime(),
-    }]);
+    const msg = text.trim();
     setText("");
+    await onSend(room, msg);
   };
 
   return (
-    <div style={{ ...S.card, display:"flex", flexDirection:"column", height:400, marginBottom:0 }}>
+    <div style={{ ...S.card, display:"flex", flexDirection:"column", height:420, marginBottom:0 }}>
       <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:10, padding:"4px 0" }}>
-        {messages.length === 0 && (
+        {loading && <div style={{ ...S.muted, textAlign:"center", marginTop:40 }}>Loading…</div>}
+        {!loading && messages.length === 0 && (
           <div style={{ ...S.muted, textAlign:"center", marginTop:46, fontSize:13 }}>
-            No messages yet.
+            No messages yet. Start the conversation!
           </div>
         )}
         {messages.map(m => {
-          const mine = m.from === user.name;
+          const mine = m.sender_id === user?.id;
+          const name = m.sender?.full_name ?? "—";
+          const role = m.sender?.role ?? "vm";
+          const initials = name.split(" ").map(x=>x[0]).join("").slice(0,2);
           return (
             <div key={m.id} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth:"78%" }}>
               {!mine && (
                 <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:4 }}>
-                  <Avatar initials={m.avatar} size={20} />
-                  <span style={{ fontSize:11, color:C.mutedColor }}>
-                    {m.from} · <span style={S.chip(m.role)}>{m.role === "manager" ? "MGR" : "VM"}</span>
-                  </span>
+                  <div style={{ ...S.avatar(20), fontSize:9 }}>{initials}</div>
+                  <span style={{ fontSize:11, color:C.mutedColor }}>{name}</span>
+                  <span style={S.chip(role)}>{role === "manager" ? "MGR" : role === "area_manager" ? "AM" : role === "store_manager" ? "SM" : "VM"}</span>
                 </div>
               )}
-              <div style={S.bubble(mine)}>{m.text}</div>
+              <div style={S.bubble(mine)}>{m.body}</div>
               <div style={{ fontSize:10, color:C.mutedColor, textAlign: mine ? "right" : "left", marginTop:2 }}>
-                {m.time}
+                {m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : ""}
               </div>
             </div>
           );
         })}
-        <div ref={bottomRef} />
+        <div ref={bottomRef}/>
       </div>
       <div style={{ display:"flex", gap:8, marginTop:10 }}>
         <input
           style={{ ...S.inp, marginTop:0, marginBottom:0, flex:1 }}
-          placeholder={placeholder}
+          placeholder="Type a message…"
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => e.key === "Enter" && send()}
         />
-        <button className="btnP" style={{ ...S.btnP, flexShrink:0 }} onClick={send}>
-          Send
-        </button>
+        <button className="btnP" style={{ ...S.btnP, flexShrink:0 }} onClick={send}>Send</button>
       </div>
     </div>
   );
 }
 
-// ── Main Chat page — VM sees one room, manager sees two ──
-export function Chat({ user, teamMessages, setTeamMessages, mgrMessages, setMgrMessages }) {
-  const [room, setRoom] = useState("team");
-  const isManager = user.role === "manager";
+// ── Main Chat ─────────────────────────────────────────────────
+export function Chat({ user, companyId, branches = [], onSend }) {
+  const role = user?.role ?? "vm";
+  const isManager = ["manager","area_manager","store_manager"].includes(role);
+  const branchId = user?.branch_id ?? null;
+
+  // Build available rooms
+  const rooms = [];
+
+  // Branch room — only if user has a branch
+  if (branchId) {
+    const branchName = branches.find(b => b.id === branchId)?.name ?? "Branch";
+    rooms.push({ key: `branch-${branchId}`, label: `🏪 ${branchName}`, color: C.accentColor });
+  }
+
+  // General team room
+  rooms.push({ key: "team", label: "💬 Team", color: C.accentColor });
+
+  // Managers only
+  if (isManager) {
+    rooms.push({ key: "managers", label: "🔒 Managers", color: "#a855f7" });
+  }
+
+  const [activeRoom, setActiveRoom] = useState(rooms[0]?.key ?? "team");
 
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        {isManager
-          ? <>Channels <span style={S.accent}>& Rooms</span></>
-          : <>Team <span style={S.accent}>Chat</span></>}
+        Team <span style={S.accent}>Chat</span>
+      </div>
+      <div style={{ ...S.muted, marginBottom:14, fontSize:12 }}>
+        Real-time messaging
       </div>
 
-      {/* Room tabs — managers only */}
-      {isManager ? (
-        <div style={{ display:"flex", gap:6, marginBottom:14 }}>
-          <button className="tab-btn" style={S.tab(room === "team")} onClick={() => setRoom("team")}>
-            💬 Team Channel
-          </button>
-          <button
-            className="tab-btn"
+      {/* Room tabs */}
+      <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
+        {rooms.map(r => (
+          <button key={r.key} className="tab-btn" onClick={() => setActiveRoom(r.key)}
             style={{
-              ...S.tab(room === "managers"),
-              color: room === "managers" ? "#a855f7" : C.mutedColor,
-              background: room === "managers" ? "#a855f718" : "transparent",
-              borderColor: room === "managers" ? "#a855f744" : "#a855f722",
-              border: `1px solid ${room === "managers" ? "#a855f744" : "#a855f722"}`,
-            }}
-            onClick={() => setRoom("managers")}>
-            🔒 Managers Only
+              ...S.tab(activeRoom === r.key),
+              ...(activeRoom === r.key && r.color !== C.accentColor ? {
+                color: r.color,
+                background: r.color + "18",
+                borderColor: r.color + "44",
+                border: `1px solid ${r.color}44`,
+              } : {}),
+              whiteSpace:"nowrap",
+            }}>
+            {r.label}
           </button>
-        </div>
-      ) : (
-        <div style={{ ...S.muted, marginBottom:14, fontSize:12 }}>All branches · live channel</div>
-      )}
+        ))}
+      </div>
 
-      {/* Team room */}
-      {room === "team" && (
-        <ChatRoom
-          user={user}
-          messages={teamMessages}
-          setMessages={setTeamMessages}
-          placeholder="Message the whole team…"
-        />
-      )}
-
-      {/* Managers-only room */}
-      {room === "managers" && isManager && (
-        <div>
-          <div style={{
-            display:"flex", alignItems:"center", gap:8, marginBottom:12,
-            padding:"10px 14px", background:"#a855f711",
-            border:"1px solid #a855f733", borderRadius:10,
-          }}>
-            <span style={{ fontSize:16 }}>🔒</span>
-            <div>
-              <div style={{ fontSize:12, fontWeight:700, color:"#a855f7" }}>Managers Only Room</div>
-              <div style={{ fontSize:11, color:C.mutedColor }}>Not visible to VMs</div>
-            </div>
+      {/* Managers room badge */}
+      {activeRoom === "managers" && (
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12,
+          padding:"10px 14px", background:"#a855f711",
+          border:"1px solid #a855f733", borderRadius:10 }}>
+          <span style={{ fontSize:16 }}>🔒</span>
+          <div>
+            <div style={{ fontSize:12, fontWeight:700, color:"#a855f7" }}>Managers Only</div>
+            <div style={{ fontSize:11, color:C.mutedColor }}>Not visible to VM staff</div>
           </div>
-          <ChatRoom
-            user={user}
-            messages={mgrMessages}
-            setMessages={setMgrMessages}
-            placeholder="Private managers message…"
-          />
         </div>
       )}
+
+      <ChatRoom
+        key={activeRoom}
+        user={user}
+        room={activeRoom}
+        companyId={companyId}
+        onSend={onSend}
+      />
     </div>
   );
 }

@@ -436,7 +436,8 @@ function AuthenticatedApp() {
         {vmPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                     setTeamMessages={setTeamChat} mgrMessages={mgrChat}
                                     setMgrMessages={setMgrChat}
-                                    onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} />}
+                                    onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
+                                    companyId={company.id} branches={activeBranches} />}
       </div>
       <VMNav page={vmPage} setPage={setVmPage} />
     </div>
@@ -455,7 +456,8 @@ function AuthenticatedApp() {
         {smPage==="chat"     && <Chat user={profile} teamMessages={teamChat}
                                   setTeamMessages={setTeamChat} mgrMessages={mgrChat}
                                   setMgrMessages={setMgrChat}
-                                  onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} />}
+                                  onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
+                                    companyId={company.id} branches={activeBranches} />}
       </div>
       <nav style={S.bottomNav}>
         {[["home","🏠","Home"],["requests","📥","Submissions"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
@@ -484,7 +486,8 @@ function AuthenticatedApp() {
         {amPage==="chat"      && <Chat user={profile} teamMessages={teamChat}
                                    setTeamMessages={setTeamChat} mgrMessages={mgrChat}
                                    setMgrMessages={setMgrChat}
-                                   onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} />}
+                                   onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
+                                    companyId={company.id} branches={activeBranches} />}
       </div>
       <nav style={S.bottomNav}>
         {[["overview","📊","Overview"],["requests","📥","Requests"],["visits","🚶","Visits"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
@@ -528,7 +531,8 @@ function AuthenticatedApp() {
         {mgrPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
                                      setTeamMessages={setTeamChat} mgrMessages={mgrChat}
                                      setMgrMessages={setMgrChat}
-                                     onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} />}
+                                     onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
+                                    companyId={company.id} branches={activeBranches} />}
         {mgrPage==="superadmin" && isSuperAdmin && <SuperAdminPanel />}
       </div>
       <MgrNav page={mgrPage} setPage={setMgrPage} isSuperAdmin={isSuperAdmin} />
