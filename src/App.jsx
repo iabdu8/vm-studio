@@ -5,7 +5,7 @@ import {
   getTasks, createTask, updateTask, deleteTask,
   getSubmissions, reviewSubmission,
   getGuidelines, uploadGuideline, deleteGuideline,
-  getChatMessages, sendMessage, subscribeToChat,
+  getChatMessages, sendMessage,
   getActivityLog, logActivity,
 } from "./services/data.service.js";
 import {
@@ -209,9 +209,7 @@ function AuthenticatedApp() {
       getTasks(company.id).then(setTasks),
       getSubmissions(company.id).then(setSubmissions),
       getGuidelines(company.id).then(setGuidelines),
-      getChatMessages(company.id, "team").then(setTeamChat),
-      (isManager || isAreaManager || isStoreManager)
-        ? getChatMessages(company.id, "managers").then(setMgrChat) : Promise.resolve(),
+
       (isManager || isAreaManager)
         ? getActivityLog(company.id).then(setLog) : Promise.resolve(),
       supabase.from("branches").select("*")
@@ -238,13 +236,11 @@ function AuthenticatedApp() {
     ]).finally(() => setDataLoaded(true));
 
     subscribeToPush(profile.id, company.id);
-    const teamSub = subscribeToChat(company.id, "team", msg => setTeamChat(p => [...p, msg]));
-    const mgrSub  = (isManager || isAreaManager || isStoreManager)
-      ? subscribeToChat(company.id, "managers", msg => setMgrChat(p => [...p, msg])) : null;
+
     navigator.serviceWorker?.addEventListener("message", e => {
       if (e.data?.type === "TRIGGER_SYNC") syncQueue();
     });
-    return () => { teamSub?.unsubscribe?.(); mgrSub?.unsubscribe?.(); };
+return () => {};
   }, [company?.id]);
 
   const activeBranches = localBranches.length > 0 ? localBranches : (branches ?? []);
