@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 import { signOut } from "../../services/auth.service.js";
+import { supabase } from "../../lib/supabase.js";
 import {
   getAllCompanies, createCompany, deleteCompany,
   updateSettings, getCategoriesForCompany,
@@ -11,7 +12,7 @@ import {
 const S = {
   wrap:   { minHeight:"100vh", background:"#0a0a0f", color:"#f0ede8", fontFamily:"'DM Sans',sans-serif", padding:"20px 18px", paddingBottom:80 },
   card:   { background:"#13131a", border:"1px solid #a855f722", borderRadius:14, padding:"18px 20px", marginBottom:14 },
-  h1:     { fontSize:22, fontWeight:700, color:"#a855f7", marginBottom:4, fontFamily:"'Cormorant Garamond',serif" },
+  h1:     { fontSize:22, fontWeight:700, color:"#a855f7", marginBottom:4 },
   h3:     { fontSize:11, fontWeight:700, color:"#6b6880", letterSpacing:1.5, textTransform:"uppercase", marginBottom:10 },
   tab:    (a) => ({ padding:"8px 15px", cursor:"pointer", fontSize:13, fontWeight:a?600:400, color:a?"#a855f7":"#6b6880", background:a?"#a855f718":"transparent", borderRadius:8, border:a?"1px solid #a855f733":"1px solid transparent", transition:"all .2s", fontFamily:"'DM Sans',sans-serif" }),
   inp:    { width:"100%", background:"#0a0a0f", border:"1px solid #a855f722", borderRadius:10, padding:"9px 13px", color:"#f0ede8", fontSize:13, marginTop:4, marginBottom:12, fontFamily:"'DM Sans',sans-serif", boxSizing:"border-box" },
@@ -21,7 +22,7 @@ const S = {
   btnG:   { background:"transparent", color:"#6b6880", border:"1px solid #6b688033", padding:"8px 14px", borderRadius:9, cursor:"pointer", fontSize:13, fontFamily:"'DM Sans',sans-serif" },
   btnDel: { background:"#f8717122", color:"#f87171", border:"1px solid #f8717133", padding:"6px 12px", borderRadius:8, cursor:"pointer", fontSize:12 },
   btnOut: { background:"transparent", color:"#f87171", border:"1px solid #f8717133", padding:"6px 14px", borderRadius:8, cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" },
-  chip:   (r) => ({ display:"inline-block", padding:"3px 9px", borderRadius:20, fontSize:11, fontWeight:700, background:r==="super_admin"?"#a855f722":r==="manager"?"#c8a96e22":"#818cf822", color:r==="super_admin"?"#a855f7":r==="manager"?"#c8a96e":"#818cf8" }),
+  chip:   (r) => ({ display:"inline-block", padding:"3px 9px", borderRadius:20, fontSize:11, fontWeight:700, background:r==="super_admin"?"#a855f722":r==="manager"?"#4F46E522":"#818cf822", color:r==="super_admin"?"#a855f7":r==="manager"?"#818cf8":"#818cf8" }),
   row:    { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #ffffff08" },
   toggle: (on) => ({ position:"relative", width:40, height:22, borderRadius:11, background:on?"#a855f7":"#333", cursor:"pointer", border:"none", transition:"background .2s", flexShrink:0 }),
   toggleDot: (on) => ({ position:"absolute", top:3, left:on?20:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left .2s" }),
@@ -30,10 +31,8 @@ const S = {
 export function SuperAdminPanel() {
   const { profile } = useApp();
   const [tab, setTab] = useState("companies");
-
   return (
     <div style={S.wrap}>
-      {/* Header */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <span style={{ fontSize:24 }}>🛡️</span>
@@ -44,17 +43,15 @@ export function SuperAdminPanel() {
         </div>
         <button style={S.btnOut} onClick={() => signOut()}>Sign Out</button>
       </div>
-
-      {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
-        {[["companies","🏢 Companies"],["categories","📂 Categories"],["users","👥 Users"],["settings","⚙️ Settings"]].map(([k,l]) => (
+        {[["companies","🏢 Companies"],["categories","📂 Categories"],["users","👥 Users"],["invites","🔑 Invite Codes"],["settings","⚙️ Settings"]].map(([k,l]) => (
           <button key={k} style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
-
       {tab==="companies"  && <CompaniesTab />}
       {tab==="categories" && <CategoriesTab />}
       {tab==="users"      && <UsersTab />}
+      {tab==="invites"    && <InviteCodesTab />}
       {tab==="settings"   && <SettingsTab />}
     </div>
   );
@@ -62,62 +59,43 @@ export function SuperAdminPanel() {
 
 function CompaniesTab() {
   const [companies, setCompanies] = useState([]);
-  const [form, setForm] = useState({ name:"", slug:"", primary_color:"#c8a96e", accent_color:"#c8a96e" });
+  const [form, setForm] = useState({ name:"", slug:"", primary_color:"#4F46E5", accent_color:"#4F46E5" });
   const [saving, setSaving] = useState(false);
-
   useEffect(() => { getAllCompanies().then(setCompanies); }, []);
-
   const add = async () => {
     if (!form.name || !form.slug) return;
     setSaving(true);
-    try {
-      const c = await createCompany(form);
-      setCompanies(p => [...p, c]);
-      setForm({ name:"", slug:"", primary_color:"#c8a96e", accent_color:"#c8a96e" });
-    } finally { setSaving(false); }
+    try { const c = await createCompany(form); setCompanies(p => [...p, c]); setForm({ name:"", slug:"", primary_color:"#4F46E5", accent_color:"#4F46E5" }); }
+    finally { setSaving(false); }
   };
-
   const del = async (id) => {
     if (!confirm("Delete this company and ALL its data?")) return;
-    await deleteCompany(id);
-    setCompanies(p => p.filter(c => c.id !== id));
+    await deleteCompany(id); setCompanies(p => p.filter(c => c.id !== id));
   };
-
   return (
     <div>
       <div style={S.card}>
         <div style={S.h3}>New Company</div>
         <div style={S.lbl}>Company Name</div>
         <input style={S.inp} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Home Centre" />
-        <div style={S.lbl}>Slug (unique key)</div>
+        <div style={S.lbl}>Slug</div>
         <input style={S.inp} value={form.slug} onChange={e=>setForm(p=>({...p,slug:e.target.value.toLowerCase().replace(/\s+/g,"-")}))} placeholder="e.g. homecentre" />
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-          <div>
-            <div style={S.lbl}>Primary Color</div>
-            <input type="color" style={{...S.inp,height:44,padding:4}} value={form.primary_color} onChange={e=>setForm(p=>({...p,primary_color:e.target.value}))} />
-          </div>
-          <div>
-            <div style={S.lbl}>Accent Color</div>
-            <input type="color" style={{...S.inp,height:44,padding:4}} value={form.accent_color} onChange={e=>setForm(p=>({...p,accent_color:e.target.value}))} />
-          </div>
+          <div><div style={S.lbl}>Primary Color</div><input type="color" style={{...S.inp,height:44,padding:4}} value={form.primary_color} onChange={e=>setForm(p=>({...p,primary_color:e.target.value}))} /></div>
+          <div><div style={S.lbl}>Accent Color</div><input type="color" style={{...S.inp,height:44,padding:4}} value={form.accent_color} onChange={e=>setForm(p=>({...p,accent_color:e.target.value}))} /></div>
         </div>
         <button style={S.btnP} onClick={add} disabled={saving}>{saving?"Creating…":"Create Company →"}</button>
       </div>
-
       <div style={S.h3}>All Companies ({companies.length})</div>
       {companies.map(c => (
         <div key={c.id} style={{ ...S.card, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-            {c.logo_url
-              ? <img src={c.logo_url} style={{ width:36, height:36, objectFit:"contain", borderRadius:8 }} alt={c.name}/>
-              : <div style={{ width:36, height:36, borderRadius:10, background:c.accent_color, flexShrink:0 }}/>
-            }
+            {c.logo_url ? <img src={c.logo_url} style={{ width:36, height:36, objectFit:"contain", borderRadius:8 }} alt={c.name}/>
+              : <div style={{ width:36, height:36, borderRadius:10, background:c.accent_color??"#4F46E5", flexShrink:0 }}/>}
             <div>
               <div style={{ fontWeight:700, fontSize:14 }}>{c.name}</div>
               <div style={{ fontSize:11, color:"#6b6880" }}>/{c.slug} · {c.is_active?"✓ Active":"✗ Inactive"}</div>
-              <div style={{ fontSize:11, color:"#a855f7", fontWeight:700, marginTop:2, letterSpacing:1 }}>
-                🔑 {c.invite_code ?? "—"}
-              </div>
+              <div style={{ fontSize:11, color:"#a855f7", fontWeight:700, marginTop:2 }}>🔑 {c.invite_code ?? "—"}</div>
             </div>
           </div>
           <button style={S.btnDel} onClick={()=>del(c.id)}>Delete</button>
@@ -129,30 +107,22 @@ function CompaniesTab() {
 
 function CategoriesTab() {
   const [companies, setCompanies] = useState([]);
-  const [selected,  setSelected]  = useState("");
-  const [cats,      setCats]      = useState([]);
-  const [name, setName]           = useState("");
-  const [icon, setIcon]           = useState("📦");
-  const [expanded, setExpanded]   = useState(null);
-
+  const [selected, setSelected] = useState("");
+  const [cats, setCats] = useState([]);
+  const [name, setName] = useState("");
+  const [icon, setIcon] = useState("📦");
+  const [expanded, setExpanded] = useState(null);
   useEffect(() => { getAllCompanies().then(setCompanies); }, []);
-  useEffect(() => {
-    if (selected) getCategoriesForCompany(selected).then(setCats);
-    else setCats([]);
-  }, [selected]);
-
+  useEffect(() => { if (selected) getCategoriesForCompany(selected).then(setCats); else setCats([]); }, [selected]);
   const addCat = async () => {
     if (!name || !selected) return;
     const c = await adminCreateCategory({ company_id:selected, name, icon, sort_order:cats.length+1 });
     setCats(p => [...p, {...c, subcategories:[]}]); setName(""); setIcon("📦");
   };
-
   const delCat = async (id) => {
-    await adminDeleteCategory(id);
-    setCats(p => p.filter(c => c.id !== id));
+    await adminDeleteCategory(id); setCats(p => p.filter(c => c.id !== id));
     if (expanded === id) setExpanded(null);
   };
-
   return (
     <div>
       <div style={S.card}>
@@ -163,33 +133,22 @@ function CategoriesTab() {
         </select>
         {selected && (
           <div style={{ display:"flex", gap:8, alignItems:"flex-end" }}>
-            <div style={{ flex:1 }}>
-              <div style={S.lbl}>Category Name</div>
-              <input style={{...S.inp,marginBottom:0}} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Men's" />
-            </div>
-            <div>
-              <div style={S.lbl}>Icon</div>
-              <input style={{...S.inp,width:56,textAlign:"center",marginBottom:0}} value={icon} onChange={e=>setIcon(e.target.value)} />
-            </div>
+            <div style={{ flex:1 }}><div style={S.lbl}>Category Name</div><input style={{...S.inp,marginBottom:0}} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Men's" /></div>
+            <div><div style={S.lbl}>Icon</div><input style={{...S.inp,width:56,textAlign:"center",marginBottom:0}} value={icon} onChange={e=>setIcon(e.target.value)} /></div>
             <button style={{...S.btnP,flexShrink:0,marginBottom:12}} onClick={addCat}>Add</button>
           </div>
         )}
       </div>
-
       {cats.map(c => (
         <div key={c.id} style={S.card}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <span style={{ fontWeight:700, fontSize:14 }}>{c.icon} {c.name}</span>
             <div style={{ display:"flex", gap:8 }}>
-              <button style={S.btnG} onClick={()=>setExpanded(expanded===c.id?null:c.id)}>
-                {expanded===c.id?"▲":"▼"} Sections
-              </button>
+              <button style={S.btnG} onClick={()=>setExpanded(expanded===c.id?null:c.id)}>{expanded===c.id?"▲":"▼"} Sections</button>
               <button style={S.btnDel} onClick={()=>delCat(c.id)}>Del</button>
             </div>
           </div>
-          {expanded===c.id && (
-            <SubEditor category={c} companyId={selected} onRefresh={()=>getCategoriesForCompany(selected).then(setCats)} />
-          )}
+          {expanded===c.id && <SubEditor category={c} companyId={selected} onRefresh={()=>getCategoriesForCompany(selected).then(setCats)} />}
         </div>
       ))}
     </div>
@@ -200,19 +159,14 @@ function SubEditor({ category, companyId, onRefresh }) {
   const [name, setName] = useState("");
   const add = async () => {
     if (!name) return;
-    const { supabase } = await import("../../lib/supabase.js");
     await supabase.from("subcategories").insert({ company_id:companyId, category_id:category.id, name, sort_order:(category.subcategories?.length??0)+1 });
     setName(""); onRefresh();
   };
-  const del = async (id) => {
-    const { supabase } = await import("../../lib/supabase.js");
-    await supabase.from("subcategories").delete().eq("id",id); onRefresh();
-  };
+  const del = async (id) => { await supabase.from("subcategories").delete().eq("id",id); onRefresh(); };
   return (
     <div style={{ marginTop:12, paddingLeft:12, borderLeft:"2px solid #a855f722" }}>
       <div style={{ display:"flex", gap:8, marginBottom:10 }}>
-        <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Section name…" value={name}
-          onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} />
+        <input style={{...S.inp,flex:1,marginBottom:0}} placeholder="Section name…" value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} />
         <button style={S.btnP} onClick={add}>Add</button>
       </div>
       {(category.subcategories??[]).map(s => (
@@ -227,37 +181,54 @@ function SubEditor({ category, companyId, onRefresh }) {
 }
 
 function UsersTab() {
-  const [users,     setUsers]     = useState([]);
+  const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
-
+  const [search, setSearch] = useState("");
+  const [deleting, setDeleting] = useState(null);
   useEffect(() => { getAllUsers().then(setUsers); getAllCompanies().then(setCompanies); }, []);
 
-  const changeRole = async (id, role) => {
-    await updateUserRole(id, role);
-    setUsers(p => p.map(u => u.id===id?{...u,role}:u));
+  const changeRole = async (id, role) => { await updateUserRole(id, role); setUsers(p => p.map(u => u.id===id?{...u,role}:u)); };
+  const assign = async (id, company_id) => { await assignUserToCompany(id, company_id||null, null); setUsers(p => p.map(u => u.id===id?{...u,company_id:company_id||null}:u)); };
+  const deleteUser = async (id) => {
+    if (!confirm("Delete this user permanently?")) return;
+    setDeleting(id);
+    try { await supabase.from("profiles").delete().eq("id", id); setUsers(p => p.filter(u => u.id !== id)); }
+    finally { setDeleting(null); }
   };
-  const assign = async (id, company_id) => {
-    await assignUserToCompany(id, company_id||null, null);
-    setUsers(p => p.map(u => u.id===id?{...u,company_id:company_id||null}:u));
-  };
+
+  const filtered = users.filter(u =>
+    u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.company?.name?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div>
-      <div style={{...S.h3,marginBottom:14}}>All Users ({users.length})</div>
-      {users.map(u => (
+      <div style={{ position:"relative", marginBottom:14 }}>
+        <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontSize:14, color:"#6b6880" }}>🔍</span>
+        <input style={{ ...S.inp, paddingLeft:36, marginBottom:0 }} placeholder="Search users…" value={search} onChange={e => setSearch(e.target.value)}/>
+      </div>
+      <div style={{...S.h3,marginBottom:14}}>Users ({filtered.length})</div>
+      {filtered.map(u => (
         <div key={u.id} style={S.card}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
             <div>
               <div style={{ fontWeight:700, fontSize:14 }}>{u.full_name}</div>
               <div style={{ fontSize:11, color:"#6b6880" }}>{u.company?.name ?? "No company"}</div>
             </div>
-            <span style={S.chip(u.role)}>{u.role}</span>
+            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+              <span style={S.chip(u.role)}>{u.role}</span>
+              <button style={S.btnDel} onClick={() => deleteUser(u.id)} disabled={deleting===u.id}>
+                {deleting===u.id ? "…" : "🗑️ Delete"}
+              </button>
+            </div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <div>
               <div style={S.lbl}>Role</div>
               <select style={S.sel} value={u.role} onChange={e=>changeRole(u.id,e.target.value)}>
                 <option value="vm">VM</option>
+                <option value="store_manager">Store Manager</option>
+                <option value="area_manager">Area Manager</option>
                 <option value="manager">Manager</option>
                 <option value="super_admin">Super Admin</option>
               </select>
@@ -276,32 +247,88 @@ function UsersTab() {
   );
 }
 
+function InviteCodesTab() {
+  const [companies, setCompanies] = useState([]);
+  const [editing, setEditing] = useState({});
+  const [saving, setSaving] = useState({});
+  const [msgs, setMsgs] = useState({});
+  useEffect(() => { getAllCompanies().then(setCompanies); }, []);
+
+  const saveCode = async (id, code) => {
+    if (!code.trim()) return;
+    setSaving(p => ({ ...p, [id]: true }));
+    const { error } = await supabase.from("companies").update({ invite_code: code.trim().toUpperCase() }).eq("id", id);
+    if (!error) {
+      setCompanies(p => p.map(c => c.id===id ? { ...c, invite_code: code.trim().toUpperCase() } : c));
+      setMsgs(p => ({ ...p, [id]: "✓ Saved!" }));
+      setTimeout(() => setMsgs(p => ({ ...p, [id]: "" })), 2000);
+    }
+    setSaving(p => ({ ...p, [id]: false }));
+  };
+
+  const generate = (id) => {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setEditing(p => ({ ...p, [id]: code }));
+  };
+
+  return (
+    <div>
+      <div style={{ ...S.card, marginBottom:20 }}>
+        <div style={S.h3}>About Invite Codes</div>
+        <div style={{ fontSize:13, color:"#6b6880", lineHeight:1.7 }}>
+          Each company has a unique invite code. New employees enter this code when registering 
+          to automatically join the right company. You can change codes anytime — old codes stop working immediately.
+        </div>
+      </div>
+      {companies.map(c => {
+        const current = editing[c.id] ?? c.invite_code ?? "";
+        return (
+          <div key={c.id} style={S.card}>
+            <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:14 }}>
+              <div style={{ width:36, height:36, borderRadius:10, background:c.accent_color??"#4F46E5", flexShrink:0 }}/>
+              <div>
+                <div style={{ fontWeight:700, fontSize:14 }}>{c.name}</div>
+                <div style={{ fontSize:11, color:"#6b6880" }}>/{c.slug}</div>
+              </div>
+            </div>
+            <div style={S.lbl}>Invite Code</div>
+            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+              <input style={{ ...S.inp, marginBottom:0, flex:1, fontSize:20, fontWeight:700,
+                letterSpacing:5, textAlign:"center", textTransform:"uppercase" }}
+                value={current}
+                onChange={e => setEditing(p => ({ ...p, [c.id]: e.target.value.toUpperCase() }))}
+                placeholder="e.g. HC2026" maxLength={12}/>
+              <button style={{ ...S.btnG, flexShrink:0 }} onClick={() => generate(c.id)}>🎲</button>
+              <button style={{ ...S.btnP, flexShrink:0 }} onClick={() => saveCode(c.id, current)} disabled={saving[c.id]}>
+                {saving[c.id] ? "…" : "Save"}
+              </button>
+            </div>
+            {msgs[c.id] && <div style={{ fontSize:12, color:"#4ade80", marginTop:8 }}>{msgs[c.id]}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function SettingsTab() {
   const [companies, setCompanies] = useState([]);
-  const [selected,  setSelected]  = useState("");
-  const [cfg,       setCfg]       = useState(null);
-
+  const [selected, setSelected] = useState("");
+  const [cfg, setCfg] = useState(null);
   useEffect(() => { getAllCompanies().then(setCompanies); }, []);
   useEffect(() => {
     if (!selected) { setCfg(null); return; }
-    getAllCompanies().then(cs => { const c=cs.find(x=>x.id===selected); setCfg(c?.settings??null); });
+    getAllCompanies().then(cs => { const c=cs.find(x=>x.id===selected); setCfg(c?.settings??{}); });
   }, [selected]);
-
   const toggle = async (key) => {
     const next = { ...cfg, [key]: !cfg[key] };
-    setCfg(next);
-    await updateSettings(selected, { [key]: !cfg[key] });
+    setCfg(next); await updateSettings(selected, { [key]: !cfg[key] });
   };
-
   const FEATURES = [
-    ["enable_reports",       "📈 Reports"],
-    ["enable_chat",          "💬 Chat"],
-    ["enable_notifications", "🔔 Notifications"],
-    ["enable_attachments",   "📎 Attachments"],
-    ["enable_leaderboard",   "🏆 Leaderboard"],
-    ["enable_guidelines",    "📖 Guidelines"],
+    ["enable_reports","📈 Reports"],["enable_chat","💬 Chat"],
+    ["enable_notifications","🔔 Notifications"],["enable_attachments","📎 Attachments"],
+    ["enable_leaderboard","🏆 Leaderboard"],["enable_guidelines","📖 Guidelines"],
   ];
-
   return (
     <div>
       <div style={S.card}>

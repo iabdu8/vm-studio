@@ -20,18 +20,12 @@ export function RegisterPage({ onBack }) {
     setLoading(true); setErr("");
     try {
       const upperCode = code.trim().toUpperCase();
-      const { data: vmData } = await supabase
+      const { data } = await supabase
         .from("companies")
         .select("id, name, logo_url, accent_color")
         .eq("invite_code", upperCode)
         .single();
-      if (vmData) { setCompany(vmData); setRole("vm"); setStep(2); return; }
-      const { data: mgrData } = await supabase
-        .from("companies")
-        .select("id, name, logo_url, accent_color")
-        .eq("manager_invite_code", upperCode)
-        .single();
-      if (mgrData) { setCompany(mgrData); setRole("manager"); setStep(2); return; }
+      if (data) { setCompany(data); setRole("vm"); setStep(2); return; }
       setErr("Invalid invite code. Please check with your manager.");
     } finally { setLoading(false); }
   };
@@ -59,9 +53,8 @@ export function RegisterPage({ onBack }) {
         <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
         <div style={{ ...S.dFont, fontSize:24, fontWeight:700, color:C.accentColor, marginBottom:8 }}>Account Created!</div>
         <div style={{ ...S.muted, marginBottom:8 }}>
-          You joined as <strong style={{ color: role==="manager"?"#c8a96e":"#818cf8" }}>
-            {role === "manager" ? "Manager" : "Visual Merchandiser"}
-          </strong>
+          You joined <strong style={{ color:C.accentColor }}>{company?.name}</strong> as{" "}
+          <strong style={{ color:"#818cf8" }}>Visual Merchandiser</strong>
         </div>
         <div style={{ ...S.muted, marginBottom:24, fontSize:12 }}>Check your email to confirm, then sign in.</div>
         <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={onBack}>Back to Sign In →</button>
@@ -73,7 +66,7 @@ export function RegisterPage({ onBack }) {
     <div style={S.loginBg}>
       <StyleTag />
       <div style={S.loginCard} className="fu">
-        <div style={{ ...S.dFont, fontSize:32, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:4 }}>VM-Studio</div>
+        <div style={{ ...S.dFont, fontSize:32, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:4 }}>Vismo</div>
         <div style={{ ...S.muted, fontSize:12, marginBottom:28 }}>Create your account</div>
 
         {/* Steps */}
@@ -82,7 +75,7 @@ export function RegisterPage({ onBack }) {
             <div key={n} style={{ display:"flex", alignItems:"center", gap:8 }}>
               <div style={{ width:24, height:24, borderRadius:"50%",
                 background: step>=n ? C.accentColor : C.surfaceHigh,
-                color: step>=n ? "#0a0a0f" : C.mutedColor,
+                color: step>=n ? "#fff" : C.mutedColor,
                 display:"flex", alignItems:"center", justifyContent:"center",
                 fontSize:11, fontWeight:700, flexShrink:0 }}>{n}</div>
               <span style={{ fontSize:12, color: step>=n ? C.textColor : C.mutedColor }}>
@@ -93,7 +86,6 @@ export function RegisterPage({ onBack }) {
           ))}
         </div>
 
-        {/* Step 1 */}
         {step === 1 && (
           <>
             <div style={{ ...S.muted, fontSize:13, marginBottom:20, lineHeight:1.6 }}>
@@ -101,10 +93,11 @@ export function RegisterPage({ onBack }) {
             </div>
             <div style={S.lbl}>Invite Code</div>
             <input
-              style={{ ...S.inp, textTransform:"uppercase", letterSpacing:2, fontSize:15, textAlign:"center" }}
+              style={{ ...S.inp, textTransform:"uppercase", letterSpacing:4, fontSize:18, textAlign:"center" }}
               value={code}
-              onChange={e => { setCode(e.target.value); setErr(""); }}
+              onChange={e => { setCode(e.target.value.toUpperCase()); setErr(""); }}
               onKeyDown={e => e.key==="Enter" && verifyCode()}
+              placeholder="e.g. HC2026"
             />
             {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
             <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={verifyCode} disabled={loading}>
@@ -113,7 +106,6 @@ export function RegisterPage({ onBack }) {
           </>
         )}
 
-        {/* Step 2 */}
         {step === 2 && (
           <>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20,
@@ -125,9 +117,7 @@ export function RegisterPage({ onBack }) {
               }
               <div>
                 <div style={{ fontSize:12, fontWeight:700 }}>{company?.name}</div>
-                <div style={{ fontSize:11, color: role==="manager"?"#c8a96e":"#818cf8" }}>
-                  {role==="manager" ? "👔 Manager" : "✅ Visual Merchandiser"}
-                </div>
+                <div style={{ fontSize:11, color:"#818cf8" }}>✅ Visual Merchandiser</div>
               </div>
             </div>
 
@@ -148,7 +138,7 @@ export function RegisterPage({ onBack }) {
               {loading ? "Creating account…" : "Create Account →"}
             </button>
             <button className="btnG" style={{ ...S.btnG, width:"100%", fontSize:12 }}
-              onClick={() => { setStep(1); setErr(""); setRole("vm"); }}>
+              onClick={() => { setStep(1); setErr(""); }}>
               ← Change Code
             </button>
           </>
