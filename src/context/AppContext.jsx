@@ -10,12 +10,9 @@ export function AppProvider({ children }) {
 
   const refresh = async () => {
     try {
-      console.log("loading session...");
       const s = await loadSession();
-      console.log("session loaded:", s);
       setSession(s);
     } catch (e) {
-      console.error("session error:", e);
       setError(e.message);
     } finally {
       setLoading(false);

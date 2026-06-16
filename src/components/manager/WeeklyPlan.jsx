@@ -113,10 +113,10 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
       .from("weekly_plans").select("id")
       .eq("company_id", company.id).eq("branch_id", selectedBranch)
       .eq("week_start", lastWeekStart).single();
-    if (!lastPlan) { alert("No plan found for last week."); return; }
+    if (!lastPlan) { setCopyMsg("No plan found for last week."); return; }
     const { data: lastItems } = await supabase
       .from("weekly_plan_items").select("*").eq("plan_id", lastPlan.id);
-    if (!lastItems?.length) { alert("Last week's plan is empty."); return; }
+    if (!lastItems?.length) { setCopyMsg("Last week plan is empty."); return; }
     setCreating(true);
     const { data: newPlan } = await supabase
       .from("weekly_plans")

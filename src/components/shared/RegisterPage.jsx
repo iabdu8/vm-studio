@@ -40,6 +40,32 @@ export function RegisterPage({ onBack }) {
         if (branchData?.length === 1) setBranchId(branchData[0].id);
         setStep(2); return;
       }
+      // VMC
+      const { data: vmcData } = await supabase.from("companies")
+        .select("id, name, logo_url, accent_color")
+        .eq("vmc_invite_code", upperCode).single();
+      if (vmcData) {
+        setCompany(vmcData); setRole("manager");
+        const { data: br } = await supabase.from("branches").select("id, name")
+          .eq("company_id", vmcData.id).eq("is_active", true).order("sort_order");
+        setBranches(br ?? []);
+        if (br?.length === 1) setBranchId(br[0].id);
+        setStep(2); return;
+      }
+
+      // Manager
+      const { data: mgrData } = await supabase.from("companies")
+        .select("id, name, logo_url, accent_color")
+        .eq("manager_invite_code", upperCode).single();
+      if (mgrData) {
+        setCompany(mgrData); setRole("area_manager");
+        const { data: br } = await supabase.from("branches").select("id, name")
+          .eq("company_id", mgrData.id).eq("is_active", true).order("sort_order");
+        setBranches(br ?? []);
+        if (br?.length === 1) setBranchId(br[0].id);
+        setStep(2); return;
+      }
+
       setErr("Invalid invite code. Please check with your manager.");
     } finally { setLoading(false); }
   };
