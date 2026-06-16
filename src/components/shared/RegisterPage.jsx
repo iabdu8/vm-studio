@@ -11,6 +11,8 @@ export function RegisterPage({ onBack }) {
   const [name,     setName]     = useState("");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [branches, setBranches] = useState([]);
   const [err,      setErr]      = useState("");
   const [loading,  setLoading]  = useState(false);
   const [done,     setDone]     = useState(false);
@@ -25,7 +27,19 @@ export function RegisterPage({ onBack }) {
         .select("id, name, logo_url, accent_color")
         .eq("invite_code", upperCode)
         .single();
-      if (data) { setCompany(data); setRole("vm"); setStep(2); return; }
+      if (data) {
+        setCompany(data); setRole("vm");
+        // Load branches for this company
+        const { data: branchData } = await supabase
+          .from("branches")
+          .select("id, name")
+          .eq("company_id", data.id)
+          .eq("is_active", true)
+          .order("sort_order");
+        setBranches(branchData ?? []);
+        if (branchData?.length === 1) setBranchId(branchData[0].id);
+        setStep(2); return;
+      }
       setErr("Invalid invite code. Please check with your manager.");
     } finally { setLoading(false); }
   };
@@ -37,7 +51,7 @@ export function RegisterPage({ onBack }) {
     try {
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: email.trim(), password: password.trim(),
-        options: { data: { full_name: name.trim(), role, company_id: company.id } },
+        options: { data: { full_name: name.trim(), role, company_id: company.id, branch_id: branchId || null } },
       });
       if (authErr) throw authErr;
       if (!authData.user?.id) throw new Error("Failed to create account.");
@@ -121,6 +135,15 @@ export function RegisterPage({ onBack }) {
               </div>
             </div>
 
+            {branches.length > 0 && (
+              <>
+                <div style={S.lbl}>Branch</div>
+                <select style={S.sel} value={branchId} onChange={e => setBranchId(e.target.value)}>
+                  <option value="">— Select your branch —</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </>
+            )}
             <div style={S.lbl}>Full Name</div>
             <input style={S.inp} placeholder="Your full name" value={name}
               onChange={e => { setName(e.target.value); setErr(""); }}/>
