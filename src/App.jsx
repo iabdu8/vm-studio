@@ -5,7 +5,7 @@ import {
   getTasks, createTask, updateTask, deleteTask,
   getSubmissions, reviewSubmission,
   getGuidelines, uploadGuideline, deleteGuideline,
-  getChatMessages, sendMessage,
+  sendMessage,
   getActivityLog, logActivity,
 } from "./services/data.service.js";
 import {
@@ -21,11 +21,11 @@ import { StyleTag }           from "./components/shared/Atoms.jsx";
 import { Logo }               from "./components/shared/Logo.jsx";
 import { TopBar }             from "./components/shared/TopBar.jsx";
 import { VMNav, MgrNav }      from "./components/shared/BottomNav.jsx";
-import { LoginPage }          from "./components/shared/LoginPage.jsx";
 import { RegisterPage }       from "./components/shared/RegisterPage.jsx";
 import { Chat }               from "./components/shared/Chat.jsx";
 import { VMGuidelines }       from "./components/shared/Guidelines.jsx";
 import { StatusBar }          from "./components/shared/StatusBar.jsx";
+import { ToastContainer, toast } from "./components/shared/Toast.jsx";
 import { VMHome }             from "./components/vm/VMHome.jsx";
 import { VMTasks }            from "./components/vm/VMTasks.jsx";
 import { VMPlan }             from "./components/vm/VMPlan.jsx";
@@ -41,6 +41,25 @@ import { AreaManagerOverview } from "./components/manager/AreaManagerShell.jsx";
 import { SuperAdminPanel }    from "./components/superadmin/SuperAdminPanel.jsx";
 import { S, C }               from "./styles/theme.js";
 import { nowTime }            from "./utils.js";
+
+// ── Confirm Modal (بديل عن browser confirm) ──────────────────
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"#00000088", zIndex:900,
+      display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ background:"var(--clr-surface)", borderRadius:16, padding:28,
+        maxWidth:360, width:"100%", border:`1px solid ${C.accentColor}22` }}>
+        <div style={{ fontSize:15, fontWeight:600, marginBottom:20, lineHeight:1.5 }}>{message}</div>
+        <div style={{ display:"flex", gap:10 }}>
+          <button className="btnP" style={{ ...S.btnP, flex:1, background:"#f87171" }}
+            onClick={onConfirm}>Confirm</button>
+          <button className="btnG" style={{ ...S.btnG, flex:1 }}
+            onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function LoadingScreen() {
   return (
@@ -181,8 +200,6 @@ function AuthenticatedApp() {
   const [tasks,       setTasks]       = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [guidelines,  setGuidelines]  = useState([]);
-  const [teamChat,    setTeamChat]    = useState([]);
-  const [mgrChat,     setMgrChat]     = useState([]);
   const [log,         setLog]         = useState([]);
   const [demoHolds,   setDemoHolds]   = useState([]);
   const [floorWalks,  setFloorWalks]  = useState([]);
@@ -192,6 +209,9 @@ function AuthenticatedApp() {
   const [visits,      setVisits]      = useState([]);
   const [localBranches, setLocalBranches] = useState([]);
   const [dataLoaded,  setDataLoaded]  = useState(false);
+  const [confirm,     setConfirm]     = useState(null); // {message, onConfirm}
+
+  const showConfirm = (message, onConfirm) => setConfirm({ message, onConfirm });
 
   const loadVisits = async (cid) => {
     const { data } = await supabase
@@ -203,13 +223,22 @@ function AuthenticatedApp() {
     setVisits(data ?? []);
   };
 
+  const loadFloorWalks = async (cid) => {
+    const { data } = await supabase
+      .from("floor_walks")
+      .select("*, photos:floor_walk_photos(*)")
+      .eq("company_id", cid)
+      .order("created_at", { ascending:false })
+      .limit(10);
+    setFloorWalks(data ?? []);
+  };
+
   useEffect(() => {
     if (!company) { setDataLoaded(true); return; }
     Promise.all([
       getTasks(company.id).then(setTasks),
       getSubmissions(company.id).then(setSubmissions),
       getGuidelines(company.id).then(setGuidelines),
-
       (isManager || isAreaManager)
         ? getActivityLog(company.id).then(setLog) : Promise.resolve(),
       supabase.from("branches").select("*")
@@ -228,19 +257,15 @@ function AuthenticatedApp() {
         .eq("company_id", company.id)
         .order("created_at", { ascending:false }).limit(50)
         .then(({ data }) => setDemoHolds(data ?? [])),
-      supabase.from("floor_walks").select("*, photos:floor_walk_photos(*)")
-        .eq("company_id", company.id)
-        .order("created_at", { ascending:false }).limit(10)
-        .then(({ data }) => setFloorWalks(data ?? [])),
+      loadFloorWalks(company.id),
       loadVisits(company.id),
     ]).finally(() => setDataLoaded(true));
 
     subscribeToPush(profile.id, company.id);
-
     navigator.serviceWorker?.addEventListener("message", e => {
       if (e.data?.type === "TRIGGER_SYNC") syncQueue();
     });
-return () => {};
+    return () => {};
   }, [company?.id]);
 
   const activeBranches = localBranches.length > 0 ? localBranches : (branches ?? []);
@@ -257,36 +282,44 @@ return () => {};
     const { before, after, note, category_id, subcategory_id, branch_id,
             category_name, subcategory_name, branch_name } = data;
     const payload = {
-      company_id: company.id,
-      submitted_by: profile.id,
-      category_id:    category_id    || null,
-      subcategory_id: subcategory_id || null,
-      branch_id:      branch_id      || null,
-      category_name:    category_name    || null,
-      subcategory_name: subcategory_name || null,
-      branch_name:      branch_name      || null,
-      note: note || null,
-      status: "pending",
+      company_id: company.id, submitted_by: profile.id,
+      category_id: category_id || null, subcategory_id: subcategory_id || null,
+      branch_id: branch_id || null, category_name: category_name || null,
+      subcategory_name: subcategory_name || null, branch_name: branch_name || null,
+      note: note || null, status: "pending",
     };
-    await submitWithFallback({ ...payload, before, after });
-    if (isOnline) getSubmissions(company.id).then(setSubmissions);
-    addLog("Submitted implementation", category_name ?? "");
-    notifyManagers(company.id, "submission_new", "New Submission 📤",
-      (profile.full_name ?? "") + " submitted a VM report");
+    try {
+      await submitWithFallback({ ...payload, before, after });
+      toast("Report submitted!", "success");
+      if (isOnline) getSubmissions(company.id).then(setSubmissions);
+      addLog("Submitted implementation", category_name ?? "");
+      notifyManagers(company.id, "submission_new", "New Submission 📤",
+        (profile.full_name ?? "") + " submitted a VM report");
+    } catch (e) { console.error("Submit failed:", e); toast("Failed to submit. Please try again."); }
   };
 
   const handleReview = async (id, status, revisionNote) => {
-    await reviewSubmission(id, status, status==="approved" ? 85 : null, profile.id, revisionNote);
-    getSubmissions(company.id).then(setSubmissions);
-    addLog(status==="approved" ? "Approved submission" : "Requested revision", "VM submission");
-    const sub = submissions.find(s => s.id === id);
-    if (sub?.submitted_by) {
-      notifyUser(company.id, sub.submitted_by,
-        status === "approved" ? "submission_approved" : "submission_revision",
-        status === "approved" ? "Submission Approved ✅" : "Revision Requested ↩️",
-        status === "approved" ? "Your VM report was approved!" : (revisionNote || "Your VM report needs revision.")
-      );
-    }
+    try {
+      await reviewSubmission(id, status, status==="approved" ? 85 : null, profile.id, revisionNote);
+      getSubmissions(company.id).then(setSubmissions);
+      addLog(status==="approved" ? "Approved submission" : "Requested revision", "VM submission");
+      const sub = submissions.find(s => s.id === id);
+      if (sub?.submitted_by) {
+        notifyUser(company.id, sub.submitted_by,
+          status === "approved" ? "submission_approved" : "submission_revision",
+          status === "approved" ? "Submission Approved ✅" : "Revision Requested ↩️",
+          status === "approved" ? "Your VM report was approved!" : (revisionNote || "Your VM report needs revision.")
+        );
+      }
+    } catch (e) { console.error("Review failed:", e); }
+  };
+
+  const handleDeleteSubmission = async (id) => {
+    showConfirm("Delete this submission permanently?", async () => {
+      await supabase.from("submissions").delete().eq("id", id);
+      setSubmissions(p => p.filter(x => x.id !== id));
+      setConfirm(null);
+    });
   };
 
   const handleAddNote = async (submissionId, note) => {
@@ -296,81 +329,96 @@ return () => {};
   };
 
   const handleCreateTask = async (payload) => {
-    await createTask({ ...payload, company_id:company.id, created_by:profile.id });
-    getTasks(company.id).then(setTasks);
-    addLog("Assigned new task", payload.title);
-    if (payload.assigned_to && payload.assigned_to !== "all") {
-      notifyUser(company.id, payload.assigned_to, "task_created",
-        "New Task Assigned 📋", payload.title ?? "");
-    } else {
-      notifyAll(company.id, "task_created", "New Task Assigned 📋", payload.title ?? "");
-    }
+    try {
+      await createTask({ ...payload, company_id:company.id, created_by:profile.id });
+      getTasks(company.id).then(setTasks);
+      addLog("Assigned new task", payload.title);
+      if (payload.assigned_to && payload.assigned_to !== "all") {
+        notifyUser(company.id, payload.assigned_to, "task_created", "New Task Assigned 📋", payload.title ?? "");
+      } else {
+        notifyAll(company.id, "task_created", "New Task Assigned 📋", payload.title ?? "");
+      }
+    } catch (e) { console.error("Create task failed:", e); toast("Failed to create task."); }
+  };
+
+  const handleDeleteTask = (id) => {
+    showConfirm("Delete this task?", async () => {
+      await deleteTask(id);
+      getTasks(company.id).then(setTasks);
+      setConfirm(null);
+    });
   };
 
   const handleDeleteGuideline = async (id) => {
-    await deleteGuideline(id);
-    setGuidelines(p => p.filter(x => x.id !== id));
-    addLog("Deleted guideline", id);
+    showConfirm("Delete this guideline?", async () => {
+      await deleteGuideline(id);
+      setGuidelines(p => p.filter(x => x.id !== id));
+      addLog("Deleted guideline", id);
+      setConfirm(null);
+    });
   };
 
   const handleUploadGuideline = async (title, category, file) => {
-    await uploadGuideline(company.id, profile.id, title, category, file);
-    getGuidelines(company.id).then(setGuidelines);
-    addLog("Uploaded guideline", title);
-    notifyAll(company.id, "guideline_new", "New Guideline Published 📖", title);
+    try {
+      await uploadGuideline(company.id, profile.id, title, category, file);
+      getGuidelines(company.id).then(setGuidelines);
+      addLog("Uploaded guideline", title);
+      notifyAll(company.id, "guideline_new", "New Guideline Published 📖", title);
+    } catch (e) { console.error("Upload guideline failed:", e); toast("Failed to upload guideline."); }
   };
 
   const handleAddDemoHold = async ({ item_code, note }) => {
-    const { data } = await supabase.from("demo_holds")
-      .insert({ company_id:company.id, added_by:profile.id,
-        branch_id:profile.branch_id ?? null, item_code, note, time:nowTime() })
-      .select().single();
-    if (data) setDemoHolds(p => [data, ...p]);
-    addLog("Added demo hold", item_code);
+    try {
+      const { data } = await supabase.from("demo_holds")
+        .insert({ company_id:company.id, added_by:profile.id,
+          branch_id:profile.branch_id ?? null, item_code, note, time:nowTime() })
+        .select().single();
+      if (data) setDemoHolds(p => [data, ...p]);
+      addLog("Added demo hold", item_code);
+    } catch (e) { console.error("Demo hold failed:", e); }
   };
 
   const handleAddFloorWalk = async ({ note, photos }) => {
-    const { data: fw } = await supabase.from("floor_walks")
-      .insert({ company_id:company.id, added_by:profile.id,
-        note, manager:profile.full_name,
-        date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }) })
-      .select().single();
-    if (fw && photos.length > 0) {
-      for (const p of photos) {
-        const safeName = (p.file?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
-        const path = `${company.id}/floorwalk/${fw.id}-${Date.now()}-${safeName}`;
-        await supabase.storage.from("vm-photos").upload(path, p.file ?? p);
-        const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
-        await supabase.from("floor_walk_photos").insert({ floor_walk_id:fw.id, url });
+    try {
+      const { data: fw } = await supabase.from("floor_walks")
+        .insert({ company_id:company.id, added_by:profile.id,
+          note, manager:profile.full_name,
+          date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }) })
+        .select().single();
+      if (fw && photos.length > 0) {
+        for (const p of photos) {
+          const safeName = (p.file?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
+          const path = `${company.id}/floorwalk/${fw.id}-${Date.now()}-${safeName}`;
+          await supabase.storage.from("vm-photos").upload(path, p.file ?? p);
+          const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
+          await supabase.from("floor_walk_photos").insert({ floor_walk_id:fw.id, url, comment:p.comment??""  });
+        }
       }
-    }
-    const { data: updated } = await supabase.from("floor_walks")
-      .select("*, photos:floor_walk_photos(*)")
-      .eq("company_id", company.id)
-      .order("created_at", { ascending:false }).limit(10);
-    setFloorWalks(updated ?? []);
-    addLog("Added floor walk", note?.slice(0,40) ?? "");
-    // إشعار لكل الموظفين في الفرع
-    if (profile.branch_id) {
-      notifyBranch(company.id, profile.branch_id, "visit_created",
-        "New Floor Walk 🚶", "Manager published a new floor walk");
-    }
+      loadFloorWalks(company.id);
+      addLog("Added floor walk", note?.slice(0,40) ?? "");
+      if (profile.branch_id) {
+        notifyBranch(company.id, profile.branch_id, "visit_created",
+          "New Floor Walk 🚶", "Manager published a new floor walk");
+      }
+    } catch (e) { console.error("Floor walk failed:", e); toast("Failed to publish floor walk."); }
   };
 
   const handleSaveCampaign = async ({ name, date_from, date_to }) => {
-    await supabase.from("campaigns").update({ is_active:false }).eq("company_id", company.id);
-    const { data } = await supabase.from("campaigns")
-      .insert({ company_id:company.id, name,
-        date_from:date_from||null, date_to:date_to||null,
-        is_active:true, created_by:profile.id })
-      .select().single();
-    if (data) {
-      setCampaign(data);
-      await initCampaignBranches(data.id, activeBranches.map(b => b.id));
-      getCampaignProgress(data.id).then(setCampaignProgress);
-    }
-    addLog("Updated campaign", name);
-    notifyAll(company.id, "campaign_created", "New Campaign 📣", name);
+    try {
+      await supabase.from("campaigns").update({ is_active:false }).eq("company_id", company.id);
+      const { data } = await supabase.from("campaigns")
+        .insert({ company_id:company.id, name,
+          date_from:date_from||null, date_to:date_to||null,
+          is_active:true, created_by:profile.id })
+        .select().single();
+      if (data) {
+        setCampaign(data);
+        await initCampaignBranches(data.id, activeBranches.map(b => b.id));
+        getCampaignProgress(data.id).then(setCampaignProgress);
+      }
+      addLog("Updated campaign", name);
+      notifyAll(company.id, "campaign_created", "New Campaign 📣", name);
+    } catch (e) { console.error("Save campaign failed:", e); toast("Failed to save campaign."); }
   };
 
   const handleSetBranchStatus = async (branch_id, status) => {
@@ -391,14 +439,20 @@ return () => {};
     setPromotions(p => p.filter(x => x.id !== id));
   };
 
-  const handleDeleteVisit = async (id) => {
-    await supabase.from("store_visits").delete().eq("id", id);
-    setVisits(p => p.filter(x => x.id !== id));
+  const handleDeleteVisit = (id) => {
+    showConfirm("Delete this visit report?", async () => {
+      await supabase.from("store_visits").delete().eq("id", id);
+      setVisits(p => p.filter(x => x.id !== id));
+      setConfirm(null);
+    });
   };
 
-  const handleDeleteDemoHold = async (id) => {
-    await supabase.from("demo_holds").delete().eq("id", id);
-    setDemoHolds(p => p.filter(x => x.id !== id));
+  const handleDeleteDemoHold = (id) => {
+    showConfirm("Remove this item from hold?", async () => {
+      await supabase.from("demo_holds").delete().eq("id", id);
+      setDemoHolds(p => p.filter(x => x.id !== id));
+      setConfirm(null);
+    });
   };
 
   const handleExportPDF = () => {
@@ -409,129 +463,133 @@ return () => {};
   if (!dataLoaded) return <LoadingScreen />;
   if (isSuperAdmin && !company) return <SuperAdminApp />;
 
-  if (isVM) return (
-    <div style={S.app}>
-      <StyleTag />
-      <TopBar user={profile} onLogout={() => signOut()} />
-      <StatusBar isOnline={isOnline} queueSize={queueSize} syncing={syncing} onSyncNow={syncQueue} />
-      <div style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
-        {vmPage==="home"       && <VMHome       user={profile} tasks={tasks} submissions={submissions}
-                                    chat={teamChat} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
-                                    floorWalks={floorWalks} campaign={campaign} promotions={promotions} />}
-        {vmPage==="tasks"      && <VMTasks      user={profile} categories={categories} branches={activeBranches}
-                                    tasks={tasks} setTasks={setTasks} submissions={submissions}
-                                    demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
-                                    onDeleteDemoHold={handleDeleteDemoHold}
-                                    company={company} profile={profile}
-                                    onSubmit={handleSubmit}
-                                    onTaskToggle={(id, done) => updateTask(id, { is_done:done })
-                                      .then(() => getTasks(company.id).then(setTasks))} />}
-        {vmPage==="plan"       && <VMPlan       profile={profile} />}
-        {vmPage==="visits"     && <VMVisits     profile={profile} floorWalks={floorWalks} />}
-        {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
-        {vmPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
-                                    setTeamMessages={setTeamChat} mgrMessages={mgrChat}
-                                    setMgrMessages={setMgrChat}
-                                    onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
-                                    companyId={company.id} branches={activeBranches} />}
-      </div>
-      <VMNav page={vmPage} setPage={setVmPage} />
-    </div>
-  );
-
-  if (isStoreManager) return (
-    <div style={S.app}>
-      <StyleTag />
-      <TopBar user={profile} onLogout={() => signOut()} />
-      <div style={S.main}>
-        {smPage==="home"     && <StoreManagerHome
-                                  profile={profile} tasks={tasks} submissions={submissions}
-                                  campaign={campaign} promotions={promotions}
-                                  floorWalks={floorWalks} demoHolds={demoHolds} />}
-        {smPage==="requests" && <StoreManagerRequests submissions={submissions} onAddNote={handleAddNote} />}
-        {smPage==="chat"     && <Chat user={profile} teamMessages={teamChat}
-                                  setTeamMessages={setTeamChat} mgrMessages={mgrChat}
-                                  setMgrMessages={setMgrChat}
-                                  onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
-                                    companyId={company.id} branches={activeBranches} />}
-      </div>
-      <nav style={S.bottomNav}>
-        {[["home","🏠","Home"],["requests","📥","Submissions"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
-          <button key={k} className="tab-btn" style={S.navBtn(smPage===k)} onClick={() => setSmPage(k)}>
-            <span style={{ fontSize:20 }}>{icon}</span>
-            <span>{lbl}</span>
-          </button>
-        ))}
-      </nav>
-    </div>
-  );
-
-  if (isAreaManager) return (
-    <div style={S.app}>
-      <StyleTag />
-      <TopBar user={profile} onLogout={() => signOut()} />
-      <div style={S.main}>
-        {amPage==="overview"  && <AreaManagerOverview
-                                   profile={profile} tasks={tasks} submissions={submissions}
-                                   campaign={campaign} campaignProgress={campaignProgress}
-                                   branches={activeBranches} />}
-        {amPage==="requests"  && <MgrRequests submissions={submissions} onReview={handleReview} />}
-        {amPage==="visits"    && <StoreVisits company={company} branches={activeBranches}
-                                   profile={profile} visits={visits}
-                                   onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} />}
-        {amPage==="chat"      && <Chat user={profile} teamMessages={teamChat}
-                                   setTeamMessages={setTeamChat} mgrMessages={mgrChat}
-                                   setMgrMessages={setMgrChat}
-                                   onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
-                                    companyId={company.id} branches={activeBranches} />}
-      </div>
-      <nav style={S.bottomNav}>
-        {[["overview","📊","Overview"],["requests","📥","Requests"],["visits","🚶","Visits"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
-          <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
-            <span style={{ fontSize:20 }}>{icon}</span>
-            <span>{lbl}</span>
-          </button>
-        ))}
-      </nav>
-    </div>
-  );
-
   return (
-    <div style={S.app}>
-      <StyleTag />
-      <TopBar user={profile} onLogout={() => signOut()} isSuperAdmin={isSuperAdmin}
-        onSuperAdmin={() => setMgrPage("superadmin")} />
-      <div style={S.main}>
-        {mgrPage==="overview"   && <MgrOverview
-                                     tasks={tasks} submissions={submissions} log={log}
-                                     company={company} branches={activeBranches}
-                                     campaign={campaign} onSaveCampaign={handleSaveCampaign}
-                                     campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus}
-                                     promotions={promotions}
-                                     onCreatePromotion={handleCreatePromotion}
-                                     onDeletePromotion={handleDeletePromotion} />}
-        {mgrPage==="requests"   && <MgrRequests  submissions={submissions} onReview={handleReview} />}
-        {mgrPage==="assign"     && <MgrAssign    tasks={tasks} categories={categories}
-                                     branches={activeBranches} company={company} guidelines={guidelines}
-                                     profile={profile} onCreateTask={handleCreateTask}
-                                     onDeleteTask={id => deleteTask(id).then(() => getTasks(company.id).then(setTasks))}
-                                     onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} />}
-        {mgrPage==="reports"    && <MgrReports   tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
-        {mgrPage==="visits"     && <StoreVisits  company={company} branches={activeBranches}
-                                     profile={profile} visits={visits} floorWalks={floorWalks}
-                                     onVisitCreated={() => loadVisits(company.id)}
-                                     onDeleteVisit={handleDeleteVisit}
-                                     onAddFloorWalk={handleAddFloorWalk} />}
-        {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}
-        {mgrPage==="chat"       && <Chat         user={profile} teamMessages={teamChat}
-                                     setTeamMessages={setTeamChat} mgrMessages={mgrChat}
-                                     setMgrMessages={setMgrChat}
-                                     onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
-                                    companyId={company.id} branches={activeBranches} />}
-        {mgrPage==="superadmin" && isSuperAdmin && <SuperAdminPanel />}
-      </div>
-      <MgrNav page={mgrPage} setPage={setMgrPage} isSuperAdmin={isSuperAdmin} />
-    </div>
+    <>
+      <ToastContainer />
+      {confirm && (
+        <ConfirmModal
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
+      {isVM && (
+        <div style={S.app}>
+          <StyleTag />
+          <TopBar user={profile} onLogout={() => signOut()} />
+          <StatusBar isOnline={isOnline} queueSize={queueSize} syncing={syncing} onSyncNow={syncQueue} />
+          <div style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
+            {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions}
+                                        demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
+                                        campaign={campaign} promotions={promotions} />}
+            {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches}
+                                        tasks={tasks} setTasks={setTasks} submissions={submissions}
+                                        demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold}
+                                        onDeleteDemoHold={handleDeleteDemoHold}
+                                        company={company} profile={profile}
+                                        onSubmit={handleSubmit}
+                                        onTaskToggle={(id, done) => updateTask(id, { is_done:done })
+                                          .then(() => getTasks(company.id).then(setTasks))} />}
+            {vmPage==="plan"       && <VMPlan profile={profile} company={company} />}
+            {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
+            {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
+            {vmPage==="chat"       && <Chat user={profile}
+                                        onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
+                                        companyId={company.id} branches={activeBranches} />}
+          </div>
+          <VMNav page={vmPage} setPage={setVmPage} />
+        </div>
+      )}
+
+      {isStoreManager && (
+        <div style={S.app}>
+          <StyleTag />
+          <TopBar user={profile} onLogout={() => signOut()} />
+          <div style={S.main}>
+            {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions}
+                                      campaign={campaign} promotions={promotions}
+                                      floorWalks={floorWalks} demoHolds={demoHolds} />}
+            {smPage==="requests" && <StoreManagerRequests submissions={submissions} onAddNote={handleAddNote} />}
+            {smPage==="chat"     && <Chat user={profile}
+                                      onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
+                                      companyId={company.id} branches={activeBranches} />}
+          </div>
+          <nav style={S.bottomNav}>
+            {[["home","🏠","Home"],["requests","📥","Submissions"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
+              <button key={k} className="tab-btn" style={S.navBtn(smPage===k)} onClick={() => setSmPage(k)}>
+                <span style={{ fontSize:20 }}>{icon}</span><span>{lbl}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
+
+      {isAreaManager && (
+        <div style={S.app}>
+          <StyleTag />
+          <TopBar user={profile} onLogout={() => signOut()} />
+          <div style={S.main}>
+            {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions}
+                                      campaign={campaign} campaignProgress={campaignProgress}
+                                      branches={activeBranches} />}
+            {amPage==="requests" && <MgrRequests submissions={submissions} onReview={handleReview} />}
+            {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches}
+                                      profile={profile} visits={visits} floorWalks={floorWalks}
+                                      onVisitCreated={() => loadVisits(company.id)}
+                                      onDeleteVisit={handleDeleteVisit}
+                                      onAddFloorWalk={handleAddFloorWalk} />}
+            {amPage==="chat"     && <Chat user={profile}
+                                      onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
+                                      companyId={company.id} branches={activeBranches} />}
+          </div>
+          <nav style={S.bottomNav}>
+            {[["overview","📊","Overview"],["requests","📥","Requests"],["visits","🚶","Visits"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
+              <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
+                <span style={{ fontSize:20 }}>{icon}</span><span>{lbl}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      )}
+
+      {isManager && (
+        <div style={S.app}>
+          <StyleTag />
+          <TopBar user={profile} onLogout={() => signOut()} isSuperAdmin={isSuperAdmin}
+            onSuperAdmin={() => setMgrPage("superadmin")} />
+          <div style={S.main}>
+            {mgrPage==="overview"   && <MgrOverview tasks={tasks} submissions={submissions} log={log}
+                                         company={company} branches={activeBranches}
+                                         campaign={campaign} onSaveCampaign={handleSaveCampaign}
+                                         campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus}
+                                         promotions={promotions}
+                                         onCreatePromotion={handleCreatePromotion}
+                                         onDeletePromotion={handleDeletePromotion} />}
+            {mgrPage==="requests"   && <MgrRequests submissions={submissions} onReview={handleReview}
+                                         onDeleteSubmission={handleDeleteSubmission} />}
+            {mgrPage==="assign"     && <MgrAssign tasks={tasks} categories={categories}
+                                         branches={activeBranches} company={company} guidelines={guidelines}
+                                         profile={profile} onCreateTask={handleCreateTask}
+                                         onDeleteTask={handleDeleteTask}
+                                         onUploadGuideline={handleUploadGuideline}
+                                         onDeleteGuideline={handleDeleteGuideline} />}
+            {mgrPage==="reports"    && <MgrReports tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
+            {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches}
+                                         profile={profile} visits={visits} floorWalks={floorWalks}
+                                         onVisitCreated={() => loadVisits(company.id)}
+                                         onDeleteVisit={handleDeleteVisit}
+                                         onAddFloorWalk={handleAddFloorWalk} />}
+            {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}
+            {mgrPage==="chat"       && <Chat user={profile}
+                                         onSend={(room, body) => sendMessage(company.id, profile.id, room, body)}
+                                         companyId={company.id} branches={activeBranches} />}
+            {mgrPage==="superadmin" && isSuperAdmin && <SuperAdminPanel />}
+          </div>
+          <MgrNav page={mgrPage} setPage={setMgrPage} isSuperAdmin={isSuperAdmin} />
+        </div>
+      )}
+    </>
   );
 }
 

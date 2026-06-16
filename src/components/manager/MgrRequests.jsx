@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 
-export function MgrRequests({ submissions, onReview }) {
+export function MgrRequests({ submissions, onReview, onDeleteSubmission }) {
   const [filter,       setFilter]       = useState("pending");
   const [revisionId,   setRevisionId]   = useState(null);
   const [revisionNote, setRevisionNote] = useState("");
@@ -96,20 +96,29 @@ export function MgrRequests({ submissions, onReview }) {
               </div>
             )}
 
-            {s.status === "pending" && (
-              <div style={{ display:"flex", gap:8 }}>
-                <button className="btnP"
-                  style={{ ...S.btnP, fontSize:12, padding:"8px 16px" }}
-                  onClick={() => onReview(s.id, "approved")}>
-                  ✓ Approve
-                </button>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {s.status === "pending" && (
+                <>
+                  <button className="btnP"
+                    style={{ ...S.btnP, fontSize:12, padding:"8px 16px" }}
+                    onClick={() => onReview(s.id, "approved")}>
+                    ✓ Approve
+                  </button>
+                  <button className="btnG"
+                    style={{ ...S.btnG, fontSize:12, padding:"8px 14px", color:"#f87171", borderColor:"#f8717133" }}
+                    onClick={() => { setRevisionId(s.id); setRevisionNote(""); }}>
+                    ↩ Needs Revision
+                  </button>
+                </>
+              )}
+              {onDeleteSubmission && (
                 <button className="btnG"
-                  style={{ ...S.btnG, fontSize:12, padding:"8px 14px", color:"#f87171", borderColor:"#f8717133" }}
-                  onClick={() => { setRevisionId(s.id); setRevisionNote(""); }}>
-                  ↩ Needs Revision
+                  style={{ ...S.btnG, fontSize:12, padding:"8px 12px", color:"#f87171", borderColor:"#f8717133" }}
+                  onClick={() => onDeleteSubmission(s.id)}>
+                  🗑️
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         );
       })}
