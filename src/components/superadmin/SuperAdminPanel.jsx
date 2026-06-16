@@ -254,59 +254,82 @@ function InviteCodesTab() {
   const [msgs, setMsgs] = useState({});
   useEffect(() => { getAllCompanies().then(setCompanies); }, []);
 
-  const saveCode = async (id, code) => {
+  const CODE_TYPES = [
+    { key: "invite_code",         label: "VM Staff",       color: "#818cf8", desc: "Executes tasks, uploads Before/After" },
+    { key: "vmc_invite_code",     label: "VM Controller",  color: "#4F46E5", desc: "Creates tasks, weekly plan, training, approvals" },
+    { key: "manager_invite_code", label: "Manager",        color: "#a855f7", desc: "Store visits, branch progress, guidelines" },
+  ];
+
+  const saveCode = async (companyId, field, code) => {
     if (!code.trim()) return;
-    setSaving(p => ({ ...p, [id]: true }));
-    const { error } = await supabase.from("companies").update({ invite_code: code.trim().toUpperCase() }).eq("id", id);
+    const key = companyId + field;
+    setSaving(p => ({ ...p, [key]: true }));
+    const upper = code.trim().toUpperCase();
+    const { error } = await supabase.from("companies").update({ [field]: upper }).eq("id", companyId);
     if (!error) {
-      setCompanies(p => p.map(c => c.id===id ? { ...c, invite_code: code.trim().toUpperCase() } : c));
-      setMsgs(p => ({ ...p, [id]: "✓ Saved!" }));
-      setTimeout(() => setMsgs(p => ({ ...p, [id]: "" })), 2000);
+      setCompanies(p => p.map(c => c.id===companyId ? { ...c, [field]: upper } : c));
+      setMsgs(p => ({ ...p, [key]: "✓ Saved!" }));
+      setTimeout(() => setMsgs(p => ({ ...p, [key]: "" })), 2000);
     }
-    setSaving(p => ({ ...p, [id]: false }));
+    setSaving(p => ({ ...p, [key]: false }));
   };
 
-  const generate = (id) => {
+  const generate = (companyId, field) => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setEditing(p => ({ ...p, [id]: code }));
+    setEditing(p => ({ ...p, [companyId + field]: code }));
   };
 
   return (
     <div>
       <div style={{ ...S.card, marginBottom:20 }}>
-        <div style={S.h3}>About Invite Codes</div>
+        <div style={S.h3}>Invite Codes — 3 levels per company</div>
         <div style={{ fontSize:13, color:"#6b6880", lineHeight:1.7 }}>
-          Each company has a unique invite code. New employees enter this code when registering 
-          to automatically join the right company. You can change codes anytime — old codes stop working immediately.
+          Each company has 3 invite codes — one per role level. 
+          New employees use the code matching their role to register automatically.
         </div>
       </div>
-      {companies.map(c => {
-        const current = editing[c.id] ?? c.invite_code ?? "";
-        return (
-          <div key={c.id} style={S.card}>
-            <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:14 }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:c.accent_color??"#4F46E5", flexShrink:0 }}/>
-              <div>
-                <div style={{ fontWeight:700, fontSize:14 }}>{c.name}</div>
-                <div style={{ fontSize:11, color:"#6b6880" }}>/{c.slug}</div>
-              </div>
+      {companies.map(c => (
+        <div key={c.id} style={S.card}>
+          <div style={{ display:"flex", gap:12, alignItems:"center", marginBottom:16 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:c.accent_color??"#4F46E5", flexShrink:0 }}/>
+            <div>
+              <div style={{ fontWeight:700, fontSize:14 }}>{c.name}</div>
+              <div style={{ fontSize:11, color:"#6b6880" }}>/{c.slug}</div>
             </div>
-            <div style={S.lbl}>Invite Code</div>
-            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-              <input style={{ ...S.inp, marginBottom:0, flex:1, fontSize:20, fontWeight:700,
-                letterSpacing:5, textAlign:"center", textTransform:"uppercase" }}
-                value={current}
-                onChange={e => setEditing(p => ({ ...p, [c.id]: e.target.value.toUpperCase() }))}
-                placeholder="e.g. HC2026" maxLength={12}/>
-              <button style={{ ...S.btnG, flexShrink:0 }} onClick={() => generate(c.id)}>🎲</button>
-              <button style={{ ...S.btnP, flexShrink:0 }} onClick={() => saveCode(c.id, current)} disabled={saving[c.id]}>
-                {saving[c.id] ? "…" : "Save"}
-              </button>
-            </div>
-            {msgs[c.id] && <div style={{ fontSize:12, color:"#4ade80", marginTop:8 }}>{msgs[c.id]}</div>}
           </div>
-        );
-      })}
+          {CODE_TYPES.map(({ key, label, color, desc }) => {
+            const editKey = c.id + key;
+            const current = editing[editKey] ?? c[key] ?? "";
+            return (
+              <div key={key} style={{ marginBottom:16, paddingBottom:16,
+                borderBottom:"1px solid #ffffff08" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                  <span style={{ width:10, height:10, borderRadius:"50%",
+                    background:color, display:"inline-block", flexShrink:0 }}/>
+                  <span style={{ fontSize:12, fontWeight:700, color }}>{label}</span>
+                  <span style={{ fontSize:11, color:"#6b6880" }}>— {desc}</span>
+                </div>
+                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                  <input style={{ ...S.inp, marginBottom:0, flex:1, fontSize:16, fontWeight:700,
+                    letterSpacing:4, textAlign:"center", textTransform:"uppercase" }}
+                    value={current}
+                    onChange={e => setEditing(p => ({ ...p, [editKey]: e.target.value.toUpperCase() }))}
+                    placeholder="e.g. HC-VM" maxLength={12}/>
+                  <button style={{ ...S.btnG, flexShrink:0 }} onClick={() => generate(c.id, key)}>🎲</button>
+                  <button style={{ ...S.btnP, flexShrink:0, background:color }}
+                    onClick={() => saveCode(c.id, key, current)}
+                    disabled={saving[editKey]}>
+                    {saving[editKey] ? "…" : "Save"}
+                  </button>
+                </div>
+                {msgs[c.id + key] && (
+                  <div style={{ fontSize:12, color:"#4ade80", marginTop:6 }}>{msgs[c.id + key]}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

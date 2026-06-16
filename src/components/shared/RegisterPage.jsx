@@ -131,7 +131,12 @@ export function RegisterPage({ onBack }) {
               }
               <div>
                 <div style={{ fontSize:12, fontWeight:700 }}>{company?.name}</div>
-                <div style={{ fontSize:11, color:"#818cf8" }}>✅ Visual Merchandiser</div>
+                <div style={{ fontSize:11, color:
+                  role==="manager" ? "#4F46E5" :
+                  role==="area_manager" ? "#a855f7" : "#818cf8" }}>
+                  {role==="manager" ? "⚡ VM Controller" :
+                   role==="area_manager" ? "👔 Manager" : "✅ VM Staff"}
+                </div>
               </div>
             </div>
 
