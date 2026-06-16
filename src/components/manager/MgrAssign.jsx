@@ -1,3 +1,4 @@
+import { Training } from "./Training.jsx";
 import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { GuidelinesGrid } from "../shared/Guidelines.jsx";
@@ -68,7 +69,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines,
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
         {[["plan","📅 Weekly Plan"],["add","＋ New Task"],["all","All Tasks"],
-          ["guides","📖 Guidelines"]].map(([k,l]) => (
+          ["guides","📖 Guidelines"],["training","🎓 Training"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
@@ -191,6 +192,9 @@ export function MgrAssign({ tasks, categories, branches, guidelines,
           ))}
         </div>
       )}
+
+      {/* Training */}
+      {tab === "training" && <Training company={company} profile={profile}/>}
 
       {/* Guidelines */}
       {tab === "guides" && (
