@@ -295,7 +295,7 @@ function AuthenticatedApp() {
       addLog("Submitted implementation", category_name ?? "");
       notifyManagers(company.id, "submission_new", "New Submission 📤",
         (profile.full_name ?? "") + " submitted a VM report");
-    } catch (e) { console.error("Submit failed:", e); toast("Failed to submit. Please try again."); }
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error("Submit failed:", e); toast("Failed to submit. Please try again."); }
   };
 
   const handleReview = async (id, status, revisionNote) => {
@@ -311,7 +311,7 @@ function AuthenticatedApp() {
           status === "approved" ? "Your VM report was approved!" : (revisionNote || "Your VM report needs revision.")
         );
       }
-    } catch (e) { console.error("Review failed:", e); }
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error("Review failed:", e); toast("Failed to update submission."); }
   };
 
   const handleDeleteSubmission = async (id) => {
@@ -338,7 +338,7 @@ function AuthenticatedApp() {
       } else {
         notifyAll(company.id, "task_created", "New Task Assigned 📋", payload.title ?? "");
       }
-    } catch (e) { console.error("Create task failed:", e); toast("Failed to create task."); }
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error("Create task failed:", e); toast("Failed to create task."); }
   };
 
   const handleDeleteTask = (id) => {
@@ -364,7 +364,7 @@ function AuthenticatedApp() {
       getGuidelines(company.id).then(setGuidelines);
       addLog("Uploaded guideline", title);
       notifyAll(company.id, "guideline_new", "New Guideline Published 📖", title);
-    } catch (e) { console.error("Upload guideline failed:", e); toast("Failed to upload guideline."); }
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error("Upload guideline failed:", e); toast("Failed to upload guideline."); }
   };
 
   const handleAddDemoHold = async ({ item_code, note }) => {
@@ -375,7 +375,7 @@ function AuthenticatedApp() {
         .select().single();
       if (data) setDemoHolds(p => [data, ...p]);
       addLog("Added demo hold", item_code);
-    } catch (e) { console.error("Demo hold failed:", e); }
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error("Demo hold failed:", e); toast("Failed to add item."); }
   };
 
   const handleAddFloorWalk = async ({ note, photos }) => {
@@ -400,7 +400,7 @@ function AuthenticatedApp() {
         notifyBranch(company.id, profile.branch_id, "visit_created",
           "New Floor Walk 🚶", "Manager published a new floor walk");
       }
-    } catch (e) { console.error("Floor walk failed:", e); toast("Failed to publish floor walk."); }
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error("Floor walk failed:", e); toast("Failed to publish floor walk."); }
   };
 
   const handleSaveCampaign = async ({ name, date_from, date_to }) => {
@@ -418,7 +418,7 @@ function AuthenticatedApp() {
       }
       addLog("Updated campaign", name);
       notifyAll(company.id, "campaign_created", "New Campaign 📣", name);
-    } catch (e) { console.error("Save campaign failed:", e); toast("Failed to save campaign."); }
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error("Save campaign failed:", e); toast("Failed to save campaign."); }
   };
 
   const handleSetBranchStatus = async (branch_id, status) => {

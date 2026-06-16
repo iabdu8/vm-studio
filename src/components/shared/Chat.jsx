@@ -18,7 +18,7 @@ function ChatRoom({ user, room, companyId, onSend }) {
       .eq("company_id", companyId)
       .eq("room", room)
       .order("created_at")
-      .limit(100)
+      .limit(60)
       .then(({ data }) => { setMessages(data ?? []); setLoading(false); });
 
     const sub = supabase.channel(`chat-${companyId}-${room}`)

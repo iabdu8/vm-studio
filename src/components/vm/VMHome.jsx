@@ -1,7 +1,7 @@
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 
-export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHold, floorWalks, campaign, promotions = [] }) {
+export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, campaign, promotions = [] }) {
   const name     = user?.full_name ?? user?.name ?? "";
   const branch   = user?.branch?.name ?? user?.branch ?? "";
   const myTasks  = tasks.filter(t => t.assigned_to === "all" || t.assigned_to === user?.id);
@@ -75,32 +75,6 @@ export function VMHome({ user, tasks, submissions, chat, demoHolds, onAddDemoHol
           </div>
         ))}
       </div>
-
-      {/* Floor Walk */}
-      {floorWalks?.length > 0 && (
-        <div style={S.card}>
-          <div style={S.h3}>Floor Walk · This Week</div>
-          {floorWalks.map((fw, i) => (
-            <div key={i} style={{ marginBottom:14, paddingBottom:14, borderBottom:`1px solid ${C.accentColor}0a` }}>
-              {fw.note && (
-                <div style={{ fontSize:13, color:C.textColor, marginBottom:8, lineHeight:1.5 }}>{fw.note}</div>
-              )}
-              {fw.photos?.length > 0 && (
-                <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                  {fw.photos.map((p, j) => (
-                    <img key={j} src={p.url ?? p} alt=""
-                      style={{ width:80, height:80, objectFit:"cover", borderRadius:8,
-                        border:`1px solid ${C.accentColor}22` }}/>
-                  ))}
-                </div>
-              )}
-              <div style={{ ...S.muted, fontSize:11, marginTop:6 }}>
-                Added by {fw.manager} · {fw.date ?? ""}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Tasks preview */}
       <div style={S.card}>
