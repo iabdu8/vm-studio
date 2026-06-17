@@ -49,7 +49,7 @@ function FilePreview({ url, title, onClose }) {
         {isPDF ? (
           <iframe src={pdfSrc} style={{ width:"100%", height:"100%", border:"none" }} title={title}/>
         ) : (
-          <img src={url} alt={title}
+          <img loading="lazy" src={url} alt={title}
             style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain" }}/>
         )}
       </div>

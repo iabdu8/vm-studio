@@ -22,7 +22,7 @@ export function ImageUploader({ label, max = 10, files, onChange }) {
     if (!chosen.length) return;
     setCompressing(true);
     try {
-      const compressed = await compressAndPreview(chosen);
+      const compressed = await compressAndPreview(chosen, "beforeAfter");
       const saved = compressed.reduce((a, f) => a + (f.originalSize - f.compressedSize), 0);
       setSavedKB(Math.round(saved / 1024));
       onChange([...files, ...compressed]);
@@ -47,7 +47,7 @@ export function ImageUploader({ label, max = 10, files, onChange }) {
       <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
         {files.map((f, i) => (
           <div key={i} style={{ position:"relative" }}>
-            <img src={f.url} alt="" style={{
+            <img loading="lazy" src={f.url} alt="" style={{
               width:66, height:66, objectFit:"cover", borderRadius:8,
               border:"1px solid color-mix(in srgb,var(--clr-accent) 22%,transparent)",
             }} />

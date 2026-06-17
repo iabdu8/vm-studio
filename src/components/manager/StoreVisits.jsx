@@ -1,3 +1,4 @@
+import { compressImage } from "../../lib/imageCompression.js";
 import { useState, useRef, useCallback } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
@@ -51,7 +52,7 @@ function FloorWalkForm({ onAdd, onCancel }) {
       </div>
       {photos.map((p, i) => (
         <div key={i} style={{ marginBottom:10, border:`1px solid ${C.accentColor}18`, borderRadius:10, overflow:"hidden" }}>
-          <img src={p.url} alt="" style={{ width:"100%", maxHeight:160, objectFit:"cover", display:"block" }}/>
+          <img loading="lazy" src={p.url} alt="" style={{ width:"100%", maxHeight:160, objectFit:"cover", display:"block" }}/>
           <div style={{ padding:"8px 12px", background:C.surfaceHigh }}>
             <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:"var(--clr-surface)" }}
               placeholder="Comment..." value={p.comment}
@@ -109,9 +110,10 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
 
       if (visit) {
         for (const p of photos) {
-          const safeName = (p.file?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
+          const compressed = await compressImage(p.file, "visit");
+          const safeName = (compressed?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
           const path = `${company.id}/visits/${visit.id}-${Date.now()}-${safeName}`;
-          await supabase.storage.from("vm-photos").upload(path, p.file);
+          await supabase.storage.from("vm-photos").upload(path, compressed);
           const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
           await supabase.from("visit_findings")
             .insert({ visit_id:visit.id, finding:"Photo", image_url:url, recommendation:p.comment||"" });
@@ -217,7 +219,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
               {photos.map((p, i) => (
                 <div key={i} style={{ marginBottom:12, border:`1px solid ${C.accentColor}18`, borderRadius:12, overflow:"hidden" }}>
                   <div style={{ position:"relative" }}>
-                    <img src={p.url} alt="" style={{ width:"100%", maxHeight:180, objectFit:"cover", display:"block" }}/>
+                    <img loading="lazy" src={p.url} alt="" style={{ width:"100%", maxHeight:180, objectFit:"cover", display:"block" }}/>
                     <button onClick={() => removePhoto(i)} style={{ position:"absolute", top:8, right:8,
                       background:"#000a", border:"none", color:"#fff", borderRadius:"50%",
                       width:26, height:26, cursor:"pointer", fontSize:13 }}>✕</button>

@@ -78,7 +78,7 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission }) {
                       ? <div style={{ ...S.muted, fontSize:12 }}>No photos</div>
                       : <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                           {imgs.map((f, i) => (
-                            <img key={i} src={f.url ?? f} alt=""
+                            <img loading="lazy" key={i} src={f.url ?? f} alt=""
                               style={{ width:56, height:56, objectFit:"cover", borderRadius:6,
                                 border:`1px solid ${C.accentColor}22` }}/>
                           ))}

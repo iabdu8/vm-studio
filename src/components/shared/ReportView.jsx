@@ -52,7 +52,7 @@ export function ReportView({ report, onClose }) {
       <div class="photo-grid">
         ${photoItems.map(p => `
           <div class="photo-block">
-            <img src="${p.image_url ?? p.url}"/>
+            <img loading="lazy" src="${p.image_url ?? p.url}"/>
             <div class="photo-caption">${p.recommendation || p.comment || "—"}</div>
           </div>`).join("")}
       </div>` : ""}
@@ -123,7 +123,7 @@ export function ReportView({ report, onClose }) {
                 {photoItems.map((p, i) => (
                   <div key={i} style={{ border:`1px solid ${C.accentColor}14`,
                     borderRadius:10, overflow:"hidden" }}>
-                    <img src={p.image_url ?? p.url} alt=""
+                    <img loading="lazy" src={p.image_url ?? p.url} alt=""
                       style={{ width:"100%", height:160, objectFit:"cover", display:"block" }}/>
                     <div style={{ padding:"8px 12px", fontSize:12,
                       background:C.surfaceHigh, color:C.mutedColor }}>
