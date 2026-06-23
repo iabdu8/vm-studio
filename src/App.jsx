@@ -151,7 +151,7 @@ function LoginScreen() {
     <div style={S.loginBg}>
       <StyleTag />
       <div style={{ ...S.loginCard, padding:"40px 36px" }} className="fu">
-        <div style={{ display:"flex", justifyContent:"center", marginBottom:28 }}>
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:12 }}>
           <Logo size="lg" />
         </div>
         <div style={S.lbl}>Email</div>
