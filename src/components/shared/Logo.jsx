@@ -1,8 +1,8 @@
-const heights = { sm: 32, md: 44, lg: 220 };
-const maxWidths = { sm: 100, md: 140, lg: 380 };
+const heights  = { sm: 32, md: 44, lg: 200 };
+const maxWidths = { sm: 100, md: 140, lg: "100%" };
 
 export function Logo({ size = "md" }) {
-  const h = heights[size] ?? 44;
+  const h  = heights[size]   ?? 44;
   const mw = maxWidths[size] ?? 140;
   return (
     <img

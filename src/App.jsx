@@ -150,12 +150,9 @@ function LoginScreen() {
   return (
     <div style={S.loginBg}>
       <StyleTag />
-      <div style={S.loginCard} className="fu">
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:32 }}>
+      <div style={{ ...S.loginCard, padding:"40px 36px" }} className="fu">
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:28 }}>
           <Logo size="lg" />
-          <div style={{ ...S.muted, fontSize:12, letterSpacing:.5, marginTop:12, textAlign:"center" }}>
-            Visual Merchandising Operations Platform
-          </div>
         </div>
         <div style={S.lbl}>Email</div>
         <input style={S.inp} type="email" placeholder="Email address"

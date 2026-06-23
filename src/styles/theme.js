@@ -33,7 +33,7 @@ export const S = {
   main: { flex:1, padding:"18px 16px", maxWidth:900, margin:"0 auto", width:"100%" },
   card: { background:"var(--clr-surface)", border:"1px solid color-mix(in srgb,var(--clr-accent) 12%,transparent)", borderRadius:16, padding:"18px 20px", marginBottom:14 },
   loginBg:   { minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--clr-primary)" },
-  loginCard: { background:"var(--clr-surface)", borderRadius:24, padding:"50px 42px", width:390, border:"1px solid color-mix(in srgb,var(--clr-accent) 28%,transparent)", boxShadow:"0 32px 80px #00000066" },
+  loginCard: { background:"var(--clr-surface)", borderRadius:24, padding:"32px 36px", width:390, border:"1px solid color-mix(in srgb,var(--clr-accent) 18%,transparent)", boxShadow:"0 24px 60px #00000044" },
   topBar:    { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px", background:"var(--clr-surface)", borderBottom:"1px solid color-mix(in srgb,var(--clr-accent) 12%,transparent)", position:"sticky", top:0, zIndex:100 },
   bottomNav: { position:"fixed", bottom:0, left:0, right:0, height:66, background:"var(--clr-surface)", borderTop:"1px solid color-mix(in srgb,var(--clr-accent) 18%,transparent)", display:"flex", alignItems:"stretch", zIndex:200 },
   navBtn: (active) => ({
