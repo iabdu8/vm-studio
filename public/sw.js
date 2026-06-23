@@ -1,9 +1,9 @@
 // ============================================================
-//  VM-STUDIO SERVICE WORKER v2
+//  VISMO SERVICE WORKER v2
 //  Handles: offline cache + push notifications + background sync
 // ============================================================
 
-const CACHE    = "vm-studio-v2";
+const CACHE    = "Vismo-v2";
 const PRECACHE = ["/", "/index.html", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -33,11 +33,11 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("push", (e) => {
   if (!e.data) return;
   let data;
-  try { data = e.data.json(); } catch { data = { title:"VM-Studio", body: e.data.text() }; }
+  try { data = e.data.json(); } catch { data = { title:"Vismo", body: e.data.text() }; }
   e.waitUntil(
-    self.registration.showNotification(data.title ?? "VM-Studio", {
+    self.registration.showNotification(data.title ?? "Vismo", {
       body: data.body ?? "", icon: "/icon-192.png", badge: "/icon-192.png",
-      tag: data.tag ?? "vm-studio", data: data.data ?? {}, vibrate: [200,100,200],
+      tag: data.tag ?? "vismo", data: data.data ?? {}, vibrate: [200,100,200],
       requireInteraction: data.requireInteraction ?? false,
     })
   );
