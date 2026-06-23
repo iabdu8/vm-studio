@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "../../lib/supabase.js";
 import { S, C } from "../../styles/theme.js";
 import { StyleTag } from "./Atoms.jsx";
+import { Logo } from "./Logo.jsx";
 
 export function RegisterPage({ onBack }) {
   const [step,     setStep]     = useState(1);
@@ -106,8 +107,10 @@ export function RegisterPage({ onBack }) {
     <div style={S.loginBg}>
       <StyleTag />
       <div style={S.loginCard} className="fu">
-        <div style={{ ...S.dFont, fontSize:32, fontWeight:700, color:C.accentColor, lineHeight:1, marginBottom:4 }}>Vismo</div>
-        <div style={{ ...S.muted, fontSize:12, marginBottom:28 }}>Create your account</div>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:24 }}>
+          <Logo size="lg" />
+          <div style={{ ...S.muted, fontSize:12, marginTop:10, textAlign:"center" }}>Create your account</div>
+        </div>
 
         {/* Steps */}
         <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:24 }}>
@@ -152,7 +155,7 @@ export function RegisterPage({ onBack }) {
               padding:"10px 14px", background:C.accentColor+"18",
               border:`1px solid ${C.accentColor}33`, borderRadius:10 }}>
               {company?.logo_url
-                ? <img src={company.logo_url} alt={company.name} style={{ height:32, objectFit:"contain", flexShrink:0 }}/>
+                ? <img loading="lazy" src={company.logo_url} alt={company.name} style={{ height:32, objectFit:"contain", flexShrink:0 }}/>
                 : <div style={{ width:32, height:32, borderRadius:8, background:company?.accent_color??C.accentColor, flexShrink:0 }}/>
               }
               <div>

@@ -151,8 +151,12 @@ function LoginScreen() {
     <div style={S.loginBg}>
       <StyleTag />
       <div style={S.loginCard} className="fu">
-        <div style={{ marginBottom:16 }}><Logo size="lg" /></div>
-        <div style={{ ...S.muted, fontSize:12, letterSpacing:.5, marginBottom:32 }}>Visual Merchandising Operations Platform</div>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:32 }}>
+          <Logo size="lg" />
+          <div style={{ ...S.muted, fontSize:12, letterSpacing:.5, marginTop:12, textAlign:"center" }}>
+            Visual Merchandising Operations Platform
+          </div>
+        </div>
         <div style={S.lbl}>Email</div>
         <input style={S.inp} type="email" placeholder="Email address"
           value={email} onChange={e => { setEmail(e.target.value); setErr(""); }}
