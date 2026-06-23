@@ -1,15 +1,18 @@
-const heights  = { sm: 32, md: 44, lg: 240 };
-const maxWidths = { sm: 100, md: 140, lg: "100%" };
+import { useTheme } from "../../context/ThemeContext.jsx";
+
+const heights  = { sm: 32, md: 44, lg: 200 };
 
 export function Logo({ size = "md" }) {
-  const h  = heights[size]   ?? 44;
-  const mw = maxWidths[size] ?? 140;
+  const { mode } = useTheme();
+  const h = heights[size] ?? 44;
+  const src = mode === "dark" ? "/logo-dark.webp" : "/logo.webp";
+
   return (
     <img
       loading="lazy"
-      src="/logo.webp"
+      src={src}
       alt="Vismo"
-      style={{ height: h, width: "auto", maxWidth: mw, objectFit: "contain", display: "block" }}
+      style={{ height: h, width: "auto", maxWidth: "100%", objectFit: "contain", display: "block" }}
     />
   );
 }
