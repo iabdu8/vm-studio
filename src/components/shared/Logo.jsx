@@ -1,8 +1,9 @@
-// ── VISMO LOGO ────────────────────────────────────────────────
-const heights = { sm: 32, md: 44, lg: 72 };
+const heights = { sm: 32, md: 44, lg: 120 };
+const maxWidths = { sm: 100, md: 140, lg: 280 };
 
 export function Logo({ size = "md" }) {
   const h = heights[size] ?? 44;
+  const mw = maxWidths[size] ?? 140;
   return (
     <img
       loading="lazy"
@@ -11,7 +12,7 @@ export function Logo({ size = "md" }) {
       style={{
         height: h,
         width: "auto",
-        maxWidth: size === "lg" ? 220 : size === "md" ? 140 : 100,
+        maxWidth: mw,
         objectFit: "contain",
         display: "block",
       }}
