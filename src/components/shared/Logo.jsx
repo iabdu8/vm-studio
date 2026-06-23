@@ -1,5 +1,5 @@
-const heights = { sm: 32, md: 44, lg: 120 };
-const maxWidths = { sm: 100, md: 140, lg: 280 };
+const heights = { sm: 32, md: 44, lg: 220 };
+const maxWidths = { sm: 100, md: 140, lg: 380 };
 
 export function Logo({ size = "md" }) {
   const h = heights[size] ?? 44;
@@ -9,13 +9,7 @@ export function Logo({ size = "md" }) {
       loading="lazy"
       src="/logo.webp"
       alt="Vismo"
-      style={{
-        height: h,
-        width: "auto",
-        maxWidth: mw,
-        objectFit: "contain",
-        display: "block",
-      }}
+      style={{ height: h, width: "auto", maxWidth: mw, objectFit: "contain", display: "block" }}
     />
   );
 }
