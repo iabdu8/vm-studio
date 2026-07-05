@@ -455,9 +455,9 @@ export function LandingPage({ onEnterApp }) {
             </h2>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20, maxWidth:900, margin:"0 auto" }}>
-            {[{ name:"Starter", price:"799", features:["Up to 3 branches","All core features","Email support"], popular:false },
-              { name:"Growth",  price:"1,499", features:["Up to 8 branches","All features + Analytics","Priority support"], popular:true },
-              { name:"Enterprise", price:"Custom", features:["Unlimited branches","Custom integrations","Dedicated account manager"], popular:false }].map(p => (
+            {[{ name:"Starter", price:"799", sub:"Saves 20+ hrs/month", features:["Up to 3 branches","All core features","Email support"], popular:false },
+              { name:"Growth",  price:"1,499", sub:"Saves 40+ hrs/month", features:["Up to 8 branches","All features + Analytics","Priority support"], popular:true },
+              { name:"Enterprise", price:"Custom", sub:"Fully tailored", features:["Unlimited branches","Custom integrations","Dedicated account manager"], popular:false }].map(p => (
               <div key={p.name} style={{ background:p.popular?`${C.indigo}11`:C.card,
                 border:p.popular?`2px solid ${C.indigo}`:`1px solid ${C.border}`,
                 borderRadius:20, padding:32, position:"relative" }}>
@@ -477,6 +477,7 @@ export function LandingPage({ onEnterApp }) {
                   </span>
                   {p.price!=="Custom" && <span style={{ fontSize:13, color:C.muted }}>/mo</span>}
                 </div>
+                <div style={{ fontSize:12, color:C.green, marginBottom:4, fontWeight:600 }}>{p.sub}</div>
                 <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
                   {p.features.map(f => (
                     <div key={f} style={{ display:"flex", gap:8, alignItems:"center", fontSize:13 }}>
