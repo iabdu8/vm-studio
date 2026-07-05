@@ -498,27 +498,35 @@ export function LandingPage({ onEnterApp }) {
         </div>
       </div>
 
-      {/* TESTIMONIALS */}
+      {/* EARLY ADOPTERS CTA */}
       <div style={{ background:C.surface, padding:"100px 24px" }}>
-        <div style={{ maxWidth:1180, margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:60 }}>
-            <Tag>Testimonials</Tag>
-            <h2 style={{ fontSize:"clamp(28px,4vw,48px)", fontWeight:800, margin:"16px 0" }}>
-              Trusted by VM teams across the GCC
-            </h2>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20 }}>
-            {[{ name:"Sara Al-Qahtani", role:"VM Manager, Home Centre", quote:"Vismo cut our weekly reporting time by 70%. Managers now spend time leading, not chasing updates." },
-              { name:"Ahmad Al-Shammari", role:"Area Manager, R&B", quote:"The store visit reports are incredible. Before/After photos organized by branch — exactly what we needed." },
-              { name:"Reem Al-Dosari", role:"VM Controller, Abyat", quote:"Training module alone is worth it. Attendance and scores for every session without any paperwork." }].map(t => (
-              <div key={t.name} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:16, padding:28 }}>
-                <div style={{ fontSize:28, marginBottom:14, color:C.indigo }}>❝</div>
-                <p style={{ fontSize:14, lineHeight:1.8, color:C.muted, marginBottom:18 }}>{t.quote}</p>
-                <div style={{ fontWeight:700, fontSize:13 }}>{t.name}</div>
-                <div style={{ fontSize:12, color:C.muted }}>{t.role}</div>
+        <div style={{ maxWidth:760, margin:"0 auto", textAlign:"center" }}>
+          <Tag>Early Access</Tag>
+          <h2 style={{ fontSize:"clamp(28px,4vw,44px)", fontWeight:800, margin:"20px 0 16px" }}>
+            Be the first in your market
+          </h2>
+          <p style={{ fontSize:16, color:C.muted, lineHeight:1.8, marginBottom:48, maxWidth:560, margin:"0 auto 48px" }}>
+            Vismo is launching in Saudi Arabia. Early adopters get priority onboarding,
+            direct access to the product team, and locked-in pricing before public release.
+          </p>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, maxWidth:680, margin:"0 auto 48px" }}>
+            {[["🎯","Priority Setup","Your company configured and ready within 24 hours"],
+              ["💬","Direct Access","Work directly with the product team to shape features"],
+              ["🔒","Locked Pricing","Early adopter rate locked in before public pricing increases"]].map(([icon,title,desc]) => (
+              <div key={title} style={{ background:C.card, border:`1px solid ${C.indigo}33`,
+                borderRadius:14, padding:22, borderTop:`2px solid ${C.indigo}` }}>
+                <div style={{ fontSize:24, marginBottom:10 }}>{icon}</div>
+                <div style={{ fontSize:13, fontWeight:700, marginBottom:6 }}>{title}</div>
+                <div style={{ fontSize:12, color:C.muted, lineHeight:1.6 }}>{desc}</div>
               </div>
             ))}
           </div>
+          <button onClick={openDemo} style={{ background:`linear-gradient(135deg,${C.indigo},${C.indigoL})`,
+            border:"none", color:"#fff", padding:"16px 36px", borderRadius:12,
+            fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
+            boxShadow:`0 0 28px ${C.indigo}44` }}>
+            Request Early Access →
+          </button>
         </div>
       </div>
 
