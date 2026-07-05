@@ -185,8 +185,8 @@ function DemoModal({ onClose }) {
               Fill in your details and we'll set up a personalized walkthrough for your team.
             </div>
 
-            {[["Full Name *","name","text",placeholder=""],
-              ["Company Name *","company","text",placeholder=""],
+            {[["Full Name *","name","text","e.g. Abdullah Ahmed"],
+              ["Company Name *","company","text","e.g. Home Centre"],
               ["Work Email *","email","email","you@company.com"],
               ["Phone (optional)","phone","tel","+966 5x xxx xxxx"],
             ].map(([label,field,type,placeholder]) => (
