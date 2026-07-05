@@ -113,7 +113,7 @@ function ForgotPassword({ onBack }) {
   );
 }
 
-function LoginScreen() {
+function LoginScreen({ onBack }) {
   const [view, setView]       = useState("login");
   const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
@@ -148,12 +148,14 @@ function LoginScreen() {
         {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
         <button className="btnP" style={{ ...S.btnP, width:"100%", padding:"13px", fontSize:14 }}
           onClick={go} disabled={loading}>{loading ? "Signing in…" : "Sign In →"}</button>
-        <div style={{ textAlign:"center", marginTop:16 }}>
-          <button onClick={() => setView("register")} style={{ background:"none", border:"none", color:C.mutedColor,
-            cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
-            New employee? Create account
-          </button>
-        </div>
+        {onBack && (
+          <div style={{ textAlign:"center", marginTop:16 }}>
+            <button onClick={onBack} style={{ background:"none", border:"none", color:C.mutedColor,
+              cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
+              ← Back to Home
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -417,7 +419,7 @@ export default function App() {
   if (!session?.profile) return (
     <>
       <ToastContainer />
-      <LoginScreen />
+      <LoginScreen onBack={() => { localStorage.removeItem("vismo_skip_landing"); setShowLanding(true); }} />
     </>
   );
 
