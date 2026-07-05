@@ -185,8 +185,8 @@ function DemoModal({ onClose }) {
               Fill in your details and we'll set up a personalized walkthrough for your team.
             </div>
 
-            {[["Full Name *","name","text","e.g. Abdullah Ahmed"],
-              ["Company Name *","company","text","e.g. Home Centre"],
+            {[["Full Name *","name","text",placeholder=""],
+              ["Company Name *","company","text",placeholder=""],
               ["Work Email *","email","email","you@company.com"],
               ["Phone (optional)","phone","tel","+966 5x xxx xxxx"],
             ].map(([label,field,type,placeholder]) => (
@@ -537,7 +537,7 @@ export function LandingPage({ onEnterApp }) {
             <Tag>FAQ</Tag>
             <h2 style={{ fontSize:"clamp(28px,4vw,48px)", fontWeight:800, margin:"16px 0" }}>Common questions</h2>
           </div>
-          {[["Do I need to download an app?","No — Vismo is a PWA. Works on any phone directly from the browser. Staff can add it to their home screen for a native app feel."],
+          {[["Is Vismo available on the App Store?","Vismo currently runs directly from your browser — no download needed. Just open the link and add it to your home screen for a full app experience. iOS and Android app store versions are coming soon."],
             ["How does onboarding work?","After your demo, we set up your company, add your branches and categories, and generate invite codes for your team. You're operational the same day."],
             ["Is our data safe?","Yes. Every company's data is completely isolated using PostgreSQL Row Level Security. Enforced at the database level — not just application code."],
             ["Can we customize it for our brand?","Yes — company logo, brand colors, and custom categories. Enterprise plans include deeper customization."],
