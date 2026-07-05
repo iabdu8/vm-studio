@@ -60,7 +60,7 @@ function DashMockup() {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
               <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>Recent Tasks</div>
-              {[["Window Display","Sultan Mall","done"],["New Promo","Jeddah Park","progress"],["Shelf Org","Bawadi","pending"]].map(([t,b,s]) => (
+              {[["Window Display","Salam Mall","done"],["New Promo","Jeddah Park","progress"],["Shelf Org","Red Sea Mall","pending"]].map(([t,b,s]) => (
                 <div key={t} style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
                   padding:"7px 0", borderBottom:`1px solid ${C.border}` }}>
                   <div>
@@ -77,7 +77,7 @@ function DashMockup() {
             </div>
             <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
               <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>Branch Progress</div>
-              {[["Sultan Mall",85],["Jeddah Park",62],["Mall of Arabia",40],["Bawadi",91]].map(([b,p]) => (
+              {[["Salam Mall",85],["Jeddah Park",62],["Mall of Arabia",40],["Red Sea Mall",91]].map(([b,p]) => (
                 <div key={b} style={{ marginBottom:10 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}>
                     <span>{b}</span><span style={{ color:C.indigoL, fontWeight:700 }}>{p}%</span>
@@ -227,9 +227,7 @@ function DemoModal({ onClose }) {
             }}>
               {loading ? "Sending…" : "Request Demo →"}
             </button>
-            <div style={{ fontSize:11, color:C.muted, textAlign:"center", marginTop:10 }}>
-              We respond within 24 hours · No spam
-            </div>
+
           </>
         )}
       </div>
