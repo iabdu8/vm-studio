@@ -37,7 +37,7 @@ export function useOfflineSync() {
         await dequeue(item.id);
         synced++;
       } catch (err) {
-        console.warn("Sync failed for item", item.id, err);
+        !import.meta.env.PROD && console.warn("Sync failed for item", item.id, err);
       }
     }
     const remaining = await getQueueSize();

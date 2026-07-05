@@ -38,12 +38,13 @@ returns boolean language sql security definer stable as $$
   );
 $$;
 
--- ── Helper: is manager or super_admin ────────────────────────
+-- ── Helper: is manager or super_admin (includes all manager-level roles) ─
 create or replace function public.is_manager()
 returns boolean language sql security definer stable as $$
   select exists (
     select 1 from public.profiles
-    where id = auth.uid() and role in ('manager','super_admin')
+    where id = auth.uid()
+      and role in ('manager','area_manager','store_manager','super_admin')
   );
 $$;
 
@@ -238,12 +239,30 @@ create policy "managers_only_chat" on public.chat_messages
     and public.is_manager()
   );
 
--- Insert: company members, managers-room restricted
+-- Branch rooms: users in that branch (room = 'branch-<branch_id>')
+create policy "branch_read_chat" on public.chat_messages
+  for select using (
+    company_id = public.my_company_id()
+    and room like 'branch-%'
+    and room = 'branch-' || (
+      select branch_id::text from public.profiles
+      where id = auth.uid() and branch_id is not null
+    )
+  );
+
+-- Insert: company members, room-restricted
 create policy "company_insert_chat" on public.chat_messages
   for insert with check (
     company_id = public.my_company_id()
     and sender_id = auth.uid()
-    and (room = 'team' or (room = 'managers' and public.is_manager()))
+    and (
+      room = 'team'
+      or (room = 'managers' and public.is_manager())
+      or (room like 'branch-%' and room = 'branch-' || (
+        select branch_id::text from public.profiles
+        where id = auth.uid() and branch_id is not null
+      ))
+    )
   );
 
 -- ============================================================
@@ -260,4 +279,275 @@ create policy "manager_read_log" on public.activity_log
 create policy "company_insert_log" on public.activity_log
   for insert with check (
     company_id = public.my_company_id() and user_id = auth.uid()
+  );
+
+-- ============================================================
+--  ENABLE RLS ON NEW TABLES
+-- ============================================================
+alter table public.notifications       enable row level security;
+alter table public.push_subscriptions  enable row level security;
+alter table public.demo_holds          enable row level security;
+alter table public.campaigns           enable row level security;
+alter table public.campaign_branches   enable row level security;
+alter table public.promotions          enable row level security;
+alter table public.promotion_branches  enable row level security;
+alter table public.floor_walks         enable row level security;
+alter table public.floor_walk_photos   enable row level security;
+alter table public.store_visits        enable row level security;
+alter table public.visit_findings      enable row level security;
+alter table public.trainings           enable row level security;
+alter table public.training_attendees  enable row level security;
+alter table public.guideline_acks      enable row level security;
+
+-- ============================================================
+--  NOTIFICATIONS
+-- ============================================================
+create policy "super_admin_all_notifications" on public.notifications
+  for all using (public.is_super_admin());
+
+create policy "user_read_own_notifications" on public.notifications
+  for select using (user_id = auth.uid());
+
+create policy "company_insert_notifications" on public.notifications
+  for insert with check (company_id = public.my_company_id());
+
+create policy "user_update_own_notifications" on public.notifications
+  for update using (user_id = auth.uid());
+
+-- ============================================================
+--  PUSH SUBSCRIPTIONS
+-- ============================================================
+create policy "user_manage_own_push_sub" on public.push_subscriptions
+  for all using (user_id = auth.uid());
+
+-- ============================================================
+--  DEMO HOLDS
+-- ============================================================
+create policy "super_admin_all_demo_holds" on public.demo_holds
+  for all using (public.is_super_admin());
+
+create policy "company_read_demo_holds" on public.demo_holds
+  for select using (company_id = public.my_company_id());
+
+create policy "user_insert_demo_holds" on public.demo_holds
+  for insert with check (
+    company_id = public.my_company_id() and added_by = auth.uid()
+  );
+
+create policy "user_delete_own_demo_holds" on public.demo_holds
+  for delete using (
+    company_id = public.my_company_id() and added_by = auth.uid()
+  );
+
+-- ============================================================
+--  CAMPAIGNS
+-- ============================================================
+create policy "super_admin_all_campaigns" on public.campaigns
+  for all using (public.is_super_admin());
+
+create policy "company_read_campaigns" on public.campaigns
+  for select using (company_id = public.my_company_id());
+
+create policy "manager_manage_campaigns" on public.campaigns
+  for all using (
+    company_id = public.my_company_id() and public.is_manager()
+  );
+
+-- ============================================================
+--  CAMPAIGN BRANCHES
+-- ============================================================
+create policy "super_admin_all_campaign_branches" on public.campaign_branches
+  for all using (public.is_super_admin());
+
+create policy "company_read_campaign_branches" on public.campaign_branches
+  for select using (
+    exists (
+      select 1 from public.campaigns c
+      where c.id = campaign_id and c.company_id = public.my_company_id()
+    )
+  );
+
+create policy "manager_manage_campaign_branches" on public.campaign_branches
+  for all using (
+    exists (
+      select 1 from public.campaigns c
+      where c.id = campaign_id
+        and c.company_id = public.my_company_id()
+        and public.is_manager()
+    )
+  );
+
+-- ============================================================
+--  PROMOTIONS
+-- ============================================================
+create policy "super_admin_all_promotions" on public.promotions
+  for all using (public.is_super_admin());
+
+create policy "company_read_promotions" on public.promotions
+  for select using (company_id = public.my_company_id());
+
+create policy "manager_manage_promotions" on public.promotions
+  for all using (
+    company_id = public.my_company_id() and public.is_manager()
+  );
+
+-- ============================================================
+--  PROMOTION BRANCHES
+-- ============================================================
+create policy "super_admin_all_promo_branches" on public.promotion_branches
+  for all using (public.is_super_admin());
+
+create policy "company_read_promo_branches" on public.promotion_branches
+  for select using (
+    exists (
+      select 1 from public.promotions p
+      where p.id = promotion_id and p.company_id = public.my_company_id()
+    )
+  );
+
+create policy "manager_manage_promo_branches" on public.promotion_branches
+  for all using (
+    exists (
+      select 1 from public.promotions p
+      where p.id = promotion_id
+        and p.company_id = public.my_company_id()
+        and public.is_manager()
+    )
+  );
+
+-- ============================================================
+--  FLOOR WALKS
+-- ============================================================
+create policy "super_admin_all_floor_walks" on public.floor_walks
+  for all using (public.is_super_admin());
+
+create policy "company_read_floor_walks" on public.floor_walks
+  for select using (company_id = public.my_company_id());
+
+create policy "manager_manage_floor_walks" on public.floor_walks
+  for all using (
+    company_id = public.my_company_id() and public.is_manager()
+  );
+
+-- ============================================================
+--  FLOOR WALK PHOTOS
+-- ============================================================
+create policy "super_admin_all_fw_photos" on public.floor_walk_photos
+  for all using (public.is_super_admin());
+
+create policy "company_read_fw_photos" on public.floor_walk_photos
+  for select using (
+    exists (
+      select 1 from public.floor_walks fw
+      where fw.id = floor_walk_id and fw.company_id = public.my_company_id()
+    )
+  );
+
+create policy "manager_insert_fw_photos" on public.floor_walk_photos
+  for insert with check (
+    exists (
+      select 1 from public.floor_walks fw
+      where fw.id = floor_walk_id
+        and fw.company_id = public.my_company_id()
+        and public.is_manager()
+    )
+  );
+
+-- ============================================================
+--  STORE VISITS
+-- ============================================================
+create policy "super_admin_all_visits" on public.store_visits
+  for all using (public.is_super_admin());
+
+create policy "company_read_visits" on public.store_visits
+  for select using (company_id = public.my_company_id());
+
+create policy "manager_manage_visits" on public.store_visits
+  for all using (
+    company_id = public.my_company_id() and public.is_manager()
+  );
+
+-- ============================================================
+--  VISIT FINDINGS
+-- ============================================================
+create policy "super_admin_all_findings" on public.visit_findings
+  for all using (public.is_super_admin());
+
+create policy "company_read_findings" on public.visit_findings
+  for select using (
+    exists (
+      select 1 from public.store_visits v
+      where v.id = visit_id and v.company_id = public.my_company_id()
+    )
+  );
+
+create policy "manager_manage_findings" on public.visit_findings
+  for all using (
+    exists (
+      select 1 from public.store_visits v
+      where v.id = visit_id
+        and v.company_id = public.my_company_id()
+        and public.is_manager()
+    )
+  );
+
+-- ============================================================
+--  TRAININGS
+-- ============================================================
+create policy "super_admin_all_trainings" on public.trainings
+  for all using (public.is_super_admin());
+
+create policy "company_read_trainings" on public.trainings
+  for select using (company_id = public.my_company_id());
+
+create policy "manager_manage_trainings" on public.trainings
+  for all using (
+    company_id = public.my_company_id() and public.is_manager()
+  );
+
+-- ============================================================
+--  TRAINING ATTENDEES
+-- ============================================================
+create policy "super_admin_all_attendees" on public.training_attendees
+  for all using (public.is_super_admin());
+
+create policy "company_read_attendees" on public.training_attendees
+  for select using (
+    exists (
+      select 1 from public.trainings t
+      where t.id = training_id and t.company_id = public.my_company_id()
+    )
+  );
+
+create policy "manager_manage_attendees" on public.training_attendees
+  for all using (
+    exists (
+      select 1 from public.trainings t
+      where t.id = training_id
+        and t.company_id = public.my_company_id()
+        and public.is_manager()
+    )
+  );
+
+-- ============================================================
+--  GUIDELINE ACKNOWLEDGEMENTS
+-- ============================================================
+create policy "super_admin_all_acks" on public.guideline_acks
+  for all using (public.is_super_admin());
+
+create policy "company_read_acks" on public.guideline_acks
+  for select using (
+    exists (
+      select 1 from public.guidelines g
+      where g.id = guideline_id and g.company_id = public.my_company_id()
+    )
+  );
+
+create policy "user_insert_own_ack" on public.guideline_acks
+  for insert with check (
+    user_id = auth.uid()
+    and exists (
+      select 1 from public.guidelines g
+      where g.id = guideline_id and g.company_id = public.my_company_id()
+    )
   );

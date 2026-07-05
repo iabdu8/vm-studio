@@ -80,7 +80,7 @@ export function exportWeeklyReport(data) {
   <div class="logo-box">
     <div class="logo-dot"></div>
     <div>
-      <div class="app-name">VM-Studio</div>
+      <div class="app-name">Vismo</div>
       <div class="company-name">${company?.name ?? "Company Report"}</div>
     </div>
   </div>
@@ -182,7 +182,7 @@ export function exportWeeklyReport(data) {
 
 <!-- Footer -->
 <div class="footer">
-  <span>VM-Studio · Visual Merchandising Operations Platform</span>
+  <span>Vismo · Visual Merchandising Operations Platform</span>
   <span>Confidential · ${company?.name ?? ""}</span>
 </div>
 

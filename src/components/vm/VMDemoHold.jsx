@@ -76,7 +76,7 @@ export function VMDemoHold({ demoHolds, onAddDemoHold, onDeleteDemoHold, company
 
 <div class="header">
   <div>
-    ${logo ? `<img src="${logo}" class="logo" alt="${company?.name}"/>` : `<div class="logo-text">${company?.name ?? "VM-Studio"}</div>`}
+    ${logo ? `<img src="${logo}" class="logo" alt="${company?.name}"/>` : `<div class="logo-text">${company?.name ?? "Vismo"}</div>`}
     <div style="font-size:13px;color:#6b6880;margin-top:6px">${company?.name ?? ""}</div>
   </div>
   <div>
@@ -115,7 +115,7 @@ export function VMDemoHold({ demoHolds, onAddDemoHold, onDeleteDemoHold, company
 </table>
 
 <div class="footer">
-  <span>VM-Studio · Visual Merchandising Operations</span>
+  <span>Vismo · Visual Merchandising Operations</span>
   <span>${company?.name ?? ""} · ${branch}</span>
 </div>
 

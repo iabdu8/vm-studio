@@ -1,5 +1,7 @@
 // ── Push Notifications ────────────────────────────────────────
 // Disabled until VAPID key is configured
+import { supabase } from "./supabase.js";
+
 const VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? "";
 
 export async function subscribeToPush(userId, companyId) {
@@ -14,7 +16,6 @@ export async function subscribeToPush(userId, companyId) {
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
     });
-    const { supabase } = await import("./supabase.js");
     await supabase.from("push_subscriptions").upsert({
       user_id: userId, company_id: companyId,
       subscription: JSON.stringify(sub),

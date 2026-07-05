@@ -43,7 +43,7 @@ export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
         {/* Logo */}
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           {logo
-            ? <img src={logo} alt={company?.name ?? ""} style={{ height:34, maxWidth:130, objectFit:"contain" }} />
+            ? <img loading="lazy" src={logo} alt={company?.name ?? ""} style={{ height:34, maxWidth:130, objectFit:"contain" }} />
           : <Logo size="md" />
           }
         </div>

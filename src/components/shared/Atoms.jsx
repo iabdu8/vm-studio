@@ -18,8 +18,14 @@ export function ImageUploader({ label, max = 10, files, onChange }) {
   const [savedKB, setSavedKB] = useState(0);
 
   const handle = async (e) => {
-    const chosen = Array.from(e.target.files).slice(0, max - files.length);
-    if (!chosen.length) return;
+    const MAX_SIZE = 15 * 1024 * 1024; // 15MB
+    const chosen = Array.from(e.target.files)
+      .filter(f => {
+        if (f.size > MAX_SIZE) { alert(`"${f.name}" exceeds 15MB limit and was skipped.`); return false; }
+        return true;
+      })
+      .slice(0, max - files.length);
+    if (!chosen.length) { e.target.value = ""; return; }
     setCompressing(true);
     try {
       const compressed = await compressAndPreview(chosen, "beforeAfter");

@@ -61,6 +61,7 @@ function CompaniesTab() {
   const [companies, setCompanies] = useState([]);
   const [form, setForm] = useState({ name:"", slug:"", primary_color:"#4F46E5", accent_color:"#4F46E5" });
   const [saving, setSaving] = useState(false);
+  const [confirm, setConfirm] = useState(null);
   useEffect(() => { getAllCompanies().then(setCompanies); }, []);
   const add = async () => {
     if (!form.name || !form.slug) return;
@@ -68,12 +69,30 @@ function CompaniesTab() {
     try { const c = await createCompany(form); setCompanies(p => [...p, c]); setForm({ name:"", slug:"", primary_color:"#4F46E5", accent_color:"#4F46E5" }); }
     finally { setSaving(false); }
   };
-  const del = async (id) => {
-    if (!confirm("Delete this company and ALL its data?")) return;
-    await deleteCompany(id); setCompanies(p => p.filter(c => c.id !== id));
+  const del = (id) => {
+    setConfirm({ message:"Delete this company and ALL its data?", onConfirm: async () => {
+      await deleteCompany(id); setCompanies(p => p.filter(c => c.id !== id)); setConfirm(null);
+    }});
   };
   return (
     <div>
+      {confirm && (
+        <div style={{ position:"fixed", inset:0, background:"#00000088", zIndex:900,
+          display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+          <div style={{ background:"#13131a", borderRadius:16, padding:28,
+            maxWidth:360, width:"100%", border:"1px solid #f8717133" }}>
+            <div style={{ fontSize:15, fontWeight:600, marginBottom:20, lineHeight:1.5, color:"#f0ede8" }}>{confirm.message}</div>
+            <div style={{ display:"flex", gap:10 }}>
+              <button style={{ flex:1, padding:"10px", background:"#f87171", color:"#fff",
+                border:"none", borderRadius:10, cursor:"pointer", fontWeight:700 }}
+                onClick={confirm.onConfirm}>Confirm</button>
+              <button style={{ flex:1, padding:"10px", background:"transparent", color:"#6b6880",
+                border:"1px solid #6b688033", borderRadius:10, cursor:"pointer" }}
+                onClick={() => setConfirm(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={S.card}>
         <div style={S.h3}>New Company</div>
         <div style={S.lbl}>Company Name</div>
@@ -185,15 +204,17 @@ function UsersTab() {
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(null);
+  const [confirm, setConfirm] = useState(null);
   useEffect(() => { getAllUsers().then(setUsers); getAllCompanies().then(setCompanies); }, []);
 
   const changeRole = async (id, role) => { await updateUserRole(id, role); setUsers(p => p.map(u => u.id===id?{...u,role}:u)); };
   const assign = async (id, company_id) => { await assignUserToCompany(id, company_id||null, null); setUsers(p => p.map(u => u.id===id?{...u,company_id:company_id||null}:u)); };
-  const deleteUser = async (id) => {
-    if (!confirm("Delete this user permanently?")) return;
-    setDeleting(id);
-    try { await supabase.from("profiles").delete().eq("id", id); setUsers(p => p.filter(u => u.id !== id)); }
-    finally { setDeleting(null); }
+  const deleteUser = (id) => {
+    setConfirm({ message:"Delete this user permanently?", onConfirm: async () => {
+      setDeleting(id); setConfirm(null);
+      try { await supabase.from("profiles").delete().eq("id", id); setUsers(p => p.filter(u => u.id !== id)); }
+      finally { setDeleting(null); }
+    }});
   };
 
   const filtered = users.filter(u =>
@@ -203,6 +224,23 @@ function UsersTab() {
 
   return (
     <div>
+      {confirm && (
+        <div style={{ position:"fixed", inset:0, background:"#00000088", zIndex:900,
+          display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+          <div style={{ background:"#13131a", borderRadius:16, padding:28,
+            maxWidth:360, width:"100%", border:"1px solid #f8717133" }}>
+            <div style={{ fontSize:15, fontWeight:600, marginBottom:20, lineHeight:1.5, color:"#f0ede8" }}>{confirm.message}</div>
+            <div style={{ display:"flex", gap:10 }}>
+              <button style={{ flex:1, padding:"10px", background:"#f87171", color:"#fff",
+                border:"none", borderRadius:10, cursor:"pointer", fontWeight:700 }}
+                onClick={confirm.onConfirm}>Confirm</button>
+              <button style={{ flex:1, padding:"10px", background:"transparent", color:"#6b6880",
+                border:"1px solid #6b688033", borderRadius:10, cursor:"pointer" }}
+                onClick={() => setConfirm(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ position:"relative", marginBottom:14 }}>
         <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontSize:14, color:"#6b6880" }}>🔍</span>
         <input style={{ ...S.inp, paddingLeft:36, marginBottom:0 }} placeholder="Search users…" value={search} onChange={e => setSearch(e.target.value)}/>
