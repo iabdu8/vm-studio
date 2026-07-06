@@ -293,6 +293,9 @@ export function LandingPage({ onEnterApp }) {
       <div style={{ paddingTop:"clamp(100px,15vw,160px)", paddingBottom:"clamp(40px,8vw,80px)", textAlign:"center",
         background:`radial-gradient(ellipse 900px 600px at 50% 0%, ${C.indigo}18, transparent)` }}>
         <div style={{ maxWidth:860, margin:"0 auto", padding:"0 24px" }}>
+          <img src="/logo-dark.png" alt="Vismo" style={{ height:"clamp(64px,9vw,110px)", objectFit:"contain",
+            display:"block", margin:"0 auto 24px" }}
+            onError={e => { e.target.style.display="none"; }}/>
           <Tag>Built for Visual Merchandisers</Tag>
           <h1 style={{ fontSize:"clamp(40px,6vw,72px)", fontWeight:800, lineHeight:1.1,
             margin:"24px 0 20px", letterSpacing:-1.5 }}>
