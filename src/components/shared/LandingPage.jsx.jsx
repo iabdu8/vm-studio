@@ -293,7 +293,7 @@ export function LandingPage({ onEnterApp }) {
       <div style={{ paddingTop:"clamp(100px,15vw,160px)", paddingBottom:"clamp(40px,8vw,80px)", textAlign:"center",
         background:`radial-gradient(ellipse 900px 600px at 50% 0%, ${C.indigo}18, transparent)` }}>
         <div style={{ maxWidth:860, margin:"0 auto", padding:"0 24px" }}>
-          <Tag>Built for Visual Merchandisers 🛍️</Tag>
+          <Tag>Built for Visual Merchandisers</Tag>
           <h1 style={{ fontSize:"clamp(40px,6vw,72px)", fontWeight:800, lineHeight:1.1,
             margin:"24px 0 20px", letterSpacing:-1.5 }}>
             One Platform.<br/>
@@ -462,8 +462,8 @@ export function LandingPage({ onEnterApp }) {
             </h2>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:20, maxWidth:900, margin:"0 auto" }}>
-            {[{ name:"Starter", price:"799", sub:"Saves 20+ hrs/month", features:["Up to 3 branches","All core features","Email support"], popular:false },
-              { name:"Growth",  price:"1,499", sub:"Saves 40+ hrs/month", features:["Up to 8 branches","All features + Analytics","Priority support"], popular:true },
+            {[{ name:"Starter", price:"499", sub:"Saves 20+ hrs/month", features:["Up to 3 branches","All core features","Dedicated support channel"], popular:false },
+              { name:"Growth",  price:"999", sub:"Saves 40+ hrs/month", features:["Up to 8 branches","All features + Analytics","Priority support"], popular:true },
               { name:"Enterprise", price:"Custom", sub:"Fully tailored", features:["Unlimited branches","Custom integrations","Dedicated account manager"], popular:false }].map(p => (
               <div key={p.name} style={{ background:p.popular?`${C.indigo}11`:C.card,
                 border:p.popular?`2px solid ${C.indigo}`:`1px solid ${C.border}`,
@@ -483,6 +483,9 @@ export function LandingPage({ onEnterApp }) {
                     {p.price==="Custom" ? "Custom" : `SAR ${p.price}`}
                   </span>
                   {p.price!=="Custom" && <span style={{ fontSize:13, color:C.muted }}>/mo</span>}
+                </div>
+                <div style={{ fontSize:11, color:C.indigoL, marginBottom:10, fontWeight:600 }}>
+                  Early Access — Price locks in forever
                 </div>
                 <div style={{ fontSize:12, color:C.green, marginBottom:4, fontWeight:600 }}>{p.sub}</div>
                 <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24 }}>
