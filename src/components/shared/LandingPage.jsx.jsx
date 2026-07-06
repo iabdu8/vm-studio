@@ -21,11 +21,12 @@ function Tag({ children }) {
 function DashMockup() {
   return (
     <div style={{ borderRadius:20, overflow:"hidden", border:`1px solid ${C.border}`,
-      background:C.card, boxShadow:`0 40px 120px #00000088`, maxWidth:860, margin:"0 auto" }}>
+      background:C.card, boxShadow:`0 40px 120px #00000088`, maxWidth:860, width:"100%", margin:"0 auto" }}>
       <style>{`
         @media (max-width:768px){
           .dm-sidebar{ display:none; }
-          .dm-details{ display:none; }
+          .dm-branch{ display:none; }
+          .dm-details{ grid-template-columns:1fr !important; }
           .dm-kpis{ grid-template-columns:repeat(2,1fr) !important; }
         }
       `}</style>
@@ -65,7 +66,7 @@ function DashMockup() {
             ))}
           </div>
           <div className="dm-details" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
+            <div className="dm-recent" style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
               <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>Recent Tasks</div>
               {[["Window Display","Salam Mall","done"],["New Promo","Jeddah Park","progress"],["Shelf Org","Red Sea Mall","pending"]].map(([t,b,s]) => (
                 <div key={t} style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
@@ -82,7 +83,7 @@ function DashMockup() {
                 </div>
               ))}
             </div>
-            <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
+            <div className="dm-branch" style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
               <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>Branch Progress</div>
               {[["Salam Mall",85],["Jeddah Park",62],["Mall of Arabia",40],["Red Sea Mall",91]].map(([b,p]) => (
                 <div key={b} style={{ marginBottom:10 }}>
@@ -293,7 +294,11 @@ export function LandingPage({ onEnterApp }) {
       <div style={{ paddingTop:"clamp(100px,15vw,160px)", paddingBottom:"clamp(40px,8vw,80px)", textAlign:"center",
         background:`radial-gradient(ellipse 900px 600px at 50% 0%, ${C.indigo}18, transparent)` }}>
         <div style={{ maxWidth:860, margin:"0 auto", padding:"0 24px" }}>
-          <img src="/logo-dark.png" alt="Vismo" style={{ height:"clamp(64px,9vw,110px)", objectFit:"contain",
+          <style>{`
+            .hero-logo{ height:120px; }
+            @media (max-width:768px){ .hero-logo{ height:80px; } }
+          `}</style>
+          <img className="hero-logo" src="/logo-dark.png" alt="Vismo" style={{ objectFit:"contain",
             display:"block", margin:"0 auto 24px" }}
             onError={e => { e.target.style.display="none"; }}/>
           <Tag>Built for Visual Merchandisers</Tag>
