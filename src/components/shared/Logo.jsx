@@ -1,10 +1,10 @@
 import { useTheme } from "../../context/ThemeContext.jsx";
 
-const heights = { md: 40, lg: 80 };
+const heights = { md: 52, lg: 100 };
 
 export function Logo({ size = "md" }) {
   const { mode } = useTheme();
-  const h = heights[size] ?? 40;
+  const h = heights[size] ?? 52;
   return (
     <img
       loading="lazy"
