@@ -48,7 +48,7 @@ function DashMockup() {
         </div>
         <div style={{ flex:1, padding:18, overflowY:"hidden" }}>
           <div style={{ fontSize:16, fontWeight:700, marginBottom:14 }}>Operations Overview</div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10, marginBottom:16 }}>
             {[["128","Total Tasks"],["96","Completed"],["24","In Progress"],["8","Overdue"]].map(([n,l]) => (
               <div key={l} style={{ background:C.surface, border:`1px solid ${C.border}`,
                 borderRadius:10, padding:"12px 14px" }}>
@@ -159,7 +159,7 @@ function DemoModal({ onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#00000099", zIndex:999,
       display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <div style={{ background:C.surface, borderRadius:20, padding:36, maxWidth:460, width:"100%",
+      <div style={{ background:C.surface, borderRadius:20, padding:36, maxWidth:460, width:"100%", margin:"10px",
         border:`1px solid ${C.border}`, boxShadow:`0 40px 80px #00000088` }}>
         {sent ? (
           <div style={{ textAlign:"center" }}>
@@ -264,13 +264,13 @@ export function LandingPage({ onEnterApp }) {
           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <img src="/logo-dark.webp" alt="Vismo" style={{ height:34, objectFit:"contain" }}
             onError={e => { e.target.style.display="none"; }}/>
-          <div style={{ display:"flex", gap:28, alignItems:"center" }}>
+          <div style={{ display:"flex", gap:28, alignItems:"center", "@media(max-width:768px)":{ display:"none" } }}>
             {[["Features","#features"],["How it works","#how"],["Pricing","#pricing"],["FAQ","#faq"]].map(([l,h]) => (
               <a key={l} href={h} style={{ color:C.muted, fontSize:14, fontWeight:500,
                 textDecoration:"none" }}>{l}</a>
             ))}
           </div>
-          <div style={{ display:"flex", gap:10 }}>
+          <div style={{ display:"flex", gap:8 }}>
             <button onClick={onEnterApp} style={{ background:"transparent", border:`1px solid ${C.border}`,
               color:C.text, padding:"8px 20px", borderRadius:10, cursor:"pointer",
               fontSize:14, fontWeight:600, fontFamily:"inherit" }}>Sign In</button>
@@ -300,7 +300,7 @@ export function LandingPage({ onEnterApp }) {
             Replace scattered WhatsApp conversations, spreadsheets, and manual follow-ups
             with one centralized workspace for your Visual Merchandising team.
           </p>
-          <div style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap" }}>
+          <div style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap", flexDirection:"column", alignItems:"center" }}>
             <button onClick={openDemo} style={{ background:`linear-gradient(135deg,${C.indigo},${C.indigoL})`,
               border:"none", color:"#fff", padding:"16px 36px", borderRadius:12,
               fontSize:16, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
@@ -316,7 +316,7 @@ export function LandingPage({ onEnterApp }) {
       {/* STATS */}
       <div style={{ borderTop:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}`, background:C.surface }}>
         <div style={{ maxWidth:1180, margin:"0 auto", padding:"48px 24px",
-          display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:24, textAlign:"center" }}>
+          display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:24, textAlign:"center" }}>
           {[["500+","VM Professionals"],["98%","Task Completion Rate"],["3x","Faster Execution"],["40hrs","Saved / Manager / Month"]].map(([n,l]) => (
             <div key={l}>
               <div style={{ fontSize:36, fontWeight:800,
@@ -329,7 +329,7 @@ export function LandingPage({ onEnterApp }) {
       </div>
 
       {/* WHY */}
-      <div style={{ padding:"100px 24px" }}>
+      <div style={{ padding:"clamp(48px,8vw,100px) clamp(16px,4vw,24px)" }}>
         <div style={{ maxWidth:1180, margin:"0 auto" }}>
           <div style={{ textAlign:"center", marginBottom:60 }}>
             <Tag>The Problem</Tag>
@@ -353,7 +353,7 @@ export function LandingPage({ onEnterApp }) {
       </div>
 
       {/* FEATURES */}
-      <div id="features" style={{ background:C.surface, padding:"100px 24px" }}>
+      <div id="features" style={{ background:C.surface, padding:"clamp(48px,8vw,100px) clamp(16px,4vw,24px)" }}>
         <div style={{ maxWidth:1180, margin:"0 auto" }}>
           <div style={{ textAlign:"center", marginBottom:60 }}>
             <Tag>Features</Tag>
@@ -364,7 +364,7 @@ export function LandingPage({ onEnterApp }) {
               Built specifically for Visual Merchandising — not adapted from generic task software.
             </p>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:18 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:18 }}>
             {[["✅","Task Management","Assign to specific staff or entire teams. Track completion in real-time across every branch."],
               ["🚶","Store Visit Reports","Document visits with photos and per-photo comments. Convert findings to tasks instantly."],
               ["📸","Before & After","Auto-compressed photos organized by category, branch, and timestamp."],
@@ -392,7 +392,7 @@ export function LandingPage({ onEnterApp }) {
       </div>
 
       {/* HOW IT WORKS */}
-      <div id="how" style={{ padding:"100px 24px" }}>
+      <div id="how" style={{ padding:"clamp(48px,8vw,100px) clamp(16px,4vw,24px)" }}>
         <div style={{ maxWidth:1180, margin:"0 auto" }}>
           <div style={{ textAlign:"center", marginBottom:60 }}>
             <Tag>How It Works</Tag>
@@ -400,7 +400,7 @@ export function LandingPage({ onEnterApp }) {
               Up and running in minutes
             </h2>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:24, position:"relative" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:24, position:"relative" }}>
             <div style={{ position:"absolute", top:32, left:"12.5%", right:"12.5%", height:1,
               background:`linear-gradient(90deg,${C.indigo},${C.cyan})`, opacity:.3 }}/>
             {[["01","Create Tasks","Set up tasks for specific staff or all branches with priorities and due dates"],
@@ -422,7 +422,7 @@ export function LandingPage({ onEnterApp }) {
       </div>
 
       {/* ROLES */}
-      <div style={{ background:C.surface, padding:"100px 24px" }}>
+      <div style={{ background:C.surface, padding:"clamp(48px,8vw,100px) clamp(16px,4vw,24px)" }}>
         <div style={{ maxWidth:1180, margin:"0 auto" }}>
           <div style={{ textAlign:"center", marginBottom:60 }}>
             <Tag>Role-Based Access</Tag>
@@ -446,7 +446,7 @@ export function LandingPage({ onEnterApp }) {
       </div>
 
       {/* PRICING */}
-      <div id="pricing" style={{ padding:"100px 24px" }}>
+      <div id="pricing" style={{ padding:"clamp(48px,8vw,100px) clamp(16px,4vw,24px)" }}>
         <div style={{ maxWidth:1180, margin:"0 auto" }}>
           <div style={{ textAlign:"center", marginBottom:60 }}>
             <Tag>Pricing</Tag>
@@ -454,7 +454,7 @@ export function LandingPage({ onEnterApp }) {
               Simple, transparent pricing
             </h2>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20, maxWidth:900, margin:"0 auto" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:20, maxWidth:900, margin:"0 auto" }}>
             {[{ name:"Starter", price:"799", sub:"Saves 20+ hrs/month", features:["Up to 3 branches","All core features","Email support"], popular:false },
               { name:"Growth",  price:"1,499", sub:"Saves 40+ hrs/month", features:["Up to 8 branches","All features + Analytics","Priority support"], popular:true },
               { name:"Enterprise", price:"Custom", sub:"Fully tailored", features:["Unlimited branches","Custom integrations","Dedicated account manager"], popular:false }].map(p => (
@@ -499,7 +499,7 @@ export function LandingPage({ onEnterApp }) {
       </div>
 
       {/* EARLY ADOPTERS CTA */}
-      <div style={{ background:C.surface, padding:"100px 24px" }}>
+      <div style={{ background:C.surface, padding:"clamp(48px,8vw,100px) clamp(16px,4vw,24px)" }}>
         <div style={{ maxWidth:760, margin:"0 auto", textAlign:"center" }}>
           <Tag>Early Access</Tag>
           <h2 style={{ fontSize:"clamp(28px,4vw,44px)", fontWeight:800, margin:"20px 0 16px" }}>
@@ -509,7 +509,7 @@ export function LandingPage({ onEnterApp }) {
             Vismo is launching in Saudi Arabia. Early adopters get priority onboarding,
             direct access to the product team, and locked-in pricing before public release.
           </p>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, maxWidth:680, margin:"0 auto 48px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:16, maxWidth:680, margin:"0 auto 48px" }}>
             {[["🎯","Priority Setup","Your company configured and ready within 24 hours"],
               ["💬","Direct Access","Work directly with the product team to shape features"],
               ["🔒","Locked Pricing","Early adopter rate locked in before public pricing increases"]].map(([icon,title,desc]) => (
@@ -531,13 +531,13 @@ export function LandingPage({ onEnterApp }) {
       </div>
 
       {/* FAQ */}
-      <div id="faq" style={{ padding:"100px 24px" }}>
+      <div id="faq" style={{ padding:"clamp(48px,8vw,100px) clamp(16px,4vw,24px)" }}>
         <div style={{ maxWidth:720, margin:"0 auto" }}>
           <div style={{ textAlign:"center", marginBottom:60 }}>
             <Tag>FAQ</Tag>
             <h2 style={{ fontSize:"clamp(28px,4vw,48px)", fontWeight:800, margin:"16px 0" }}>Common questions</h2>
           </div>
-          {[["Is Vismo available on the App Store?","Vismo currently runs directly from your browser — no download needed. Just open the link and add it to your home screen for a full app experience. iOS and Android app store versions are coming soon."],
+          {[["Do I need to download an app?","No — Vismo is a PWA. Works on any phone directly from the browser. Staff can add it to their home screen for a native app feel."],
             ["How does onboarding work?","After your demo, we set up your company, add your branches and categories, and generate invite codes for your team. You're operational the same day."],
             ["Is our data safe?","Yes. Every company's data is completely isolated using PostgreSQL Row Level Security. Enforced at the database level — not just application code."],
             ["Can we customize it for our brand?","Yes — company logo, brand colors, and custom categories. Enterprise plans include deeper customization."],
@@ -549,7 +549,7 @@ export function LandingPage({ onEnterApp }) {
       </div>
 
       {/* FINAL CTA */}
-      <div style={{ padding:"100px 24px", textAlign:"center",
+      <div style={{ padding:"clamp(48px,8vw,100px) clamp(16px,4vw,24px)", textAlign:"center",
         background:`radial-gradient(ellipse 800px 400px at 50% 100%, ${C.indigo}22, transparent)`,
         borderTop:`1px solid ${C.border}` }}>
         <Tag>Get Started</Tag>
@@ -560,7 +560,7 @@ export function LandingPage({ onEnterApp }) {
         <p style={{ fontSize:17, color:C.muted, marginBottom:40, maxWidth:460, margin:"0 auto 40px" }}>
           Join VM teams across Saudi Arabia who've replaced chaos with clarity.
         </p>
-        <div style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap", flexDirection:"column", alignItems:"center" }}>
           <button onClick={openDemo} style={{ background:`linear-gradient(135deg,${C.indigo},${C.indigoL})`,
             border:"none", color:"#fff", padding:"18px 40px", borderRadius:12,
             fontSize:17, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
@@ -575,7 +575,7 @@ export function LandingPage({ onEnterApp }) {
       {/* FOOTER */}
       <footer style={{ borderTop:`1px solid ${C.border}`, padding:"40px 24px", background:C.surface }}>
         <div style={{ maxWidth:1180, margin:"0 auto",
-          display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:20 }}>
+          display:"flex", flexDirection:"column", alignItems:"center", gap:16, textAlign:"center" }}>
           <img src="/logo-dark.webp" alt="Vismo" style={{ height:26, objectFit:"contain" }}
             onError={e => { e.target.style.display="none"; }}/>
           <div style={{ display:"flex", gap:20 }}>
