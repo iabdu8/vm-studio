@@ -547,12 +547,16 @@ export function LandingPage({ onEnterApp }) {
             <Tag>FAQ</Tag>
             <h2 style={{ fontSize:"clamp(28px,4vw,48px)", fontWeight:800, margin:"16px 0" }}>Common questions</h2>
           </div>
-          {[["Do I need to download an app?","No — Vismo is a PWA. Works on any phone directly from the browser. Staff can add it to their home screen for a native app feel."],
-            ["How does onboarding work?","After your demo, we set up your company, add your branches and categories, and generate invite codes for your team. You're operational the same day."],
-            ["Is our data safe?","Yes. Every company's data is completely isolated using PostgreSQL Row Level Security. Enforced at the database level — not just application code."],
-            ["Can we customize it for our brand?","Yes — company logo, brand colors, and custom categories. Enterprise plans include deeper customization."],
-            ["Does it work offline?","Yes. Submissions queue offline and sync automatically when connection is restored. Zero data loss."],
-            ["What languages are supported?","The interface is in English. Arabic RTL support is on our roadmap."]].map(([q,a]) => (
+          {[["Does Vismo replace WhatsApp for team communication?","Yes. Vismo gives your team structured chat rooms per branch, task comments, and photo submissions — all in one place. No more digging through WhatsApp groups to find instructions or follow up on execution."],
+            ["Who is Vismo built for?","Vismo is built for Visual Merchandising teams, Retail Operations managers, Store Managers, and any multi-store retail business that needs to coordinate execution across branches."],
+            ["Can I manage multiple stores from one dashboard?","Yes. Every branch has its own task list, visit reports, and progress tracker. You see everything from one centralized dashboard — no switching between tools or chasing updates."],
+            ["Can team members upload photos after completing tasks?","Yes. Staff submit Before & After photos directly inside the task. Photos are automatically compressed, organized by branch and category, and visible to managers instantly."],
+            ["Can managers track task progress in real time?","Yes. As soon as a staff member updates a task, it reflects on the manager's dashboard immediately — no waiting for end-of-day reports."],
+            ["Do I need to install an app?","No download needed. Vismo runs directly in your browser. On mobile, you can add it to your home screen for a full app-like experience. iOS and Android app store versions are coming soon."],
+            ["Is Vismo suitable for large retail chains?","Yes. Vismo is designed to scale. Whether you have 3 branches or 50, the structure stays clean — each branch isolated, each team accountable, everything visible from the top."],
+            ["Can I assign tasks to specific team members?","Yes. You can assign tasks to an individual, a role, or an entire branch. Each person sees only what's assigned to them, keeping things focused and clear."],
+            ["Can I schedule store visits in advance?","Yes. Area Managers can plan and log store visits, attach photos with per-photo comments, and convert findings into tasks — all from the same visit report."],
+            ["How do I request a demo?","Click the \"Request Demo\" button anywhere on this page. Fill in your details and we will reach out within 24 hours to schedule a personalized walkthrough for your team."]].map(([q,a]) => (
             <FaqItem key={q} q={q} a={a} />
           ))}
         </div>
