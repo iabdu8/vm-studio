@@ -22,6 +22,13 @@ function DashMockup() {
   return (
     <div style={{ borderRadius:20, overflow:"hidden", border:`1px solid ${C.border}`,
       background:C.card, boxShadow:`0 40px 120px #00000088`, maxWidth:860, margin:"0 auto" }}>
+      <style>{`
+        @media (max-width:768px){
+          .dm-sidebar{ display:none; }
+          .dm-details{ display:none; }
+          .dm-kpis{ grid-template-columns:repeat(2,1fr) !important; }
+        }
+      `}</style>
       <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`,
         display:"flex", alignItems:"center", gap:8 }}>
         <div style={{ width:12,height:12,borderRadius:"50%",background:"#EF4444" }}/>
@@ -35,8 +42,8 @@ function DashMockup() {
         </div>
       </div>
       <div style={{ display:"flex", flexDirection:"row", overflowX:"hidden", minHeight:300, maxHeight:420 }}>
-        <div style={{ width:180, borderRight:`1px solid ${C.border}`, padding:14,
-          display:"flex", flexDirection:"column", gap:4 }}>
+        <div className="dm-sidebar" style={{ width:180, borderRight:`1px solid ${C.border}`, padding:14,
+          display:"flex", flexDirection:"column", gap:4, flexShrink:0 }}>
           {[["📊","Overview",true],["✅","Tasks",false],["🚶","Visits",false],
             ["📖","Guidelines",false],["💬","Chat",false],["🎓","Training",false]].map(([icon,label,active]) => (
             <div key={label} style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 10px",
@@ -46,9 +53,9 @@ function DashMockup() {
             </div>
           ))}
         </div>
-        <div style={{ flex:1, padding:18, overflowY:"hidden" }}>
+        <div style={{ flex:1, padding:18, overflowY:"hidden", minWidth:0 }}>
           <div style={{ fontSize:16, fontWeight:700, marginBottom:14 }}>Operations Overview</div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:10, marginBottom:16 }}>
+          <div className="dm-kpis" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:10, marginBottom:16 }}>
             {[["128","Total Tasks"],["96","Completed"],["24","In Progress"],["8","Overdue"]].map(([n,l]) => (
               <div key={l} style={{ background:C.surface, border:`1px solid ${C.border}`,
                 borderRadius:10, padding:"12px 14px" }}>
@@ -57,7 +64,7 @@ function DashMockup() {
               </div>
             ))}
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          <div className="dm-details" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
               <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>Recent Tasks</div>
               {[["Window Display","Salam Mall","done"],["New Promo","Jeddah Park","progress"],["Shelf Org","Red Sea Mall","pending"]].map(([t,b,s]) => (

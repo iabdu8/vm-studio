@@ -8,7 +8,7 @@ export function Logo({ size = "md" }) {
   return (
     <img
       loading="lazy"
-      src="/logo.png"
+      src={mode === "dark" ? "/logo-dark.png" : "/logo.png"}
       alt="Vismo"
       style={{
         height: h,
@@ -16,7 +16,6 @@ export function Logo({ size = "md" }) {
         maxWidth: "100%",
         objectFit: "contain",
         display: "block",
-        filter: mode === "dark" ? "brightness(0) invert(1)" : "none",
       }}
     />
   );
