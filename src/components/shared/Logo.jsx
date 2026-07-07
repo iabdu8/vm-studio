@@ -1,6 +1,6 @@
 import { useTheme } from "../../context/ThemeContext.jsx";
 
-const heights = { md: 56, lg: 140 };
+const heights = { md: 44, lg: 120 };
 
 export function Logo({ size = "md" }) {
   const { mode } = useTheme();

@@ -279,7 +279,7 @@ export function LandingPage({ onEnterApp }) {
         `}</style>
         <div style={{ maxWidth:1180, margin:"0 auto", height:64,
           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <img className="nav-logo" src="/logo-dark.png" alt="Vismo" style={{ height:56, objectFit:"contain" }}
+          <img className="nav-logo" src="/logo-dark.png" alt="Vismo" style={{ height:44, objectFit:"contain" }}
             onError={e => { e.target.style.display="none"; }}/>
           <div className="nav-links" style={{ display:"flex", gap:24, alignItems:"center" }}>
             {[["Features","#features"],["How it works","#how"],["Pricing","#pricing"],["FAQ","#faq"]].map(([l,h]) => (
@@ -621,7 +621,7 @@ export function LandingPage({ onEnterApp }) {
       <footer style={{ borderTop:`1px solid ${C.border}`, padding:"40px 24px", background:C.surface }}>
         <div style={{ maxWidth:1180, margin:"0 auto",
           display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:20 }}>
-          <img src="/logo-dark.png" alt="Vismo" style={{ height:26, objectFit:"contain" }}
+          <img src="/logo-dark.png" alt="Vismo" style={{ height:28, objectFit:"contain" }}
             onError={e => { e.target.style.display="none"; }}/>
           <div style={{ display:"flex", gap:20 }}>
             <a href="mailto:info@vismo1.com" style={{ fontSize:13, color:C.indigoL, textDecoration:"none" }}>info@vismo1.com</a>
