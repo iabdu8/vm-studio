@@ -78,7 +78,7 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
               {fw.photos?.length > 0 && (
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:8 }}>
                   {fw.photos.map((p, j) => (
-                    <img key={j} src={p.url ?? p} alt=""
+                    <img key={j} loading="lazy" src={p.url ?? p} alt=""
                       style={{ width:72, height:72, objectFit:"cover", borderRadius:8,
                         border:`1px solid ${C.accentColor}22` }}/>
                   ))}
@@ -156,7 +156,7 @@ export function StoreManagerRequests({ submissions, onAddNote }) {
                   <div style={S.h3}>{lbl}</div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                     {imgs.map((p, i) => (
-                      <img key={i} src={p.url} alt=""
+                      <img key={i} loading="lazy" src={p.url} alt=""
                         style={{ width:56, height:56, objectFit:"cover", borderRadius:6 }}/>
                     ))}
                   </div>

@@ -109,7 +109,7 @@ function CompaniesTab() {
       {companies.map(c => (
         <div key={c.id} style={{ ...S.card, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-            {c.logo_url ? <img src={c.logo_url} style={{ width:36, height:36, objectFit:"contain", borderRadius:8 }} alt={c.name}/>
+            {c.logo_url ? <img loading="lazy" src={c.logo_url} style={{ width:36, height:36, objectFit:"contain", borderRadius:8 }} alt={c.name}/>
               : <div style={{ width:36, height:36, borderRadius:10, background:c.accent_color??"#4F46E5", flexShrink:0 }}/>}
             <div>
               <div style={{ fontWeight:700, fontSize:14 }}>{c.name}</div>

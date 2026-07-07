@@ -28,8 +28,9 @@ export async function createPromotion(payload, branchIds) {
   if (error) throw error;
 
   if (branchIds?.length) {
-    await supabase.from("promotion_branches")
+    const { error: branchErr } = await supabase.from("promotion_branches")
       .insert(branchIds.map(b => ({ promotion_id: promo.id, branch_id: b })));
+    if (branchErr) process.env?.NODE_ENV !== "production" && console.error(branchErr);
   }
   return promo;
 }
@@ -68,13 +69,18 @@ export async function setCampaignBranchStatus(campaign_id, branch_id, status) {
     );
   if (error) throw error;
 }
+function logNotifyError(error) {
+  if (error) process.env?.NODE_ENV !== "production" && console.error(error);
+}
+
 export async function notifyAll(company_id, type, title, body) {
   const { data: users } = await supabase
     .from('profiles').select('id').eq('company_id', company_id);
   if (!users?.length) return;
-  await supabase.from('notifications').insert(
+  const { error } = await supabase.from('notifications').insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
+  logNotifyError(error);
 }
 
 export async function notifyManagers(company_id, type, title, body) {
@@ -83,9 +89,10 @@ export async function notifyManagers(company_id, type, title, body) {
     .eq('company_id', company_id)
     .in('role', ['manager', 'area_manager', 'store_manager']);
   if (!users?.length) return;
-  await supabase.from('notifications').insert(
+  const { error } = await supabase.from('notifications').insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
+  logNotifyError(error);
 }
 
 export async function notifyBranch(company_id, branch_id, type, title, body) {
@@ -93,13 +100,15 @@ export async function notifyBranch(company_id, branch_id, type, title, body) {
     .from('profiles').select('id')
     .eq('company_id', company_id).eq('branch_id', branch_id);
   if (!users?.length) return;
-  await supabase.from('notifications').insert(
+  const { error } = await supabase.from('notifications').insert(
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
+  logNotifyError(error);
 }
 
 export async function notifyUser(company_id, user_id, type, title, body) {
-  await supabase.from('notifications').insert({
+  const { error } = await supabase.from('notifications').insert({
     company_id, user_id, type, title, body
   });
+  logNotifyError(error);
 }

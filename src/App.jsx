@@ -16,6 +16,7 @@ import { supabase }             from "./lib/supabase.js";
 import { useOfflineSync }       from "./hooks/useOfflineSync.js";
 import { exportWeeklyReport }   from "./lib/pdfExport.js";
 import { subscribeToPush }      from "./lib/notifications.js";
+import { compressImage }        from "./lib/imageCompression.js";
 import { StyleTag }             from "./components/shared/Atoms.jsx";
 import { Logo }                 from "./components/shared/Logo.jsx";
 import { TopBar }               from "./components/shared/TopBar.jsx";
@@ -279,7 +280,6 @@ function AuthenticatedApp() {
       const { data: fw } = await supabase.from("floor_walks").insert({ company_id:company.id, added_by:profile.id, note, manager:profile.full_name, date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }) }).select().single();
       if (fw && photos.length > 0) {
         for (const p of photos) {
-          const { compressImage } = await import("./lib/imageCompression.js");
           const compressed = await compressImage(p.file ?? p, "floorWalk");
           const safeName = (compressed?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
           const path = `${company.id}/floorwalk/${fw.id}-${Date.now()}-${safeName}`;
