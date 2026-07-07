@@ -279,7 +279,7 @@ export function LandingPage({ onEnterApp }) {
         `}</style>
         <div style={{ maxWidth:1180, margin:"0 auto", height:64,
           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <img className="nav-logo" src="/logo-dark.png" alt="Vismo" style={{ height:44, objectFit:"contain" }}
+          <img className="nav-logo" src="/logo-dark.png" alt="Vismo" style={{ height:56, objectFit:"contain" }}
             onError={e => { e.target.style.display="none"; }}/>
           <div className="nav-links" style={{ display:"flex", gap:24, alignItems:"center" }}>
             {[["Features","#features"],["How it works","#how"],["Pricing","#pricing"],["FAQ","#faq"]].map(([l,h]) => (
