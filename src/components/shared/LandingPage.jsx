@@ -31,6 +31,7 @@ function DashMockup() {
           .dm-branch{ display:none !important; }
           .dm-details{ display:flex !important; flex-direction:column !important; }
           .dm-kpis{ grid-template-columns:1fr 1fr !important; }
+          .dm-wrapper{ min-height:unset !important; max-height:unset !important; }
         }
       `}</style>
       <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`,
@@ -45,7 +46,7 @@ function DashMockup() {
           </div>
         </div>
       </div>
-      <div style={{ display:"flex", flexDirection:"row", overflowX:"hidden", minHeight:300, maxHeight:420 }}>
+      <div className="dm-wrapper" style={{ display:"flex", flexDirection:"row", overflowX:"hidden", minHeight:300, maxHeight:420 }}>
         <div className="dm-sidebar" style={{ width:180, borderRight:`1px solid ${C.border}`, padding:14,
           flexDirection:"column", gap:4, flexShrink:0 }}>
           {[["📊","Overview",true],["✅","Tasks",false],["🚶","Visits",false],
