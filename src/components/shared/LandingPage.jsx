@@ -23,12 +23,13 @@ function DashMockup() {
     <div style={{ borderRadius:20, overflow:"hidden", border:`1px solid ${C.border}`,
       background:C.card, boxShadow:`0 40px 120px #00000088`, maxWidth:860, width:"100%", margin:"0 auto" }}>
       <style>{`
+        .dm-sidebar{ display:flex; }
+        .dm-branch{ display:block; }
         @media (max-width:768px){
           .dm-sidebar{ display:none !important; }
           .dm-branch{ display:none !important; }
-          .dm-details{ display:block !important; width:100% !important; }
-          .dm-recent{ width:100% !important; min-width:0 !important; box-sizing:border-box !important; }
-          .dm-kpis{ grid-template-columns:repeat(2,1fr) !important; }
+          .dm-details{ display:flex !important; flex-direction:column !important; }
+          .dm-kpis{ grid-template-columns:1fr 1fr !important; }
         }
       `}</style>
       <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`,
@@ -45,7 +46,7 @@ function DashMockup() {
       </div>
       <div style={{ display:"flex", flexDirection:"row", overflowX:"hidden", minHeight:300, maxHeight:420 }}>
         <div className="dm-sidebar" style={{ width:180, borderRight:`1px solid ${C.border}`, padding:14,
-          display:"flex", flexDirection:"column", gap:4, flexShrink:0 }}>
+          flexDirection:"column", gap:4, flexShrink:0 }}>
           {[["📊","Overview",true],["✅","Tasks",false],["🚶","Visits",false],
             ["📖","Guidelines",false],["💬","Chat",false],["🎓","Training",false]].map(([icon,label,active]) => (
             <div key={label} style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 10px",
@@ -194,15 +195,15 @@ function DemoModal({ onClose }) {
               Fill in your details and we'll set up a personalized walkthrough for your team.
             </div>
 
-            {[["Full Name *","name","text","e.g. Abdullah Ahmed"],
-              ["Company Name *","company","text","e.g. Home Centre"],
-              ["Work Email *","email","email","you@company.com"],
-              ["Phone (optional)","phone","tel","+966 5x xxx xxxx"],
-            ].map(([label,field,type,placeholder]) => (
+            {[["Full Name *","name","text"],
+              ["Company Name *","company","text"],
+              ["Work Email *","email","email"],
+              ["Phone (optional)","phone","tel"],
+            ].map(([label,field,type]) => (
               <div key={field} style={{ marginBottom:14 }}>
                 <div style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:1,
                   textTransform:"uppercase", marginBottom:5 }}>{label}</div>
-                <input type={type} placeholder={placeholder}
+                <input type={type}
                   value={form[field]}
                   onChange={e => setForm(p => ({ ...p, [field]: e.target.value }))}
                   style={{ width:"100%", background:C.card, border:`1px solid ${C.border}`,
@@ -306,7 +307,7 @@ export function LandingPage({ onEnterApp }) {
             @media (max-width:768px){ .hero-logo{ height:110px; } }
           `}</style>
           <img className="hero-logo" src="/logo-dark.png" alt="Vismo" style={{ objectFit:"contain",
-            display:"block", margin:"0 auto 24px", filter:"brightness(0) invert(1)" }}
+            display:"block", margin:"0 auto 24px" }}
             onError={e => { e.target.style.display="none"; }}/>
           <Tag>Built for Visual Merchandisers</Tag>
           <h1 style={{ fontSize:"clamp(40px,6vw,72px)", fontWeight:800, lineHeight:1.1,
