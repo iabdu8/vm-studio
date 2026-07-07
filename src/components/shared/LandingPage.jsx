@@ -295,8 +295,8 @@ export function LandingPage({ onEnterApp }) {
         background:`radial-gradient(ellipse 900px 600px at 50% 0%, ${C.indigo}18, transparent)` }}>
         <div style={{ maxWidth:860, margin:"0 auto", padding:"0 24px" }}>
           <style>{`
-            .hero-logo{ height:120px; }
-            @media (max-width:768px){ .hero-logo{ height:80px; } }
+            .hero-logo{ height:144px; }
+            @media (max-width:768px){ .hero-logo{ height:92px; } }
           `}</style>
           <img className="hero-logo" src="/logo-dark.png" alt="Vismo" style={{ objectFit:"contain",
             display:"block", margin:"0 auto 24px" }}
