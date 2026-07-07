@@ -19,10 +19,10 @@ function Tag({ children }) {
 }
 
 function DashMockup() {
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
 
   useEffect(() => {
-    const fn = () => setIsMobile(window.innerWidth <= 768);
+    const fn = () => setIsMobile(window.innerWidth <= 1024);
     window.addEventListener('resize', fn);
     return () => window.removeEventListener('resize', fn);
   }, []);
