@@ -272,16 +272,14 @@ export function LandingPage({ onEnterApp }) {
         borderBottom:scrolled?`1px solid ${C.border}`:"none",
         transition:"all .3s" }}>
         <style>{`
-          .nav-logo{ height:54px; }
           @media (max-width:768px){
             .nav-links{ display:none !important; }
             .nav-signin{ display:none !important; }
-            .nav-logo{ height:30px; }
           }
         `}</style>
         <div style={{ maxWidth:1180, margin:"0 auto", height:64,
           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <img className="nav-logo" src="/logo-dark.png" alt="Vismo" style={{ objectFit:"contain" }}
+          <img className="nav-logo" src="/logo-dark.png" alt="Vismo" style={{ height:44, objectFit:"contain" }}
             onError={e => { e.target.style.display="none"; }}/>
           <div className="nav-links" style={{ display:"flex", gap:24, alignItems:"center" }}>
             {[["Features","#features"],["How it works","#how"],["Pricing","#pricing"],["FAQ","#faq"]].map(([l,h]) => (
