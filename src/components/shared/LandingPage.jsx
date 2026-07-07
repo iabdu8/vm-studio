@@ -11,7 +11,7 @@ function Tag({ children }) {
   return (
     <span style={{ display:"inline-flex", alignItems:"center", gap:6,
       background:`${C.indigo}18`, color:C.indigoL,
-      border:`1px solid ${C.indigo}66`, padding:"6px 20px", borderRadius:100,
+      border:`1px solid ${C.indigo}66`, padding:"6px 18px", borderRadius:100,
       fontSize:12, fontWeight:600, letterSpacing:.5, textTransform:"uppercase" }}>
       {children}
     </span>
@@ -301,10 +301,10 @@ export function LandingPage({ onEnterApp }) {
       </nav>
 
       {/* HERO */}
-      <div style={{ paddingTop:"clamp(130px,17vw,190px)", paddingBottom:"clamp(40px,8vw,80px)", textAlign:"center",
+      <div style={{ paddingTop:"clamp(120px,16vw,180px)", paddingBottom:"clamp(40px,8vw,80px)", textAlign:"center",
         background:`radial-gradient(ellipse 900px 600px at 50% 0%, ${C.indigo}18, transparent)` }}>
         <style>{`
-          .cta-primary{ transition:transform .25s ease, box-shadow .25s ease; }
+          .cta-primary{ transition:all .2s; }
           @media (hover:hover){ .cta-primary:hover{ transform:translateY(-2px); box-shadow:0 0 44px ${C.indigo}77; } }
           .trust-row{ display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap; }
           .trust-divider{ width:1px; height:14px; background:${C.border}; }
@@ -327,17 +327,17 @@ export function LandingPage({ onEnterApp }) {
             </span>
           </h1>
           <p style={{ fontSize:"clamp(16px,2vw,20px)", color:C.muted, maxWidth:560,
-            margin:"0 auto 52px", lineHeight:1.6 }}>
-            Replace WhatsApp, spreadsheets, and manual follow-ups with one workspace
-            built specifically for Visual Merchandising teams.
+            margin:"0 auto 48px", lineHeight:1.6 }}>
+            Replace WhatsApp, spreadsheets, and manual follow-ups with one centralized
+            workspace built specifically for Visual Merchandising teams.
           </p>
           <div className="hero-ctas" style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap" }}>
             <button className="cta-primary" onClick={openDemo} style={{ background:`linear-gradient(135deg,${C.indigo},${C.indigoL})`,
-              border:"none", color:"#fff", padding:"0 40px", height:62, borderRadius:12,
+              border:"none", color:"#fff", padding:"0 40px", height:60, borderRadius:12,
               fontSize:16, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
               boxShadow:`0 0 32px ${C.indigo}55` }}>Request a Demo →</button>
             <button className="cta-secondary" onClick={onEnterApp} style={{ background:"transparent", border:`1px solid ${C.border}`,
-              color:C.muted, padding:"0 26px", height:52, borderRadius:12, fontSize:14,
+              color:C.muted, padding:"12px 24px", borderRadius:12, fontSize:14,
               fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>Sign In</button>
           </div>
           <div className="trust-row" style={{ marginTop:36 }}>
@@ -350,7 +350,7 @@ export function LandingPage({ onEnterApp }) {
             ])}
           </div>
         </div>
-        <div style={{ padding:"88px 24px 0" }}><DashMockup /></div>
+        <div style={{ padding:"72px 24px 0" }}><DashMockup /></div>
       </div>
 
       {/* STATS */}
