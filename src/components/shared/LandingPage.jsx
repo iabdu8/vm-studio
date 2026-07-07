@@ -11,7 +11,7 @@ function Tag({ children }) {
   return (
     <span style={{ display:"inline-flex", alignItems:"center", gap:6,
       background:`${C.indigo}18`, color:C.indigoL,
-      border:`1px solid ${C.indigo}44`, padding:"4px 14px", borderRadius:100,
+      border:`1px solid ${C.indigo}66`, padding:"6px 20px", borderRadius:100,
       fontSize:12, fontWeight:600, letterSpacing:.5, textTransform:"uppercase" }}>
       {children}
     </span>
@@ -21,7 +21,8 @@ function Tag({ children }) {
 function DashMockup() {
   return (
     <div style={{ borderRadius:20, overflow:"hidden", border:`1px solid ${C.border}`,
-      background:C.card, boxShadow:`0 40px 120px #00000088`, maxWidth:860, width:"100%", margin:"0 auto" }}>
+      background:C.card, boxShadow:`0 40px 120px #00000088, 0 0 90px ${C.indigo}22`,
+      maxWidth:940, width:"100%", margin:"0 auto" }}>
       <style>{`
         .dm-sidebar{ display:flex; }
         .dm-branch{ display:block; }
@@ -265,20 +266,22 @@ export function LandingPage({ onEnterApp }) {
 
       {/* NAVBAR */}
       <nav style={{ position:"fixed", top:0, left:0, right:0, zIndex:100,
-        padding:"0 32px",
+        paddingLeft:"clamp(28px,6vw,44px)", paddingRight:"clamp(20px,5vw,32px)",
         background:scrolled?`${C.surface}ee`:"transparent",
         backdropFilter:scrolled?"blur(12px)":"none",
         borderBottom:scrolled?`1px solid ${C.border}`:"none",
         transition:"all .3s" }}>
         <style>{`
+          .nav-logo{ height:54px; }
           @media (max-width:768px){
             .nav-links{ display:none !important; }
             .nav-signin{ display:none !important; }
+            .nav-logo{ height:30px; }
           }
         `}</style>
         <div style={{ maxWidth:1180, margin:"0 auto", height:64,
           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          <img src="/logo-dark.png" alt="Vismo" style={{ height:34, objectFit:"contain" }}
+          <img className="nav-logo" src="/logo-dark.png" alt="Vismo" style={{ objectFit:"contain" }}
             onError={e => { e.target.style.display="none"; }}/>
           <div className="nav-links" style={{ display:"flex", gap:24, alignItems:"center" }}>
             {[["Features","#features"],["How it works","#how"],["Pricing","#pricing"],["FAQ","#faq"]].map(([l,h]) => (
@@ -291,49 +294,63 @@ export function LandingPage({ onEnterApp }) {
               color:C.text, padding:"8px 20px", borderRadius:10, cursor:"pointer",
               fontSize:14, fontWeight:600, fontFamily:"inherit" }}>Sign In</button>
             <button onClick={openDemo} style={{ background:`linear-gradient(135deg,${C.indigo},${C.indigoL})`,
-              border:"none", color:"#fff", padding:"8px 20px", borderRadius:10, cursor:"pointer",
-              fontSize:14, fontWeight:700, fontFamily:"inherit",
-              boxShadow:`0 0 20px ${C.indigo}44` }}>Request Demo</button>
+              border:"none", color:"#fff", padding:"7px 16px", borderRadius:10, cursor:"pointer",
+              fontSize:13, fontWeight:600, fontFamily:"inherit" }}>Request Demo</button>
           </div>
         </div>
       </nav>
 
       {/* HERO */}
-      <div style={{ paddingTop:"clamp(100px,15vw,160px)", paddingBottom:"clamp(40px,8vw,80px)", textAlign:"center",
+      <div style={{ paddingTop:"clamp(130px,17vw,190px)", paddingBottom:"clamp(40px,8vw,80px)", textAlign:"center",
         background:`radial-gradient(ellipse 900px 600px at 50% 0%, ${C.indigo}18, transparent)` }}>
+        <style>{`
+          .cta-primary{ transition:transform .25s ease, box-shadow .25s ease; }
+          @media (hover:hover){ .cta-primary:hover{ transform:translateY(-2px); box-shadow:0 0 44px ${C.indigo}77; } }
+          .trust-row{ display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap; }
+          .trust-divider{ width:1px; height:14px; background:${C.border}; }
+          @media (max-width:640px){
+            .hero-ctas{ flex-direction:column; align-items:stretch; }
+            .cta-primary, .cta-secondary{ width:90%; margin:0 auto; }
+            .trust-row{ flex-direction:column; gap:14px; }
+            .trust-divider{ display:none; }
+          }
+        `}</style>
         <div style={{ maxWidth:860, margin:"0 auto", padding:"0 24px" }}>
-          <style>{`
-            .hero-logo{ height:180px; }
-            @media (max-width:768px){ .hero-logo{ height:110px; } }
-          `}</style>
-          <img className="hero-logo" src="/logo-dark.png" alt="Vismo" style={{ objectFit:"contain",
-            display:"block", margin:"0 auto 24px" }}
-            onError={e => { e.target.style.display="none"; }}/>
           <Tag>Built for Visual Merchandisers</Tag>
           <h1 style={{ fontSize:"clamp(40px,6vw,72px)", fontWeight:800, lineHeight:1.1,
             margin:"24px 0 20px", letterSpacing:-1.5 }}>
             One Platform.<br/>
-            <span style={{ background:`linear-gradient(135deg,${C.cyan},${C.indigoL})`,
+            <span style={{ display:"inline-block", marginTop:6,
+              background:`linear-gradient(135deg,${C.cyan},${C.indigoL})`,
               WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
               Zero Confusion.
             </span>
           </h1>
-          <p style={{ fontSize:"clamp(16px,2vw,20px)", color:C.muted, maxWidth:600,
-            margin:"0 auto 40px", lineHeight:1.7 }}>
-            Replace scattered WhatsApp conversations, spreadsheets, and manual follow-ups
-            with one centralized workspace for your Visual Merchandising team.
+          <p style={{ fontSize:"clamp(16px,2vw,20px)", color:C.muted, maxWidth:560,
+            margin:"0 auto 52px", lineHeight:1.6 }}>
+            Replace WhatsApp, spreadsheets, and manual follow-ups with one workspace
+            built specifically for Visual Merchandising teams.
           </p>
-          <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
-            <button onClick={openDemo} style={{ background:`linear-gradient(135deg,${C.indigo},${C.indigoL})`,
-              border:"none", color:"#fff", padding:"16px 36px", borderRadius:12,
+          <div className="hero-ctas" style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap" }}>
+            <button className="cta-primary" onClick={openDemo} style={{ background:`linear-gradient(135deg,${C.indigo},${C.indigoL})`,
+              border:"none", color:"#fff", padding:"0 40px", height:62, borderRadius:12,
               fontSize:16, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
               boxShadow:`0 0 32px ${C.indigo}55` }}>Request a Demo →</button>
-            <button onClick={onEnterApp} style={{ background:"transparent", border:`1px solid ${C.border}`,
-              color:C.text, padding:"16px 32px", borderRadius:12, fontSize:16,
-              fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>Sign In</button>
+            <button className="cta-secondary" onClick={onEnterApp} style={{ background:"transparent", border:`1px solid ${C.border}`,
+              color:C.muted, padding:"0 26px", height:52, borderRadius:12, fontSize:14,
+              fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>Sign In</button>
+          </div>
+          <div className="trust-row" style={{ marginTop:36 }}>
+            {[["500+","Tasks Managed"],["95%","Faster Reporting"],[null,"Trusted by Retail Teams"]].flatMap(([v,l], i) => [
+              <div key={l} style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+                <span style={{ fontSize:14, fontWeight:800, color:v?C.text:C.green }}>{v ?? "✓"}</span>
+                <span style={{ fontSize:13, color:C.muted }}>{l}</span>
+              </div>,
+              i < 2 && <div key={`${l}-div`} className="trust-divider"/>,
+            ])}
           </div>
         </div>
-        <div style={{ padding:"60px 24px 0" }}><DashMockup /></div>
+        <div style={{ padding:"88px 24px 0" }}><DashMockup /></div>
       </div>
 
       {/* STATS */}
