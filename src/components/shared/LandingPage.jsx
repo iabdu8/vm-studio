@@ -24,9 +24,10 @@ function DashMockup() {
       background:C.card, boxShadow:`0 40px 120px #00000088`, maxWidth:860, width:"100%", margin:"0 auto" }}>
       <style>{`
         @media (max-width:768px){
-          .dm-sidebar{ display:none; }
-          .dm-branch{ display:none; }
-          .dm-details{ grid-template-columns:1fr !important; }
+          .dm-sidebar{ display:none !important; }
+          .dm-branch{ display:none !important; }
+          .dm-details{ display:block !important; width:100% !important; }
+          .dm-recent{ width:100% !important; min-width:0 !important; box-sizing:border-box !important; }
           .dm-kpis{ grid-template-columns:repeat(2,1fr) !important; }
         }
       `}</style>
@@ -268,6 +269,12 @@ export function LandingPage({ onEnterApp }) {
         backdropFilter:scrolled?"blur(12px)":"none",
         borderBottom:scrolled?`1px solid ${C.border}`:"none",
         transition:"all .3s" }}>
+        <style>{`
+          @media (max-width:768px){
+            .nav-links{ display:none !important; }
+            .nav-signin{ display:none !important; }
+          }
+        `}</style>
         <div style={{ maxWidth:1180, margin:"0 auto", height:64,
           display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <img src="/logo-dark.png" alt="Vismo" style={{ height:34, objectFit:"contain" }}
@@ -279,7 +286,7 @@ export function LandingPage({ onEnterApp }) {
             ))}
           </div>
           <div style={{ display:"flex", gap:10 }}>
-            <button onClick={onEnterApp} style={{ background:"transparent", border:`1px solid ${C.border}`,
+            <button className="nav-signin" onClick={onEnterApp} style={{ background:"transparent", border:`1px solid ${C.border}`,
               color:C.text, padding:"8px 20px", borderRadius:10, cursor:"pointer",
               fontSize:14, fontWeight:600, fontFamily:"inherit" }}>Sign In</button>
             <button onClick={openDemo} style={{ background:`linear-gradient(135deg,${C.indigo},${C.indigoL})`,
@@ -295,11 +302,11 @@ export function LandingPage({ onEnterApp }) {
         background:`radial-gradient(ellipse 900px 600px at 50% 0%, ${C.indigo}18, transparent)` }}>
         <div style={{ maxWidth:860, margin:"0 auto", padding:"0 24px" }}>
           <style>{`
-            .hero-logo{ height:144px; }
-            @media (max-width:768px){ .hero-logo{ height:92px; } }
+            .hero-logo{ height:180px; }
+            @media (max-width:768px){ .hero-logo{ height:110px; } }
           `}</style>
           <img className="hero-logo" src="/logo-dark.png" alt="Vismo" style={{ objectFit:"contain",
-            display:"block", margin:"0 auto 24px" }}
+            display:"block", margin:"0 auto 24px", filter:"brightness(0) invert(1)" }}
             onError={e => { e.target.style.display="none"; }}/>
           <Tag>Built for Visual Merchandisers</Tag>
           <h1 style={{ fontSize:"clamp(40px,6vw,72px)", fontWeight:800, lineHeight:1.1,
@@ -553,7 +560,7 @@ export function LandingPage({ onEnterApp }) {
         <div style={{ maxWidth:720, margin:"0 auto" }}>
           <div style={{ textAlign:"center", marginBottom:60 }}>
             <Tag>FAQ</Tag>
-            <h2 style={{ fontSize:"clamp(28px,4vw,48px)", fontWeight:800, margin:"16px 0" }}>Common questions</h2>
+            <h2 style={{ fontSize:"clamp(28px,4vw,48px)", fontWeight:800, margin:"16px 0" }}>Frequently Asked Questions</h2>
           </div>
           {[["Does Vismo replace WhatsApp for team communication?","Yes. Vismo gives your team structured chat rooms per branch, task comments, and photo submissions — all in one place. No more digging through WhatsApp groups to find instructions or follow up on execution."],
             ["Who is Vismo built for?","Vismo is built for Visual Merchandising teams, Retail Operations managers, Store Managers, and any multi-store retail business that needs to coordinate execution across branches."],
