@@ -19,21 +19,18 @@ function Tag({ children }) {
 }
 
 function DashMockup() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+
   return (
     <div style={{ borderRadius:20, overflow:"hidden", border:`1px solid ${C.border}`,
       background:C.card, boxShadow:`0 40px 120px #00000088, 0 0 90px ${C.indigo}22`,
       maxWidth:940, width:"100%", margin:"0 auto" }}>
-      <style>{`
-        .dm-sidebar{ display:flex; }
-        .dm-branch{ display:block; }
-        @media (max-width:768px){
-          .dm-sidebar{ display:none !important; }
-          .dm-branch{ display:none !important; }
-          .dm-details{ display:flex !important; flex-direction:column !important; }
-          .dm-kpis{ grid-template-columns:1fr 1fr !important; }
-          .dm-wrapper{ min-height:unset !important; max-height:unset !important; }
-        }
-      `}</style>
       <div style={{ padding:"14px 20px", borderBottom:`1px solid ${C.border}`,
         display:"flex", alignItems:"center", gap:8 }}>
         <div style={{ width:12,height:12,borderRadius:"50%",background:"#EF4444" }}/>
@@ -46,21 +43,23 @@ function DashMockup() {
           </div>
         </div>
       </div>
-      <div className="dm-wrapper" style={{ display:"flex", flexDirection:"row", overflowX:"hidden", minHeight:300, maxHeight:420 }}>
-        <div className="dm-sidebar" style={{ width:180, borderRight:`1px solid ${C.border}`, padding:14,
-          flexDirection:"column", gap:4, flexShrink:0 }}>
-          {[["📊","Overview",true],["✅","Tasks",false],["🚶","Visits",false],
-            ["📖","Guidelines",false],["💬","Chat",false],["🎓","Training",false]].map(([icon,label,active]) => (
-            <div key={label} style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 10px",
-              borderRadius:8, background:active?`${C.indigo}22`:"transparent",
-              color:active?C.indigoL:C.muted, fontSize:12, fontWeight:active?600:400 }}>
-              <span>{icon}</span>{label}
-            </div>
-          ))}
-        </div>
-        <div style={{ flex:1, padding:18, overflowY:"hidden", minWidth:0 }}>
+      <div style={{ display:"flex", flexDirection:"row", overflow:"hidden" }}>
+        {!isMobile && (
+          <div style={{ width:180, borderRight:`1px solid ${C.border}`, padding:14,
+            display:"flex", flexDirection:"column", gap:4, flexShrink:0 }}>
+            {[["📊","Overview",true],["✅","Tasks",false],["🚶","Visits",false],
+              ["📖","Guidelines",false],["💬","Chat",false],["🎓","Training",false]].map(([icon,label,active]) => (
+              <div key={label} style={{ display:"flex", alignItems:"center", gap:8, padding:"9px 10px",
+                borderRadius:8, background:active?`${C.indigo}22`:"transparent",
+                color:active?C.indigoL:C.muted, fontSize:12, fontWeight:active?600:400 }}>
+                <span>{icon}</span>{label}
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ flex:1, padding:18, overflow:"hidden", minWidth:0 }}>
           <div style={{ fontSize:16, fontWeight:700, marginBottom:14 }}>Operations Overview</div>
-          <div className="dm-kpis" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:10, marginBottom:16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
             {[["128","Total Tasks"],["96","Completed"],["24","In Progress"],["8","Overdue"]].map(([n,l]) => (
               <div key={l} style={{ background:C.surface, border:`1px solid ${C.border}`,
                 borderRadius:10, padding:"12px 14px" }}>
@@ -69,8 +68,8 @@ function DashMockup() {
               </div>
             ))}
           </div>
-          <div className="dm-details" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            <div className="dm-recent" style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
+          <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", gap:10 }}>
+            <div style={{ flex:1, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
               <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>Recent Tasks</div>
               {[["Window Display","Salam Mall","done"],["New Promo","Jeddah Park","progress"],["Shelf Org","Red Sea Mall","pending"]].map(([t,b,s]) => (
                 <div key={t} style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
@@ -87,20 +86,22 @@ function DashMockup() {
                 </div>
               ))}
             </div>
-            <div className="dm-branch" style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
-              <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>Branch Progress</div>
-              {[["Salam Mall",85],["Jeddah Park",62],["Mall of Arabia",40],["Red Sea Mall",91]].map(([b,p]) => (
-                <div key={b} style={{ marginBottom:10 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}>
-                    <span>{b}</span><span style={{ color:C.indigoL, fontWeight:700 }}>{p}%</span>
+            {!isMobile && (
+              <div style={{ flex:1, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
+                <div style={{ fontSize:12, fontWeight:700, marginBottom:10 }}>Branch Progress</div>
+                {[["Salam Mall",85],["Jeddah Park",62],["Mall of Arabia",40],["Red Sea Mall",91]].map(([b,p]) => (
+                  <div key={b} style={{ marginBottom:10 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}>
+                      <span>{b}</span><span style={{ color:C.indigoL, fontWeight:700 }}>{p}%</span>
+                    </div>
+                    <div style={{ height:3, background:C.border, borderRadius:2 }}>
+                      <div style={{ height:"100%", borderRadius:2, width:`${p}%`,
+                        background:`linear-gradient(90deg,${C.indigo},${C.cyan})` }}/>
+                    </div>
                   </div>
-                  <div style={{ height:3, background:C.border, borderRadius:2 }}>
-                    <div style={{ height:"100%", borderRadius:2, width:`${p}%`,
-                      background:`linear-gradient(90deg,${C.indigo},${C.cyan})` }}/>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
