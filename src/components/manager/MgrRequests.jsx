@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
+import { CommentThread } from "../shared/CommentThread.jsx";
 
-export function MgrRequests({ submissions, onReview, onDeleteSubmission }) {
+export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile }) {
   const [filter,       setFilter]       = useState("pending");
   const [revisionId,   setRevisionId]   = useState(null);
   const [revisionNote, setRevisionNote] = useState("");
   const [saving,       setSaving]       = useState(false);
+  const [openId,       setOpenId]       = useState(null);
 
   const submitRevision = async () => {
     if (!revisionNote.trim()) return;
@@ -118,7 +120,14 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission }) {
                   🗑️
                 </button>
               )}
+              {s.task_id && (
+                <button className="btnG" style={{ ...S.btnG, fontSize:12, padding:"8px 14px" }}
+                  onClick={() => setOpenId(openId === s.id ? null : s.id)}>
+                  💬 Comments
+                </button>
+              )}
             </div>
+            {openId === s.id && s.task_id && profile && <CommentThread taskId={s.task_id} profile={profile} />}
           </div>
         );
       })}

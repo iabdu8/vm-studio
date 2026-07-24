@@ -53,14 +53,15 @@ export function WeeklyPlan({ company, categories, branches, profile }) {
   const weekDates = getWeekDates(weekStart);
 
   useEffect(() => {
-    if (!company) return;
-    // Load VM staff
+    if (!company || !selectedBranch) return;
+    // Load VM staff at the selected branch
     supabase.from("profiles")
       .select("id, full_name")
       .eq("company_id", company.id)
+      .eq("branch_id", selectedBranch)
       .in("role", ["vm", "store_manager"])
       .then(({ data }) => setStaff(data ?? []));
-  }, [company?.id]);
+  }, [company?.id, selectedBranch]);
 
   useEffect(() => {
     if (!selectedBranch || !company) return;

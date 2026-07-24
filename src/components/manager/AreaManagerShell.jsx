@@ -1,16 +1,18 @@
+import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
+import { CommentThread } from "../shared/CommentThread.jsx";
 
 // ============================================================
-//  AREA MANAGER SHELL
-//  يشوف فروع منطقته — يتابع الكامبين — يعتمد التقارير
+//  AREA MANAGER SHELL (VM Manager)
+//  يشوف فروعه المعيّنة له فقط — يتابع الكامبين — يعلّق (بدون اعتماد)
 // ============================================================
 
-export function AreaManagerOverview({ profile, tasks, submissions, campaign, campaignProgress, branches }) {
-  const region = profile?.region?.name ?? "My Region";
+export function AreaManagerOverview({ profile, tasks, submissions, campaign, campaignProgress, branches, managerBranches = [] }) {
+  const region = "My Branches";
 
-  // فقط الفروع في منطقته
-  const myBranches = branches.filter(b => b.region_id === profile?.region_id);
+  // فقط الفروع المعيّنة له من السوبر ادمن
+  const myBranches = branches.filter(b => managerBranches.includes(b.id));
 
   const pending  = submissions.filter(s => s.status === "pending").length;
   const approved = submissions.filter(s => s.status === "approved").length;
@@ -130,6 +132,66 @@ export function AreaManagerOverview({ profile, tasks, submissions, campaign, cam
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// View + comment only — no approve/reject power for VM Manager
+export function AreaManagerRequests({ submissions, profile }) {
+  const [openId, setOpenId] = useState(null);
+
+  return (
+    <div>
+      <div style={{ ...S.h1, marginBottom:2 }} className="fu">
+        Branch <span style={S.accent}>Submissions</span>
+      </div>
+      <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
+        View-only — leave feedback via comments
+      </div>
+
+      {submissions.length === 0 && (
+        <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No submissions yet.</div>
+      )}
+
+      {submissions.map(s => (
+        <div key={s.id} style={S.card}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+            <div>
+              <div style={{ fontWeight:700, fontSize:14 }}>{s.submitter?.full_name ?? "VM"}</div>
+              <div style={{ ...S.muted, fontSize:12 }}>
+                {s.branch?.name ?? "—"} · {s.category?.icon} {s.category?.name} · {s.subcategory?.name}
+              </div>
+            </div>
+            <span style={S.chip(s.status)}>{s.status}</span>
+          </div>
+
+          {s.photos?.length > 0 && (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+              {[["Before", s.photos.filter(p=>p.photo_type==="before")],
+                ["After",  s.photos.filter(p=>p.photo_type==="after")]].map(([lbl, imgs]) => (
+                <div key={lbl}>
+                  <div style={S.h3}>{lbl}</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                    {imgs.map((p, i) => (
+                      <img key={i} loading="lazy" src={p.url} alt=""
+                        style={{ width:56, height:56, objectFit:"cover", borderRadius:6 }}/>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {s.task_id && (
+            <button onClick={() => setOpenId(openId === s.id ? null : s.id)}
+              style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                fontSize:11, fontWeight:600, padding:0 }}>
+              {openId === s.id ? "Hide comments" : "💬 Comments"}
+            </button>
+          )}
+          {openId === s.id && s.task_id && <CommentThread taskId={s.task_id} profile={profile} />}
+        </div>
+      ))}
     </div>
   );
 }

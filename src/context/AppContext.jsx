@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { loadSession, onAuthChange } from "../services/auth.service.js";
+import { getManagerBranches } from "../services/enterprise.service.js";
 
 const AppContext = createContext(null);
 
@@ -7,6 +8,7 @@ export function AppProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
+  const [managerBranches, setManagerBranches] = useState([]);
 
   const refresh = async () => {
     try {
@@ -35,6 +37,11 @@ export function AppProvider({ children }) {
 
   const role = session?.profile?.role ?? null;
 
+  useEffect(() => {
+    if (role !== "area_manager" || !session?.profile?.id) { setManagerBranches([]); return; }
+    getManagerBranches(session.profile.id).then(setManagerBranches).catch(() => setManagerBranches([]));
+  }, [role, session?.profile?.id]);
+
   return (
     <AppContext.Provider value={{
       session, loading, error, refresh,
@@ -45,6 +52,7 @@ export function AppProvider({ children }) {
       settings:   session?.settings   ?? null,
       categories: session?.categories ?? [],
       branches:   session?.branches   ?? [],
+      managerBranches,
       // role flags
       isVM:           role === "vm",
       isStoreManager: role === "store_manager",

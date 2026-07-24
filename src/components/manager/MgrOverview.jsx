@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
+import { CommentThread } from "../shared/CommentThread.jsx";
 
 const STATUS_META = {
   not_started: { label: "Not Started", color: "#6b6880" },
@@ -15,12 +16,24 @@ export function MgrOverview({
   campaignProgress = [], onSetBranchStatus,
   branches = [],
   promotions = [], onCreatePromotion, onDeletePromotion,
+  profile, campaignAck, onAcknowledgeCampaign,
 }) {
   const [editing,  setEditing]  = useState(false);
   const [campName, setCampName] = useState("");
   const [campFrom, setCampFrom] = useState("");
   const [campTo,   setCampTo]   = useState("");
   const [saving,   setSaving]   = useState(false);
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [ackSaving, setAckSaving] = useState(false);
+
+  const filteredTasks       = branchFilter === "all" ? tasks       : tasks.filter(t => t.branch_id === branchFilter);
+  const filteredSubmissions = branchFilter === "all" ? submissions : submissions.filter(s => s.branch_id === branchFilter);
+
+  const doAcknowledge = async () => {
+    if (!campaign?.id) return;
+    setAckSaving(true);
+    try { await onAcknowledgeCampaign?.(campaign.id); } finally { setAckSaving(false); }
+  };
 
   // Promotion form
   const [showPromoForm, setShowPromoForm] = useState(false);
@@ -32,10 +45,10 @@ export function MgrOverview({
   const [pLinkCampaign, setPLinkCampaign] = useState(false);
   const [pSaving, setPSaving] = useState(false);
 
-  const pending  = submissions.filter(s => s.status === "pending").length;
-  const approved = submissions.filter(s => s.status === "approved").length;
-  const doneT    = tasks.filter(t => t.is_done ?? t.done).length;
-  const pct      = tasks.length ? Math.round((doneT / tasks.length) * 100) : 0;
+  const pending  = filteredSubmissions.filter(s => s.status === "pending").length;
+  const approved = filteredSubmissions.filter(s => s.status === "approved").length;
+  const doneT    = filteredTasks.filter(t => t.is_done ?? t.done).length;
+  const pct      = filteredTasks.length ? Math.round((doneT / filteredTasks.length) * 100) : 0;
 
   // ── Campaign progress stats ──
   const cpCompleted  = campaignProgress.filter(b => b.status === "completed").length;
@@ -46,7 +59,7 @@ export function MgrOverview({
 
   // ── Branch performance from submissions ──
   const branchMap = {};
-  submissions.forEach(s => {
+  filteredSubmissions.forEach(s => {
     const name = s.branch?.name ?? s.branch ?? "Unknown";
     if (!branchMap[name]) branchMap[name] = { approved: 0, total: 0 };
     if (s.status === "approved") branchMap[name].approved++;
@@ -86,8 +99,17 @@ export function MgrOverview({
       <div style={{ ...S.h1, marginBottom: 2 }} className="fu">
         Operations <span style={S.accent}>Overview</span>
       </div>
-      <div style={{ ...S.muted, marginBottom: 16, fontSize: 12 }}>
+      <div style={{ ...S.muted, marginBottom: 10, fontSize: 12 }}>
         {todayStr()} · {company?.name ?? "All branches"}
+      </div>
+
+      {/* ════ BRANCH FILTER ════ */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={S.lbl}>Viewing Branch</div>
+        <select style={{ ...S.sel, marginBottom: 0 }} value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+          <option value="all">All Branches</option>
+          {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
       </div>
 
       {/* ════ CURRENT CAMPAIGN ════ */}
@@ -193,6 +215,24 @@ export function MgrOverview({
             </div>
           </div>
         )}
+
+        {/* Head VM acknowledgment — visible, non-blocking sign-off */}
+        {!editing && campaign?.name && (
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.accentColor}14`,
+            display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            {campaignAck ? (
+              <div style={{ fontSize: 12, color: "#4ade80" }}>
+                ✓ Acknowledged by {campaignAck.acknowledger?.full_name ?? "Head VM"}
+              </div>
+            ) : (
+              <div style={{ ...S.muted, fontSize: 12 }}>Not yet acknowledged</div>
+            )}
+            <button className="btnG" style={{ ...S.btnG, fontSize: 12, padding: "6px 12px" }}
+              onClick={doAcknowledge} disabled={ackSaving}>
+              {ackSaving ? "Saving…" : campaignAck ? "Re-acknowledge" : "✓ Acknowledge"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ════ CURRENT PROMOTIONS ════ */}
@@ -293,8 +333,8 @@ export function MgrOverview({
         {[
           { n: pending,  l: "Pending Review", sub: "awaiting approval", c: "#d4a82a" },
           { n: approved, l: "Approved",       sub: "this period",       c: "#4ade80" },
-          { n: tasks.filter(t => !(t.is_done ?? t.done)).length, l: "Open Tasks", sub: "across branches", c: "#f87171" },
-          { n: `${pct}%`, l: "Completion", sub: `${doneT}/${tasks.length} done`, c: C.accentColor },
+          { n: filteredTasks.filter(t => !(t.is_done ?? t.done)).length, l: "Open Tasks", sub: "across branches", c: "#f87171" },
+          { n: `${pct}%`, l: "Completion", sub: `${doneT}/${filteredTasks.length} done`, c: C.accentColor },
         ].map(k => (
           <div key={k.l} style={{ ...S.card, marginBottom: 0 }}>
             <div style={{ ...S.dFont, fontSize: 28, fontWeight: 700, color: k.c, lineHeight: 1 }}>{k.n}</div>

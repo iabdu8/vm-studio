@@ -2,11 +2,13 @@ import { useState, useRef } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
+import { CommentThread } from "../shared/CommentThread.jsx";
 
 export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit, onTaskToggle,
   submissions = [], demoHolds = [], onAddDemoHold, onDeleteDemoHold, company, profile }) {
 
   const [tab,      setTab]      = useState("my");
+  const [openTaskId, setOpenTaskId] = useState(null);
   const [catId,    setCatId]    = useState(categories[0]?.id ?? "");
   const [subId,    setSubId]    = useState(categories[0]?.subcategories?.[0]?.id ?? "");
   const [branchId, setBranchId] = useState(user?.branch_id ?? branches[0]?.id ?? "");
@@ -198,23 +200,33 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
               <div key={cat.id} style={S.card}>
                 <div style={{ ...S.h3, marginBottom:10 }}>{cat.icon} {cat.name}</div>
                 {catTasks.map(t => (
-                  <div key={t.id} style={{ display:"flex", gap:10, alignItems:"flex-start",
-                    padding:"9px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                    <input type="checkbox" checked={t.is_done ?? t.done ?? false}
-                      style={{ marginTop:3, accentColor:C.accentColor }}
-                      onChange={() => onTaskToggle(t.id, !(t.is_done ?? t.done))}/>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:13,
-                        color:(t.is_done||t.done)?C.mutedColor:C.textColor,
-                        textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
-                        {t.title ?? t.text}
-                      </div>
-                      <div style={{ display:"flex", gap:6, marginTop:4, flexWrap:"wrap" }}>
-                        <span style={S.chip(t.priority)}>{t.priority}</span>
-                        <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
-                        {t.assigned_to !== "all" && (
-                          <span style={{ fontSize:11, color:"#818cf8" }}>👤 Assigned to you</span>
-                        )}
+                  <div key={t.id} style={{ padding:"9px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
+                    <div style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                      <input type="checkbox" checked={t.is_done ?? t.done ?? false}
+                        style={{ marginTop:3, accentColor:C.accentColor }}
+                        onChange={() => onTaskToggle(t.id, !(t.is_done ?? t.done))}/>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13,
+                          color:(t.is_done||t.done)?C.mutedColor:C.textColor,
+                          textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
+                          {t.title ?? t.text}
+                        </div>
+                        <div style={{ display:"flex", gap:6, marginTop:4, flexWrap:"wrap" }}>
+                          <span style={S.chip(t.priority)}>{t.priority}</span>
+                          <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
+                          {t.assigned_to !== "all" && (
+                            <span style={{ fontSize:11, color:"#818cf8" }}>👤 Assigned to you</span>
+                          )}
+                          {t.controller?.full_name && (
+                            <span style={{ fontSize:11, color:C.accentColor }}>→ Reviewed by {t.controller.full_name}</span>
+                          )}
+                        </div>
+                        <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
+                          style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                            fontSize:11, fontWeight:600, padding:0, marginTop:6 }}>
+                          {openTaskId === t.id ? "Hide comments" : "💬 Comments"}
+                        </button>
+                        {openTaskId === t.id && <CommentThread taskId={t.id} profile={profile} />}
                       </div>
                     </div>
                   </div>

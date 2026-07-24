@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase.js";
 import { S, C } from "../../styles/theme.js";
 import { StyleTag } from "./Atoms.jsx";
 import { Logo } from "./Logo.jsx";
+import { redeemInvite, markInviteUsed, setManagerBranches } from "../../services/enterprise.service.js";
 
 export function RegisterPage({ onBack }) {
   const [step,     setStep]     = useState(1);
@@ -14,6 +15,7 @@ export function RegisterPage({ onBack }) {
   const [password, setPassword] = useState("");
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState([]);
+  const [invite,   setInvite]   = useState(null); // matched row from `invites` table, if any
   const [err,      setErr]      = useState("");
   const [loading,  setLoading]  = useState(false);
   const [done,     setDone]     = useState(false);
@@ -23,13 +25,27 @@ export function RegisterPage({ onBack }) {
     setLoading(true); setErr("");
     try {
       const upperCode = code.trim().toUpperCase();
+
+      // Scoped invite (VM Manager / VM Controller — branches preset by super_admin)
+      const scopedInvite = await redeemInvite(upperCode);
+      if (scopedInvite) {
+        const { data: co } = await supabase.from("companies")
+          .select("id, name, logo_url, accent_color").eq("id", scopedInvite.company_id).single();
+        const { data: br } = await supabase.from("branches").select("id, name")
+          .in("id", scopedInvite.branch_ids);
+        setCompany(co); setRole(scopedInvite.role); setInvite(scopedInvite);
+        setBranches(br ?? []);
+        setBranchId(scopedInvite.branch_ids[0]);
+        setStep(2); return;
+      }
+
       const { data } = await supabase
         .from("companies")
         .select("id, name, logo_url, accent_color")
         .eq("invite_code", upperCode)
         .single();
       if (data) {
-        setCompany(data); setRole("vm");
+        setCompany(data); setRole("vm"); setInvite(null);
         // Load branches for this company
         const { data: branchData } = await supabase
           .from("branches")
@@ -46,22 +62,9 @@ export function RegisterPage({ onBack }) {
         .select("id, name, logo_url, accent_color")
         .eq("vmc_invite_code", upperCode).single();
       if (vmcData) {
-        setCompany(vmcData); setRole("manager");
+        setCompany(vmcData); setRole("manager"); setInvite(null);
         const { data: br } = await supabase.from("branches").select("id, name")
           .eq("company_id", vmcData.id).eq("is_active", true).order("sort_order");
-        setBranches(br ?? []);
-        if (br?.length === 1) setBranchId(br[0].id);
-        setStep(2); return;
-      }
-
-      // Manager
-      const { data: mgrData } = await supabase.from("companies")
-        .select("id, name, logo_url, accent_color")
-        .eq("manager_invite_code", upperCode).single();
-      if (mgrData) {
-        setCompany(mgrData); setRole("area_manager");
-        const { data: br } = await supabase.from("branches").select("id, name")
-          .eq("company_id", mgrData.id).eq("is_active", true).order("sort_order");
         setBranches(br ?? []);
         if (br?.length === 1) setBranchId(br[0].id);
         setStep(2); return;
@@ -81,7 +84,14 @@ export function RegisterPage({ onBack }) {
         options: { data: { full_name: name.trim(), role, company_id: company.id, branch_id: branchId || null } },
       });
       if (authErr) throw authErr;
-      if (!authData.user?.id) throw new Error("Failed to create account.");
+      const userId = authData.user?.id;
+      if (!userId) throw new Error("Failed to create account.");
+
+      if (invite) {
+        await markInviteUsed(invite.id, userId);
+        if (invite.role === "area_manager") await setManagerBranches(userId, invite.branch_ids);
+      }
+
       setDone(true);
     } catch (e) { setErr(e.message); }
     finally { setLoading(false); }
@@ -162,14 +172,28 @@ export function RegisterPage({ onBack }) {
                 <div style={{ fontSize:12, fontWeight:700 }}>{company?.name}</div>
                 <div style={{ fontSize:11, color:
                   role==="manager" ? "#4F46E5" :
-                  role==="area_manager" ? "#a855f7" : "#818cf8" }}>
-                  {role==="manager" ? "⚡ VM Controller" :
-                   role==="area_manager" ? "👔 Manager" : "✅ VM Staff"}
+                  role==="area_manager" ? "#a855f7" :
+                  role==="store_manager" ? "#4F46E5" : "#818cf8" }}>
+                  {role==="manager" ? "🏢 Head VM" :
+                   role==="area_manager" ? "👔 VM Manager" :
+                   role==="store_manager" ? "⚡ VM Controller" : "✅ VM Staff"}
                 </div>
               </div>
             </div>
 
-            {branches.length > 0 && (
+            {invite ? (
+              <div style={{ marginBottom:12 }}>
+                <div style={S.lbl}>{role === "area_manager" ? "Assigned Branches" : "Branch"}</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {branches.map(b => (
+                    <span key={b.id} style={{ padding:"5px 11px", borderRadius:16, fontSize:12, fontWeight:600,
+                      background:C.accentColor+"18", color:C.accentColor, border:`1px solid ${C.accentColor}33` }}>
+                      📍 {b.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : branches.length > 0 && (
               <>
                 <div style={S.lbl}>Branch</div>
                 <select style={S.sel} value={branchId} onChange={e => setBranchId(e.target.value)}>
@@ -195,7 +219,7 @@ export function RegisterPage({ onBack }) {
               {loading ? "Creating account…" : "Create Account →"}
             </button>
             <button className="btnG" style={{ ...S.btnG, width:"100%", fontSize:12 }}
-              onClick={() => { setStep(1); setErr(""); }}>
+              onClick={() => { setStep(1); setErr(""); setInvite(null); }}>
               ← Change Code
             </button>
           </>

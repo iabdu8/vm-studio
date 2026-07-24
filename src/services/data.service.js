@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase.js";
 export async function getTasks(company_id) {
   const { data, error } = await supabase
     .from("tasks")
-    .select("*, category:categories(name,icon), subcategory:subcategories(name)")
+    .select("*, category:categories(name,icon), subcategory:subcategories(name), controller:target_controller_id(full_name)")
     .eq("company_id", company_id)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -195,4 +195,27 @@ export async function getActivityLog(company_id) {
 export async function deleteGuideline(id) {
   const { error } = await supabase.from("guidelines").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ============================================================
+//  TASK COMMENTS
+// ============================================================
+export async function getTaskComments(task_id) {
+  const { data, error } = await supabase
+    .from("task_comments")
+    .select("*, author:author_id(full_name, role, avatar_initials)")
+    .eq("task_id", task_id)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function addTaskComment(task_id, author_id, body) {
+  const { data, error } = await supabase
+    .from("task_comments")
+    .insert({ task_id, author_id, body })
+    .select("*, author:author_id(full_name, role, avatar_initials)")
+    .single();
+  if (error) throw error;
+  return data;
 }
