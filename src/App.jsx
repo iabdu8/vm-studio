@@ -26,7 +26,6 @@ import { Chat }                 from "./components/shared/Chat.jsx";
 import { VMGuidelines }         from "./components/shared/Guidelines.jsx";
 import { StatusBar }            from "./components/shared/StatusBar.jsx";
 import { ToastContainer, toast } from "./components/shared/Toast.jsx";
-import { LandingPage }          from "./components/shared/LandingPage.jsx";
 import { VMHome }               from "./components/vm/VMHome.jsx";
 import { VMTasks }              from "./components/vm/VMTasks.jsx";
 import { VMPlan }               from "./components/vm/VMPlan.jsx";
@@ -394,32 +393,13 @@ function AuthenticatedApp() {
 // ── ROOT ─────────────────────────────────────────────────────
 export default function App() {
   const { session, loading } = useApp();
-  const [showLanding, setShowLanding] = useState(
-    () => !localStorage.getItem("vismo_skip_landing")
-  );
-
-  const handleEnterApp = () => {
-    localStorage.setItem("vismo_skip_landing", "1");
-    setShowLanding(false);
-  };
-
-  useEffect(() => {
-    if (session?.profile) setShowLanding(false);
-  }, [session]);
 
   if (loading) return <LoadingScreen />;
-
-  if (showLanding) return (
-    <>
-      <ToastContainer />
-      <LandingPage onEnterApp={handleEnterApp} />
-    </>
-  );
 
   if (!session?.profile) return (
     <>
       <ToastContainer />
-      <LoginScreen onBack={() => { localStorage.removeItem("vismo_skip_landing"); setShowLanding(true); }} />
+      <LoginScreen />
     </>
   );
 
