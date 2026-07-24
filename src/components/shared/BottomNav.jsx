@@ -1,20 +1,21 @@
 import { S } from "../../styles/theme.js";
+import { HomeIcon, TasksIcon, VisitsIcon, GuidesIcon, ChatIcon, OverviewIcon, RequestsIcon, AssignIcon, AnalyticsIcon } from "./Icons.jsx";
 
 export function VMNav({ page, setPage }) {
   const items = [
-    ["home",       "🏠", "Home"],
-    ["tasks",      "✅", "Tasks"],
-    ["visits",     "🚶", "Visits"],
-    ["guidelines", "📖", "Guides"],
-    ["chat",       "💬", "Chat"],
+    ["home",       HomeIcon,   "Home"],
+    ["tasks",      TasksIcon,  "Tasks"],
+    ["visits",     VisitsIcon, "Visits"],
+    ["guidelines", GuidesIcon, "Guides"],
+    ["chat",       ChatIcon,   "Chat"],
   ];
   return (
     <nav style={{ ...S.bottomNav, overflowX:"auto" }}>
-      {items.map(([key, icon, lbl]) => (
+      {items.map(([key, Icon, lbl]) => (
         <button key={key} className="tab-btn" style={{ ...S.navBtn(page === key), minWidth:50 }}
           onClick={() => setPage(key)}>
-          <span style={{ fontSize:18 }}>{icon}</span>
-          <span style={{ fontSize:9 }}>{lbl}</span>
+          <Icon size={22} />
+          <span>{lbl}</span>
         </button>
       ))}
     </nav>
@@ -23,20 +24,20 @@ export function VMNav({ page, setPage }) {
 
 export function MgrNav({ page, setPage, isSuperAdmin }) {
   const items = [
-    ["overview",  "📊", "Overview"],
-    ["requests",  "📥", "Requests"],
-    ["assign",    "📋", "Plan & Assign"],
-    ["visits",    "🚶", "Visits"],
-    ["analytics", "📈", "Analytics"],
-    ["chat",      "💬", "Chat"],
+    ["overview",  OverviewIcon,  "Overview"],
+    ["requests",  RequestsIcon,  "Requests"],
+    ["assign",    AssignIcon,    "Plan"],
+    ["visits",    VisitsIcon,    "Visits"],
+    ["analytics", AnalyticsIcon, "Analytics"],
+    ["chat",      ChatIcon,      "Chat"],
   ];
   return (
     <nav style={{ ...S.bottomNav, overflowX:"auto" }}>
-      {items.map(([key, icon, lbl]) => (
+      {items.map(([key, Icon, lbl]) => (
         <button key={key} className="tab-btn" style={{ ...S.navBtn(page === key), minWidth:50 }}
           onClick={() => setPage(key)}>
-          <span style={{ fontSize:18 }}>{icon}</span>
-          <span style={{ fontSize:9, whiteSpace:"nowrap" }}>{lbl}</span>
+          <Icon size={22} />
+          <span style={{ whiteSpace:"nowrap" }}>{lbl}</span>
         </button>
       ))}
     </nav>

@@ -26,6 +26,7 @@ import { Chat }                 from "./components/shared/Chat.jsx";
 import { VMGuidelines }         from "./components/shared/Guidelines.jsx";
 import { StatusBar }            from "./components/shared/StatusBar.jsx";
 import { ToastContainer, toast } from "./components/shared/Toast.jsx";
+import { HomeIcon, RequestsIcon, ChatIcon, OverviewIcon, VisitsIcon } from "./components/shared/Icons.jsx";
 import { VMHome }               from "./components/vm/VMHome.jsx";
 import { VMTasks }              from "./components/vm/VMTasks.jsx";
 import { VMPlan }               from "./components/vm/VMPlan.jsx";
@@ -342,9 +343,9 @@ function AuthenticatedApp() {
             {smPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["home","🏠","Home"],["requests","📥","Submissions"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
+            {[["home",HomeIcon,"Home"],["requests",RequestsIcon,"Submissions"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(smPage===k)} onClick={() => setSmPage(k)}>
-                <span style={{ fontSize:20 }}>{icon}</span><span>{lbl}</span>
+                <Icon size={22} /><span>{lbl}</span>
               </button>
             ))}
           </nav>
@@ -361,9 +362,9 @@ function AuthenticatedApp() {
             {amPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["overview","📊","Overview"],["requests","📥","Requests"],["visits","🚶","Visits"],["chat","💬","Chat"]].map(([k,icon,lbl]) => (
+            {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
-                <span style={{ fontSize:20 }}>{icon}</span><span>{lbl}</span>
+                <Icon size={22} /><span>{lbl}</span>
               </button>
             ))}
           </nav>
