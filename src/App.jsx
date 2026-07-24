@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useApp } from "./context/AppContext.jsx";
 import { signIn, signOut } from "./services/auth.service.js";
 import {
-  getTasks, createTask, updateTask, deleteTask,
+  getTasks, updateTask, deleteTask,
   getSubmissions, reviewSubmission,
   getGuidelines, uploadGuideline, deleteGuideline,
   sendMessage, getActivityLog, logActivity,
@@ -227,8 +227,8 @@ function AuthenticatedApp() {
   const addLog = (action, detail) => { if (!company) return; logActivity(company.id, profile.id, action, detail); getActivityLog(company.id).then(setLog); };
 
   const handleSubmit = async (data) => {
-    const { before, after, note, category_id, subcategory_id, branch_id, category_name, subcategory_name, branch_name } = data;
-    const payload = { company_id:company.id, submitted_by:profile.id, category_id:category_id||null, subcategory_id:subcategory_id||null, branch_id:branch_id||null, category_name:category_name||null, subcategory_name:subcategory_name||null, branch_name:branch_name||null, note:note||null, status:"pending" };
+    const { before, after, note, task_id, category_id, subcategory_id, branch_id, category_name, subcategory_name, branch_name } = data;
+    const payload = { company_id:company.id, submitted_by:profile.id, task_id:task_id||null, category_id:category_id||null, subcategory_id:subcategory_id||null, branch_id:branch_id||null, category_name:category_name||null, subcategory_name:subcategory_name||null, branch_name:branch_name||null, note:note||null, status:"pending" };
     try {
       await submitWithFallback({ ...payload, before, after });
       toast("Report submitted!", "success");
@@ -249,16 +249,6 @@ function AuthenticatedApp() {
   };
 
   const handleDeleteSubmission = (id) => showConfirm("Delete this submission permanently?", async () => { await supabase.from("submissions").delete().eq("id", id); setSubmissions(p => p.filter(x => x.id !== id)); setConfirm(null); });
-
-  const handleCreateTask = async (payload) => {
-    try {
-      await createTask({ ...payload, company_id:company.id, created_by:profile.id });
-      getTasks(company.id).then(setTasks);
-      addLog("Assigned new task", payload.title);
-      if (payload.assigned_to && payload.assigned_to !== "all") notifyUser(company.id, payload.assigned_to, "task_created", "New Task Assigned 📋", payload.title ?? "");
-      else notifyAll(company.id, "task_created", "New Task Assigned 📋", payload.title ?? "");
-    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to create task."); }
-  };
 
   const handleDeleteTask = (id) => showConfirm("Delete this task?", async () => { await deleteTask(id); getTasks(company.id).then(setTasks); setConfirm(null); });
 
@@ -341,7 +331,7 @@ function AuthenticatedApp() {
           <div style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} campaign={campaign} promotions={promotions} />}
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks))} />}
-            {vmPage==="plan"       && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => b.id === profile.branch_id)} profile={profile} readOnly lockedStaffId={profile.id} />}
+            {vmPage==="plan"       && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => b.id === profile.branch_id)} profile={profile} readOnly lockedStaffId={profile.id} statusEditable onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
             {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
             {vmPage==="chat"       && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
@@ -355,7 +345,7 @@ function AuthenticatedApp() {
           <TopBar user={profile} onLogout={() => signOut()} />
           <div style={S.main}>
             {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} onCampaignFileUploaded={handleCampaignFileUploaded} />}
-            {smPage==="assign"   && <StoreManagerAssign tasks={tasks} categories={categories} branches={activeBranches} profile={profile} company={company} onCreateTask={handleCreateTask} onDeleteTask={handleDeleteTask} />}
+            {smPage==="assign"   && <StoreManagerAssign tasks={tasks} categories={categories} branches={activeBranches} profile={profile} company={company} onDeleteTask={handleDeleteTask} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}
             {smPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
@@ -396,7 +386,7 @@ function AuthenticatedApp() {
           <div style={S.main}>
             {mgrPage==="overview"   && <MgrOverview tasks={tasks} submissions={submissions} log={log} company={company} branches={activeBranches} campaign={campaign} onSaveCampaign={handleSaveCampaign} campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus} promotions={promotions} onCreatePromotion={handleCreatePromotion} onDeletePromotion={handleDeletePromotion} profile={profile} campaignAck={campaignAck} onAcknowledgeCampaign={handleAcknowledgeCampaign} />}
             {mgrPage==="requests"   && <MgrRequests submissions={submissions} onReview={handleReview} onDeleteSubmission={handleDeleteSubmission} profile={profile} />}
-            {mgrPage==="assign"     && <MgrAssign tasks={tasks} categories={categories} branches={activeBranches} company={company} guidelines={guidelines} profile={profile} onCreateTask={handleCreateTask} onDeleteTask={handleDeleteTask} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} />}
+            {mgrPage==="assign"     && <MgrAssign tasks={tasks} categories={categories} branches={activeBranches} company={company} guidelines={guidelines} profile={profile} onDeleteTask={handleDeleteTask} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} />}
             {mgrPage==="reports"    && <MgrReports tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
             {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
             {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}

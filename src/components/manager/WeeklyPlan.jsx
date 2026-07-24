@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
+import { notifyUser } from "../../services/enterprise.service.js";
 
 // ============================================================
 //  WEEKLY STORE PLAN — Table View
@@ -36,7 +37,7 @@ const getWeekStart = (offset = 0) => {
   return d.toISOString().slice(0, 10);
 };
 
-export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null }) {
+export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null, statusEditable = !readOnly, onTasksChanged }) {
   const [weekOffset,     setWeekOffset]     = useState(0);
   const [activePlan,     setActivePlan]     = useState(null);
   const [items,          setItems]          = useState([]);
@@ -133,10 +134,24 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     setCreating(true);
     const plan = await ensurePlan();
     if (plan) {
-      await supabase.from("weekly_plan_items").insert(
-        lastItems.map(i => ({ ...i, id: undefined, plan_id: plan.id, status: "pending" }))
-      );
+      // Fresh `tasks` row per item — last week's task (already reviewed/submitted) must not be reused.
+      for (const i of lastItems) {
+        const { data: task } = await supabase
+          .from("tasks")
+          .insert({
+            company_id: company.id, branch_id: selectedBranch,
+            category_id: i.category_id, created_by: profile.id,
+            assigned_to: i.assigned_staff_id, target_controller_id: profile.id,
+            title: (i.title ?? "").split("\n")[0], priority: "medium", due_label: "This week",
+          })
+          .select().single();
+        await supabase.from("weekly_plan_items").insert({
+          ...i, id: undefined, plan_id: plan.id, task_id: task?.id ?? null, status: "pending",
+        });
+        if (task?.id) notifyUser(company.id, i.assigned_staff_id, "task_created", "New Task Assigned 📋", (i.title ?? "").split("\n")[0]);
+      }
       await loadItems(plan.id);
+      onTasksChanged?.();
     }
     setCreating(false);
   };
@@ -151,10 +166,24 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     setSaving(true);
     const plan = await ensurePlan();
     if (!plan) { setSaving(false); return; }
+
+    // The plan item IS the task: create the backing `tasks` row so the VM
+    // sees it in My Tasks / Submit Work with before/after + approval flow.
+    const { data: task } = await supabase
+      .from("tasks")
+      .insert({
+        company_id: company.id, branch_id: selectedBranch,
+        category_id: addCat || null, created_by: profile.id,
+        assigned_to: selectedStaff, target_controller_id: profile.id,
+        title: addTitle, priority: "medium", due_label: "This week",
+      })
+      .select().single();
+
     const { data } = await supabase
       .from("weekly_plan_items")
       .insert({
         plan_id:           plan.id,
+        task_id:           task?.id ?? null,
         title:             addNotes.trim() ? `${addTitle}\n${addNotes.trim()}` : addTitle,
         category_id:       addCat || null,
         day_of_week:       addDay,
@@ -166,6 +195,8 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     if (data) setItems(p => [...p, data]);
     setShowAdd(false);
     setSaving(false);
+    if (task?.id) notifyUser(company.id, selectedStaff, "task_created", "New Task Assigned 📋", addTitle);
+    onTasksChanged?.();
   };
 
   const cycleStatus = async (item) => {
@@ -173,11 +204,19 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       : item.status === "in_progress" ? "done" : "pending";
     await supabase.from("weekly_plan_items").update({ status: next }).eq("id", item.id);
     setItems(p => p.map(i => i.id === item.id ? { ...i, status: next } : i));
+    if (item.task_id) {
+      await supabase.from("tasks").update({ is_done: next === "done" }).eq("id", item.task_id);
+      onTasksChanged?.();
+    }
   };
 
-  const deleteItem = async (id) => {
-    await supabase.from("weekly_plan_items").delete().eq("id", id);
-    setItems(p => p.filter(i => i.id !== id));
+  const deleteItem = async (item) => {
+    await supabase.from("weekly_plan_items").delete().eq("id", item.id);
+    setItems(p => p.filter(i => i.id !== item.id));
+    if (item.task_id) {
+      await supabase.from("tasks").delete().eq("id", item.task_id);
+      onTasksChanged?.();
+    }
   };
 
   const myItems = items
@@ -312,16 +351,16 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                           {item.category?.name && <div style={{ fontSize:11, color:C.accentColor, marginTop:2 }}>{item.category.name}</div>}
                         </td>
                         <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                          {readOnly ? (
-                            <span style={{
-                              padding:"4px 12px", borderRadius:14, fontSize:11, fontWeight:700,
-                              background:meta.bg, color:meta.color, border:`1px solid ${meta.color}33`,
-                            }}>{meta.label}</span>
-                          ) : (
+                          {statusEditable ? (
                             <button onClick={() => cycleStatus(item)} style={{
                               padding:"4px 12px", borderRadius:14, fontSize:11, fontWeight:700, cursor:"pointer",
                               background:meta.bg, color:meta.color, border:`1px solid ${meta.color}33`,
                             }}>{meta.label}</button>
+                          ) : (
+                            <span style={{
+                              padding:"4px 12px", borderRadius:14, fontSize:11, fontWeight:700,
+                              background:meta.bg, color:meta.color, border:`1px solid ${meta.color}33`,
+                            }}>{meta.label}</span>
                           )}
                         </td>
                         <td style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, borderBottom:`1px solid ${C.accentColor}0a`, maxWidth:220 }}>
@@ -329,7 +368,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                         </td>
                         {!readOnly && (
                           <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                            <button onClick={() => deleteItem(item.id)}
+                            <button onClick={() => deleteItem(item)}
                               style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:15 }}>⋮</button>
                           </td>
                         )}
@@ -340,7 +379,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
               </tbody>
             </table>
           </div>
-          {!readOnly && (
+          {statusEditable && (
             <div style={{ padding:"10px 16px", fontSize:11, color:C.mutedColor, borderTop:`1px solid ${C.accentColor}0a` }}>
               ℹ️ Tap a status pill to cycle Scheduled → In Progress → Done
             </div>

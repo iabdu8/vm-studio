@@ -5,23 +5,15 @@ import { WeeklyPlan } from "./WeeklyPlan.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
 
 // ============================================================
-//  VM CONTROLLER — create tasks + weekly plan, own branch only
+//  VM CONTROLLER — assigns work via the Weekly Plan (which
+//  auto-creates the linked task), own branch only.
 // ============================================================
-export function StoreManagerAssign({ tasks, categories, branches, profile, company, onCreateTask, onDeleteTask }) {
-  const [tab,        setTab]        = useState("add");
-  const [catId,      setCatId]      = useState(categories[0]?.id ?? "");
-  const [subId,      setSubId]      = useState(categories[0]?.subcategories?.[0]?.id ?? "");
-  const [assignedTo, setAssignedTo] = useState("all");
-  const [text,       setText]       = useState("");
-  const [priority,   setPriority]   = useState("medium");
-  const [dueDate,    setDueDate]    = useState("Today");
-  const [saving,     setSaving]     = useState(false);
+export function StoreManagerAssign({ tasks, categories, branches, profile, company, onDeleteTask, onTasksChanged }) {
+  const [tab,        setTab]        = useState("plan");
   const [staff,      setStaff]      = useState([]);
   const [openTaskId, setOpenTaskId] = useState(null);
 
-  const myBranch  = branches.find(b => b.id === profile.branch_id);
-  const activeCat  = categories.find(c => c.id === catId);
-  const activeSubs = activeCat?.subcategories ?? [];
+  const myBranch = branches.find(b => b.id === profile.branch_id);
 
   useEffect(() => {
     if (!company?.id || !profile?.branch_id) return;
@@ -30,27 +22,6 @@ export function StoreManagerAssign({ tasks, categories, branches, profile, compa
       .eq("role", "vm")
       .then(({ data }) => setStaff(data ?? []));
   }, [company?.id, profile?.branch_id]);
-
-  const changeCat = (id) => {
-    setCatId(id);
-    setSubId(categories.find(c => c.id === id)?.subcategories?.[0]?.id ?? "");
-  };
-
-  const addTask = async () => {
-    if (!text.trim() || !profile.branch_id) return;
-    setSaving(true);
-    try {
-      await onCreateTask({
-        category_id: catId || null, subcategory_id: subId || null,
-        branch_id: profile.branch_id, target_controller_id: profile.id,
-        title: text, priority, due_label: dueDate, assigned_to: assignedTo,
-      });
-      setText("");
-    } finally { setSaving(false); }
-  };
-
-  const assignedName = assignedTo === "all" ? "All Staff"
-    : staff.find(s => s.id === assignedTo)?.full_name ?? "—";
 
   const myTasks = tasks.filter(t => t.branch_id === profile.branch_id);
 
@@ -62,89 +33,20 @@ export function StoreManagerAssign({ tasks, categories, branches, profile, compa
       {myBranch && <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>📍 {myBranch.name}</div>}
 
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
-        {[["plan","📅 Weekly Plan"],["add","＋ New Task"],["all","All Tasks"]].map(([k,l]) => (
+        {[["plan","📅 Weekly Plan"],["all","All Tasks"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
 
       {tab === "plan" && myBranch && (
-        <WeeklyPlan company={company} categories={categories} branches={[myBranch]} profile={profile} />
-      )}
-
-      {tab === "add" && (
-        <div style={S.card}>
-          <div style={S.h3}>Assign To</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
-            <button className="pill-btn" onClick={() => setAssignedTo("all")} style={{
-              padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-              background:assignedTo==="all"?C.accentColor+"28":"transparent",
-              color:assignedTo==="all"?C.accentColor:C.mutedColor,
-              border:assignedTo==="all"?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
-            }}>👥 All Staff</button>
-            {staff.map(s => (
-              <button key={s.id} className="pill-btn" onClick={() => setAssignedTo(s.id)} style={{
-                padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                background:assignedTo===s.id?C.accentColor+"28":"transparent",
-                color:assignedTo===s.id?C.accentColor:C.mutedColor,
-                border:assignedTo===s.id?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
-              }}>👤 {s.full_name}</button>
-            ))}
-          </div>
-          <div style={S.h3}>Category</div>
-          <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
-            {categories.map(c => (
-              <button key={c.id} className="pill-btn" onClick={() => changeCat(c.id)} style={{
-                padding:"7px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                background:catId===c.id?C.accentColor+"28":"transparent",
-                color:catId===c.id?C.accentColor:C.mutedColor,
-                border:catId===c.id?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
-              }}>{c.name}</button>
-            ))}
-          </div>
-          {activeSubs.length > 0 && (
-            <>
-              <div style={S.lbl}>Section</div>
-              <select style={S.sel} value={subId} onChange={e => setSubId(e.target.value)}>
-                {activeSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </>
-          )}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-            <div>
-              <div style={S.lbl}>Priority</div>
-              <select style={S.sel} value={priority} onChange={e => setPriority(e.target.value)}>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-            <div>
-              <div style={S.lbl}>Due</div>
-              <select style={S.sel} value={dueDate} onChange={e => setDueDate(e.target.value)}>
-                <option>Today</option><option>Tomorrow</option>
-                <option>This week</option><option>Next week</option>
-              </select>
-            </div>
-          </div>
-          <div style={S.lbl}>Task Description</div>
-          <textarea style={{ ...S.inp, minHeight:76, resize:"vertical" }}
-            placeholder="Describe the task clearly…" value={text} onChange={e => setText(e.target.value)}/>
-          {text && (
-            <div style={{ padding:"10px 12px", background:C.surfaceHigh, borderRadius:8,
-              fontSize:12, color:C.mutedColor, marginBottom:12 }}>
-              Assigning to: <strong style={{ color:C.accentColor }}>{assignedName}</strong>
-              {myBranch && <> · 📍 {myBranch.name}</>} · Reviewed by you
-            </div>
-          )}
-          <button className="btnP" style={{ ...S.btnP, width:"100%" }}
-            onClick={addTask} disabled={saving}>
-            {saving ? "Saving…" : `Assign to ${assignedName} →`}
-          </button>
-        </div>
+        <WeeklyPlan company={company} categories={categories} branches={[myBranch]} profile={profile} onTasksChanged={onTasksChanged} />
       )}
 
       {tab === "all" && (
         <div>
+          <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>
+            Read-only view — add or edit work from the Weekly Plan tab.
+          </div>
           {myTasks.length === 0 && <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>}
           {myTasks.map(t => (
             <div key={t.id} style={{ ...S.card, marginBottom:10 }}>

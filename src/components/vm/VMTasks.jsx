@@ -17,6 +17,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
   const [note,     setNote]     = useState("");
   const [sent,     setSent]     = useState(false);
   const [saving,   setSaving]   = useState(false);
+  const [submitTaskId, setSubmitTaskId] = useState(null);
 
   // Demo Hold state
   const [itemCode,  setItemCode]  = useState("");
@@ -47,11 +48,19 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
     setSubId(categories.find(c => c.id === id)?.subcategories?.[0]?.id ?? "");
   };
 
+  const startSubmitFor = (task) => {
+    if (task.category_id) { setCatId(task.category_id); setSubId(task.subcategory_id ?? ""); }
+    if (task.branch_id) setBranchId(task.branch_id);
+    setSubmitTaskId(task.id);
+    setTab("submit");
+  };
+
   const handleSubmit = async () => {
     if (!note && !before.length && !after.length) return;
     setSaving(true);
     try {
       await onSubmit({
+        task_id:           submitTaskId || null,
         category_id:      catId    || null,
         subcategory_id:   subId    || null,
         branch_id:        branchId || null,
@@ -60,7 +69,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
         branch_name:      activeBranch?.name ?? "",
         before, after, note,
       });
-      setBefore([]); setAfter([]); setNote("");
+      setBefore([]); setAfter([]); setNote(""); setSubmitTaskId(null);
       setSent(true); setTimeout(() => setSent(false), 3000);
     } finally { setSaving(false); }
   };
@@ -221,11 +230,18 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                             <span style={{ fontSize:11, color:C.accentColor }}>→ Reviewed by {t.controller.full_name}</span>
                           )}
                         </div>
-                        <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
-                          style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                            fontSize:11, fontWeight:600, padding:0, marginTop:6 }}>
-                          {openTaskId === t.id ? "Hide comments" : "💬 Comments"}
-                        </button>
+                        <div style={{ display:"flex", gap:12, marginTop:6 }}>
+                          <button onClick={() => startSubmitFor(t)}
+                            style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                              fontSize:11, fontWeight:600, padding:0 }}>
+                            📤 Submit
+                          </button>
+                          <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
+                            style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                              fontSize:11, fontWeight:600, padding:0 }}>
+                            {openTaskId === t.id ? "Hide comments" : "💬 Comments"}
+                          </button>
+                        </div>
                         {openTaskId === t.id && <CommentThread taskId={t.id} profile={profile} />}
                       </div>
                     </div>
@@ -269,6 +285,15 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
       {/* ── SUBMIT WORK ── */}
       {tab === "submit" && (
         <div>
+          {submitTaskId && (
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+              padding:"10px 14px", background:C.accentColor+"14", border:`1px solid ${C.accentColor}33`,
+              borderRadius:10, marginBottom:14, fontSize:12 }}>
+              <span>📌 Submitting for: <strong>{myAllTasks.find(t => t.id === submitTaskId)?.title ?? "selected task"}</strong></span>
+              <button onClick={() => setSubmitTaskId(null)}
+                style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:11 }}>✕ Clear</button>
+            </div>
+          )}
           {branches.length > 1 && (
             <div style={S.card}>
               <div style={S.h3}>Branch</div>
