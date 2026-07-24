@@ -151,6 +151,12 @@ function LoginScreen({ onBack }) {
         {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
         <button className="btnP" style={{ ...S.btnP, width:"100%", padding:"13px", fontSize:14 }}
           onClick={go} disabled={loading}>{loading ? "Signing in…" : "Sign In →"}</button>
+        <div style={{ textAlign:"center", marginTop:14 }}>
+          <button onClick={() => setView("register")} style={{ background:"none", border:"none", color:C.mutedColor,
+            cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
+            Have an invite code? <span style={{ color:C.accentColor, fontWeight:600 }}>Create account →</span>
+          </button>
+        </div>
         {onBack && (
           <div style={{ textAlign:"center", marginTop:16 }}>
             <button onClick={onBack} style={{ background:"none", border:"none", color:C.mutedColor,
