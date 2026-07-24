@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { Avatar } from "./Atoms.jsx";
 import { getTaskComments, addTaskComment } from "../../services/data.service.js";
+import { getCampaignComments, addCampaignComment } from "../../services/enterprise.service.js";
 
 const ROLE_LABEL = {
   manager:       "Head VM",
@@ -11,17 +12,19 @@ const ROLE_LABEL = {
   super_admin:   "Admin",
 };
 
-export function CommentThread({ taskId, profile, canComment = true }) {
+export function CommentThread({ taskId, campaignId, profile, canComment = true }) {
   const [comments, setComments] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [body,     setBody]     = useState("");
   const [sending,  setSending]  = useState(false);
 
-  useEffect(() => { load(); }, [taskId]);
+  const entityId = taskId ?? campaignId;
+
+  useEffect(() => { load(); }, [entityId]);
 
   const load = async () => {
     setLoading(true);
-    try { setComments(await getTaskComments(taskId)); }
+    try { setComments(campaignId ? await getCampaignComments(campaignId) : await getTaskComments(taskId)); }
     finally { setLoading(false); }
   };
 
@@ -29,7 +32,9 @@ export function CommentThread({ taskId, profile, canComment = true }) {
     if (!body.trim()) return;
     setSending(true);
     try {
-      const c = await addTaskComment(taskId, profile.id, body.trim());
+      const c = campaignId
+        ? await addCampaignComment(campaignId, profile.id, body.trim())
+        : await addTaskComment(taskId, profile.id, body.trim());
       setComments(p => [...p, c]);
       setBody("");
     } finally { setSending(false); }

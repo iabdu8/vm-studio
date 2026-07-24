@@ -1,12 +1,14 @@
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
+import { CommentThread } from "../shared/CommentThread.jsx";
+import { CampaignFileBox } from "../shared/CampaignFileBox.jsx";
 
 // ============================================================
 //  STORE MANAGER SHELL
 //  يشوف فرعه فقط — يعطي ملاحظات — يتابع التنفيذ
 // ============================================================
 
-export function StoreManagerHome({ profile, tasks, submissions, campaign, promotions, floorWalks, demoHolds }) {
+export function StoreManagerHome({ profile, tasks, submissions, campaign, promotions, floorWalks, demoHolds, onCampaignFileUploaded }) {
   const branch = profile?.branch?.name ?? "My Branch";
 
   const pending   = submissions.filter(s => s.status === "pending").length;
@@ -35,6 +37,8 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
               {campaign.date_from} → {campaign.date_to}
             </div>
           )}
+          <CampaignFileBox campaign={campaign} canUpload uploaderId={profile.id} onUploaded={onCampaignFileUploaded} />
+          <CommentThread campaignId={campaign.id} profile={profile} />
         </div>
       )}
 

@@ -75,7 +75,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines,
       </div>
 
       {/* Weekly Plan */}
-      {tab === "plan" && <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile}/>}
+      {tab === "plan" && <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile} readOnly/>}
 
       {/* New Task */}
       {tab === "add" && (

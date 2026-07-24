@@ -27,10 +27,10 @@ import { Chat }                 from "./components/shared/Chat.jsx";
 import { VMGuidelines }         from "./components/shared/Guidelines.jsx";
 import { StatusBar }            from "./components/shared/StatusBar.jsx";
 import { ToastContainer, toast } from "./components/shared/Toast.jsx";
-import { HomeIcon, RequestsIcon, ChatIcon, OverviewIcon, VisitsIcon, AssignIcon, AnalyticsIcon } from "./components/shared/Icons.jsx";
+import { HomeIcon, RequestsIcon, ChatIcon, OverviewIcon, VisitsIcon, AssignIcon, AnalyticsIcon, CalendarIcon } from "./components/shared/Icons.jsx";
 import { VMHome }               from "./components/vm/VMHome.jsx";
 import { VMTasks }              from "./components/vm/VMTasks.jsx";
-import { VMPlan }               from "./components/vm/VMPlan.jsx";
+import { WeeklyPlan }           from "./components/manager/WeeklyPlan.jsx";
 import { VMVisits }             from "./components/vm/VMVisits.jsx";
 import { MgrOverview }          from "./components/manager/MgrOverview.jsx";
 import { MgrRequests }          from "./components/manager/MgrRequests.jsx";
@@ -210,7 +210,7 @@ function AuthenticatedApp() {
       (isManager || isAreaManager) ? getActivityLog(company.id).then(setLog) : Promise.resolve(),
       supabase.from("branches").select("*").eq("company_id", company.id).eq("is_active", true).order("sort_order")
         .then(({ data }) => setLocalBranches(data ?? [])),
-      supabase.from("campaigns").select("*").eq("company_id", company.id).eq("is_active", true)
+      supabase.from("campaigns").select("*, uploader:file_uploaded_by(full_name)").eq("company_id", company.id).eq("is_active", true)
         .order("created_at", { ascending:false }).limit(1)
         .then(({ data }) => { const c = data?.[0] ?? null; setCampaign(c); if (c) { getCampaignProgress(c.id).then(setCampaignProgress); getCampaignAcknowledgement(c.id).then(setCampaignAck); } }),
       getPromotions(company.id).then(setPromotions),
@@ -311,6 +311,8 @@ function AuthenticatedApp() {
     catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to acknowledge campaign."); }
   };
 
+  const handleCampaignFileUploaded = (updated) => setCampaign(c => (c ? { ...c, ...updated } : c));
+
   const handleSetBranchStatus = async (branch_id, status) => { if (!campaign?.id) return; await setCampaignBranchStatus(campaign.id, branch_id, status); getCampaignProgress(campaign.id).then(setCampaignProgress); };
   const handleCreatePromotion = async (payload, branchIds) => { await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds); getPromotions(company.id).then(setPromotions); addLog("Created promotion", payload.name); notifyAll(company.id, "guideline_new", "New Promotion 🏷️", payload.name); };
   const handleDeletePromotion = async (id) => { await deletePromotion(id); setPromotions(p => p.filter(x => x.id !== id)); };
@@ -339,7 +341,7 @@ function AuthenticatedApp() {
           <div style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} campaign={campaign} promotions={promotions} />}
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks))} />}
-            {vmPage==="plan"       && <VMPlan profile={profile} company={company} />}
+            {vmPage==="plan"       && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => b.id === profile.branch_id)} profile={profile} readOnly lockedStaffId={profile.id} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
             {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
             {vmPage==="chat"       && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
@@ -352,7 +354,7 @@ function AuthenticatedApp() {
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} />
           <div style={S.main}>
-            {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} />}
+            {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} onCampaignFileUploaded={handleCampaignFileUploaded} />}
             {smPage==="assign"   && <StoreManagerAssign tasks={tasks} categories={categories} branches={activeBranches} profile={profile} company={company} onCreateTask={handleCreateTask} onDeleteTask={handleDeleteTask} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}
@@ -374,11 +376,12 @@ function AuthenticatedApp() {
           <div style={S.main}>
             {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} />}
             {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} />}
+            {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
             {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
             {amPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
+            {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["plan",CalendarIcon,"Plan"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
                 <Icon size={22} /><span>{lbl}</span>
               </button>

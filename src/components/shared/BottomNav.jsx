@@ -1,13 +1,14 @@
 import { S } from "../../styles/theme.js";
-import { HomeIcon, TasksIcon, VisitsIcon, GuidesIcon, ChatIcon, OverviewIcon, RequestsIcon, AssignIcon, AnalyticsIcon } from "./Icons.jsx";
+import { HomeIcon, TasksIcon, VisitsIcon, GuidesIcon, ChatIcon, OverviewIcon, RequestsIcon, AssignIcon, AnalyticsIcon, CalendarIcon } from "./Icons.jsx";
 
 export function VMNav({ page, setPage }) {
   const items = [
-    ["home",       HomeIcon,   "Home"],
-    ["tasks",      TasksIcon,  "Tasks"],
-    ["visits",     VisitsIcon, "Visits"],
-    ["guidelines", GuidesIcon, "Guides"],
-    ["chat",       ChatIcon,   "Chat"],
+    ["home",       HomeIcon,     "Home"],
+    ["tasks",      TasksIcon,    "Tasks"],
+    ["plan",       CalendarIcon, "Plan"],
+    ["visits",     VisitsIcon,   "Visits"],
+    ["guidelines", GuidesIcon,   "Guides"],
+    ["chat",       ChatIcon,     "Chat"],
   ];
   return (
     <nav style={{ ...S.bottomNav, overflowX:"auto" }}>

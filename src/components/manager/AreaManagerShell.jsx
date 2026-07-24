@@ -2,6 +2,7 @@ import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
+import { CampaignFileBox } from "../shared/CampaignFileBox.jsx";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
@@ -48,7 +49,7 @@ export function AreaManagerOverview({ profile, tasks, submissions, campaign, cam
       </div>
 
       {/* Campaign Progress */}
-      {campaign?.name && myProgress.length > 0 && (
+      {campaign?.name && (
         <div style={{ ...S.card, border:`1px solid ${C.accentColor}33`, marginBottom:14 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
             <div>
@@ -57,40 +58,49 @@ export function AreaManagerOverview({ profile, tasks, submissions, campaign, cam
                 {campaign.name}
               </div>
             </div>
-            <span style={{ fontSize:20, fontWeight:700, color: cpRate>=70?"#4ade80":C.accentColor }}>
-              {cpRate}%
-            </span>
+            {myProgress.length > 0 && (
+              <span style={{ fontSize:20, fontWeight:700, color: cpRate>=70?"#4ade80":C.accentColor }}>
+                {cpRate}%
+              </span>
+            )}
           </div>
-          <div style={{ height:5, borderRadius:3, background:C.surfaceHigh, marginBottom:12 }}>
-            <div style={{ height:"100%", borderRadius:3, width:`${cpRate}%`,
-              background: cpRate>=70?"#4ade80":C.accentColor, transition:"width .5s" }}/>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
-            {[
-              { n:cpCompleted,  l:"Completed",   c:"#4ade80" },
-              { n:cpInProgress, l:"In Progress", c:"#d4a82a" },
-              { n:cpNotStarted, l:"Not Started", c:"#6b6880" },
-            ].map(k => (
-              <div key={k.l} style={{ textAlign:"center", padding:"8px",
-                background:C.surfaceHigh, borderRadius:8 }}>
-                <div style={{ fontSize:20, fontWeight:700, color:k.c }}>{k.n}</div>
-                <div style={{ fontSize:10, color:C.mutedColor, marginTop:2 }}>{k.l}</div>
+          {myProgress.length > 0 && (
+            <>
+              <div style={{ height:5, borderRadius:3, background:C.surfaceHigh, marginBottom:12 }}>
+                <div style={{ height:"100%", borderRadius:3, width:`${cpRate}%`,
+                  background: cpRate>=70?"#4ade80":C.accentColor, transition:"width .5s" }}/>
               </div>
-            ))}
-          </div>
-          {/* Per branch */}
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:12 }}>
-            {myProgress.map(cp => {
-              const colors = { completed:"#4ade80", in_progress:"#d4a82a", not_started:"#6b6880" };
-              const color  = colors[cp.status] ?? "#6b6880";
-              return (
-                <div key={cp.branch_id} style={{ padding:"4px 10px", borderRadius:14,
-                  background:color+"1c", color, border:`1px solid ${color}44`, fontSize:11, fontWeight:600 }}>
-                  {cp.branch?.name ?? "—"}
-                </div>
-              );
-            })}
-          </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                {[
+                  { n:cpCompleted,  l:"Completed",   c:"#4ade80" },
+                  { n:cpInProgress, l:"In Progress", c:"#d4a82a" },
+                  { n:cpNotStarted, l:"Not Started", c:"#6b6880" },
+                ].map(k => (
+                  <div key={k.l} style={{ textAlign:"center", padding:"8px",
+                    background:C.surfaceHigh, borderRadius:8 }}>
+                    <div style={{ fontSize:20, fontWeight:700, color:k.c }}>{k.n}</div>
+                    <div style={{ fontSize:10, color:C.mutedColor, marginTop:2 }}>{k.l}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Per branch */}
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:12 }}>
+                {myProgress.map(cp => {
+                  const colors = { completed:"#4ade80", in_progress:"#d4a82a", not_started:"#6b6880" };
+                  const color  = colors[cp.status] ?? "#6b6880";
+                  return (
+                    <div key={cp.branch_id} style={{ padding:"4px 10px", borderRadius:14,
+                      background:color+"1c", color, border:`1px solid ${color}44`, fontSize:11, fontWeight:600 }}>
+                      {cp.branch?.name ?? "—"}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <CampaignFileBox campaign={campaign} />
+          {profile && <CommentThread campaignId={campaign.id} profile={profile} />}
         </div>
       )}
 

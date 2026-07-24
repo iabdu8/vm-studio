@@ -195,3 +195,45 @@ export async function markInviteUsed(invite_id, used_by) {
     .eq("id", invite_id);
   if (error) throw error;
 }
+
+// ── CAMPAIGN FILE (uploaded by VM Controller — PDF/PPT) ────────
+export async function uploadCampaignFile(campaign_id, uploaded_by, file) {
+  const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  const file_type = isPdf ? "pdf" : "ppt";
+  const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const file_path = `campaigns/${campaign_id}/${safeName}`;
+  const { error: upErr } = await supabase.storage.from("vm-guidelines").upload(file_path, file);
+  if (upErr) throw upErr;
+  const { data, error } = await supabase
+    .from("campaigns")
+    .update({ file_path, file_type, file_uploaded_by: uploaded_by })
+    .eq("id", campaign_id)
+    .select("*, uploader:file_uploaded_by(full_name)")
+    .single();
+  if (error) throw error;
+  return {
+    ...data,
+    file_url: supabase.storage.from("vm-guidelines").getPublicUrl(file_path).data.publicUrl,
+  };
+}
+
+// ── CAMPAIGN COMMENTS ───────────────────────────────────────────
+export async function getCampaignComments(campaign_id) {
+  const { data, error } = await supabase
+    .from("campaign_comments")
+    .select("*, author:author_id(full_name, role, avatar_initials)")
+    .eq("campaign_id", campaign_id)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function addCampaignComment(campaign_id, author_id, body) {
+  const { data, error } = await supabase
+    .from("campaign_comments")
+    .insert({ campaign_id, author_id, body })
+    .select("*, author:author_id(full_name, role, avatar_initials)")
+    .single();
+  if (error) throw error;
+  return data;
+}

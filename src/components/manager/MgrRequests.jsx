@@ -47,6 +47,11 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile
         const vmName  = s.submitter?.full_name ?? "—";
         const branch  = s.branch?.name ?? "—";
 
+        // Max 2 attempts per task: original submission + 1 redo after revision.
+        // Once the redo comes in, the controller can only approve — no third round.
+        const attempts    = s.task_id ? submissions.filter(x => x.task_id === s.task_id).length : 1;
+        const finalAttempt = s.task_id && attempts >= 2;
+
         return (
           <div key={s.id} style={S.card}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
@@ -98,6 +103,12 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile
               </div>
             )}
 
+            {s.status === "pending" && finalAttempt && (
+              <div style={{ fontSize:11, color:"#d4a82a", marginBottom:8 }}>
+                ⚠ Final attempt — already sent back once, must be approved now.
+              </div>
+            )}
+
             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
               {s.status === "pending" && (
                 <>
@@ -106,11 +117,13 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile
                     onClick={() => onReview(s.id, "approved")}>
                     ✓ Approve
                   </button>
-                  <button className="btnG"
-                    style={{ ...S.btnG, fontSize:12, padding:"8px 14px", color:"#f87171", borderColor:"#f8717133" }}
-                    onClick={() => { setRevisionId(s.id); setRevisionNote(""); }}>
-                    ↩ Needs Revision
-                  </button>
+                  {!finalAttempt && (
+                    <button className="btnG"
+                      style={{ ...S.btnG, fontSize:12, padding:"8px 14px", color:"#f87171", borderColor:"#f8717133" }}
+                      onClick={() => { setRevisionId(s.id); setRevisionNote(""); }}>
+                      ↩ Needs Revision
+                    </button>
+                  )}
                 </>
               )}
               {onDeleteSubmission && (

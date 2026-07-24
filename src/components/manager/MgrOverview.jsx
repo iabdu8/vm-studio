@@ -2,6 +2,7 @@ import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
+import { CampaignFileBox } from "../shared/CampaignFileBox.jsx";
 
 const STATUS_META = {
   not_started: { label: "Not Started", color: "#6b6880" },
@@ -232,6 +233,13 @@ export function MgrOverview({
               {ackSaving ? "Saving…" : campaignAck ? "Re-acknowledge" : "✓ Acknowledge"}
             </button>
           </div>
+        )}
+
+        {!editing && campaign?.name && (
+          <CampaignFileBox campaign={campaign} />
+        )}
+        {!editing && campaign?.name && profile && (
+          <CommentThread campaignId={campaign.id} profile={profile} />
         )}
       </div>
 

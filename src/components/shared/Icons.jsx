@@ -52,6 +52,17 @@ export function ChatIcon({ size = 22 }) {
   );
 }
 
+export function CalendarIcon({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <rect x="4" y="5" width="16" height="15" rx="2.2" />
+      <path d="M4 9.5h16" />
+      <path d="M8 3v3.4M16 3v3.4" />
+      <path d="M8 13h3" />
+    </svg>
+  );
+}
+
 export function OverviewIcon({ size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
