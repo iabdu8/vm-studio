@@ -3,7 +3,7 @@ import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { CampaignPanel } from "./CampaignPanel.jsx";
-import { VMGuidelines } from "../shared/Guidelines.jsx";
+import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
@@ -225,8 +225,8 @@ export function AreaManagerRequests({ submissions, profile }) {
   );
 }
 
-// Campaign (view + comment, no edit/upload/acknowledge) + Guidelines (view + acknowledge)
-export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches, managerBranches = [], profile, guidelines }) {
+// Campaign (view + comment, no edit/acknowledge) + Guidelines (VM Manager can publish)
+export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches, managerBranches = [], profile, guidelines, company, onUploadGuideline, onDeleteGuideline }) {
   const myBranches = branches.filter(b => managerBranches.includes(b.id));
   const myProgress = campaignProgress.filter(cp => myBranches.some(b => b.id === cp.branch_id));
 
@@ -251,7 +251,9 @@ export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches
         </div>
       )}
 
-      <VMGuidelines guidelines={guidelines} userId={profile?.id} />
+      <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>Guidelines</div>
+      <GuidelinesManager company={company} guidelines={guidelines}
+        onUploadGuideline={onUploadGuideline} onDeleteGuideline={onDeleteGuideline} />
     </div>
   );
 }
