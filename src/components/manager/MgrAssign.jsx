@@ -3,10 +3,12 @@ import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { GuidelinesGrid } from "../shared/Guidelines.jsx";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
+import { CampaignPanel } from "./CampaignPanel.jsx";
 import { supabase } from "../../lib/supabase.js";
 
 export function MgrAssign({ tasks, categories, branches, guidelines,
-  onDeleteTask, onUploadGuideline, onDeleteGuideline, profile, company }) {
+  onDeleteTask, onUploadGuideline, onDeleteGuideline, profile, company,
+  campaign, onSaveCampaign, campaignProgress, onSetBranchStatus, campaignAck, onAcknowledgeCampaign }) {
 
   const [tab,        setTab]        = useState("plan");
   const [gTitle,     setGTitle]     = useState("");
@@ -43,7 +45,7 @@ export function MgrAssign({ tasks, categories, branches, guidelines,
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
         {[["plan","📅 Weekly Plan"],["all","All Tasks"],
-          ["guides","📖 Guidelines"],["training","🎓 Training"]].map(([k,l]) => (
+          ["guides","📣 Campaign & Guides"],["training","🎓 Training"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
@@ -95,11 +97,14 @@ export function MgrAssign({ tasks, categories, branches, guidelines,
       )}
 
       {/* Training */}
-      {tab === "training" && <Training company={company} profile={profile}/>}
+      {tab === "training" && <Training company={company} profile={profile} readOnly/>}
 
       {/* Guidelines */}
       {tab === "guides" && (
         <div>
+          <CampaignPanel campaign={campaign} onSaveCampaign={onSaveCampaign} campaignProgress={campaignProgress}
+            onSetBranchStatus={onSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={onAcknowledgeCampaign} />
+          <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>Guidelines</div>
           <div style={S.card}>
             <div style={S.h3}>Upload New Guideline</div>
             <div style={S.lbl}>Title</div>

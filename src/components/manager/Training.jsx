@@ -22,7 +22,7 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
   );
 }
 
-export function Training({ company, profile }) {
+export function Training({ company, profile, readOnly = false }) {
   const [trainings, setTrainings] = useState([]);
   const [staff,     setStaff]     = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -171,46 +171,62 @@ export function Training({ company, profile }) {
           <div key={a.id} style={{ ...S.card, marginBottom:10 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
               <div style={{ fontWeight:600, fontSize:14 }}>{a.user?.full_name ?? "—"}</div>
-              <div style={{ display:"flex", gap:6 }}>
-                {["present","absent","pending"].map(st => (
-                  <button key={st} onClick={() => updateAttendee(a.id, "status", st)}
-                    style={{ padding:"4px 10px", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:600,
-                      border: a.status===st ? "none" : `1px solid ${C.mutedColor}33`,
-                      background: a.status===st
-                        ? st==="present" ? "#4ade80" : st==="absent" ? "#f87171" : C.surfaceHigh
-                        : "transparent",
-                      color: a.status===st
-                        ? st==="present" ? "#0a0a0f" : "#fff"
-                        : C.mutedColor,
-                    }}>
-                    {st==="present" ? "✓ Present" : st==="absent" ? "✗ Absent" : "Pending"}
-                  </button>
-                ))}
-              </div>
+              {readOnly ? (
+                <span style={{ padding:"4px 10px", borderRadius:8, fontSize:11, fontWeight:600,
+                  background: a.status==="present" ? "#4ade80" : a.status==="absent" ? "#f87171" : C.surfaceHigh,
+                  color: a.status==="present" || a.status==="absent" ? "#0a0a0f" : C.mutedColor }}>
+                  {a.status==="present" ? "✓ Present" : a.status==="absent" ? "✗ Absent" : "Pending"}
+                </span>
+              ) : (
+                <div style={{ display:"flex", gap:6 }}>
+                  {["present","absent","pending"].map(st => (
+                    <button key={st} onClick={() => updateAttendee(a.id, "status", st)}
+                      style={{ padding:"4px 10px", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:600,
+                        border: a.status===st ? "none" : `1px solid ${C.mutedColor}33`,
+                        background: a.status===st
+                          ? st==="present" ? "#4ade80" : st==="absent" ? "#f87171" : C.surfaceHigh
+                          : "transparent",
+                        color: a.status===st
+                          ? st==="present" ? "#0a0a0f" : "#fff"
+                          : C.mutedColor,
+                      }}>
+                      {st==="present" ? "✓ Present" : st==="absent" ? "✗ Absent" : "Pending"}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 2fr", gap:10 }}>
               <div>
                 <div style={S.lbl}>Score /100</div>
-                <input style={{ ...S.inp, marginBottom:0, textAlign:"center", fontSize:16, fontWeight:700 }}
-                  type="number" min="0" max="100" placeholder="—"
-                  value={a.score ?? ""}
-                  onChange={e => {
-                    const v = e.target.value;
-                    if (v === "" || (Number(v) >= 0 && Number(v) <= 100)) {
-                      updateAttendee(a.id, "score", v === "" ? null : Number(v));
-                    }
-                  }}/>
+                {readOnly ? (
+                  <div style={{ fontSize:16, fontWeight:700, textAlign:"center" }}>{a.score ?? "—"}</div>
+                ) : (
+                  <input style={{ ...S.inp, marginBottom:0, textAlign:"center", fontSize:16, fontWeight:700 }}
+                    type="number" min="0" max="100" placeholder="—"
+                    value={a.score ?? ""}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (v === "" || (Number(v) >= 0 && Number(v) <= 100)) {
+                        updateAttendee(a.id, "score", v === "" ? null : Number(v));
+                      }
+                    }}/>
+                )}
               </div>
               <div>
                 <div style={S.lbl}>Note</div>
-                <input style={{ ...S.inp, marginBottom:0 }}
-                  placeholder="Optional note…"
-                  value={a.note ?? ""}
-                  onBlur={e => updateAttendee(a.id, "note", e.target.value || null)}
-                  onChange={e => setSelected(prev => ({
-                    ...prev,
-                    attendees: prev.attendees.map(x => x.id===a.id ? {...x, note:e.target.value} : x)
-                  }))}/>
+                {readOnly ? (
+                  <div style={{ fontSize:13, color:C.mutedColor }}>{a.note || "—"}</div>
+                ) : (
+                  <input style={{ ...S.inp, marginBottom:0 }}
+                    placeholder="Optional note…"
+                    value={a.note ?? ""}
+                    onBlur={e => updateAttendee(a.id, "note", e.target.value || null)}
+                    onChange={e => setSelected(prev => ({
+                      ...prev,
+                      attendees: prev.attendees.map(x => x.id===a.id ? {...x, note:e.target.value} : x)
+                    }))}/>
+                )}
               </div>
             </div>
           </div>
@@ -224,14 +240,14 @@ export function Training({ company, profile }) {
     <div>
       {confirm && <ConfirmModal {...confirm} onCancel={() => setConfirm(null)}/>}
 
-      {!showForm && (
+      {!readOnly && !showForm && (
         <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
           onClick={() => setShowForm(true)}>
           ＋ New Training
         </button>
       )}
 
-      {showForm && (
+      {!readOnly && showForm && (
         <div style={S.card}>
           <div style={S.h3}>New Training</div>
           <div style={S.lbl}>Training Title *</div>
@@ -307,9 +323,11 @@ export function Training({ company, profile }) {
                   {t.location && ` · 📍 ${t.location}`}
                 </div>
               </div>
-              <button onClick={e => { e.stopPropagation(); deleteTraining(t.id); }}
-                style={{ background:"none", border:"none", color:"#f87171",
-                  cursor:"pointer", fontSize:16, padding:"4px", flexShrink:0 }}>🗑️</button>
+              {!readOnly && (
+                <button onClick={e => { e.stopPropagation(); deleteTraining(t.id); }}
+                  style={{ background:"none", border:"none", color:"#f87171",
+                    cursor:"pointer", fontSize:16, padding:"4px", flexShrink:0 }}>🗑️</button>
+              )}
             </div>
             {s.total > 0 && (
               <>
