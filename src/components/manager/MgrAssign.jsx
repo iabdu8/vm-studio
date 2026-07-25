@@ -40,43 +40,71 @@ export function MgrAssign({ tasks, categories, branches,
       {/* All Tasks */}
       {tab === "all" && (
         <div>
-          {tasks.length === 0 && <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>}
-          {tasks.map(t => (
-            <div key={t.id} style={{ ...S.card, marginBottom:10 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, color:C.accentColor, fontWeight:600, marginBottom:4 }}>
-                    {t.category?.name ?? "—"} · {t.subcategory?.name ?? "—"}
-                  </div>
-                  <div style={{ fontSize:13, color:(t.is_done||t.done)?C.mutedColor:C.textColor,
-                    textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
-                    {t.title ?? t.text}
-                  </div>
-                  <div style={{ display:"flex", gap:6, marginTop:6, flexWrap:"wrap" }}>
-                    <span style={S.chip(t.priority)}>{t.priority}</span>
-                    <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
-                    {t.assigned_to && t.assigned_to !== "all" && (
-                      <span style={{ fontSize:11, color:"#818cf8" }}>
-                        👤 {staff.find(s=>s.id===t.assigned_to)?.full_name ?? t.assigned_to}
-                      </span>
-                    )}
-                    {t.branch_id && branches?.find(b=>b.id===t.branch_id) && (
-                      <span style={{ ...S.muted, fontSize:11 }}>
-                        📍 {branches.find(b=>b.id===t.branch_id)?.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
-                  <span style={S.chip((t.is_done||t.done)?"approved":"pending")}>
-                    {(t.is_done||t.done)?"Done":"Open"}
-                  </span>
-                  <button style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:15 }}
-                    onClick={() => onDeleteTask(t.id)}>✕</button>
-                </div>
+          {tasks.length === 0 ? (
+            <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>
+          ) : (
+            <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
+              <div style={{ overflowX:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", minWidth:720 }}>
+                  <thead>
+                    <tr>
+                      {["Task","Branch","Priority","Due","Assigned To","Status","Actions"].map(h => (
+                        <th key={h} style={{
+                          padding:"12px 16px", textAlign:"left", fontSize:11, fontWeight:700,
+                          color:C.mutedColor, letterSpacing:1, textTransform:"uppercase",
+                          background:C.surfaceHigh, borderBottom:`1px solid ${C.accentColor}18`,
+                          whiteSpace:"nowrap",
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map(t => {
+                      const assignee = t.assigned_to === "all" ? "All Staff"
+                        : staff.find(s => s.id === t.assigned_to)?.full_name ?? "—";
+                      return (
+                        <tr key={t.id}>
+                          <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a`, maxWidth:240 }}>
+                            <div style={{ fontSize:13, fontWeight:600,
+                              color:(t.is_done||t.done)?C.mutedColor:C.textColor,
+                              textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
+                              {t.title ?? t.text}
+                            </div>
+                            {(t.category?.name || t.subcategory?.name) && (
+                              <div style={{ fontSize:11, color:C.accentColor, marginTop:2 }}>
+                                {t.category?.name ?? "—"}{t.subcategory?.name ? ` · ${t.subcategory.name}` : ""}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, borderBottom:`1px solid ${C.accentColor}0a`, whiteSpace:"nowrap" }}>
+                            {branches?.find(b=>b.id===t.branch_id)?.name ?? "—"}
+                          </td>
+                          <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
+                            <span style={S.chip(t.priority)}>{t.priority}</span>
+                          </td>
+                          <td style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, borderBottom:`1px solid ${C.accentColor}0a`, whiteSpace:"nowrap" }}>
+                            {t.due_label ?? t.dueDate ?? "—"}
+                          </td>
+                          <td style={{ padding:"12px 16px", fontSize:12, borderBottom:`1px solid ${C.accentColor}0a`, whiteSpace:"nowrap" }}>
+                            {assignee}
+                          </td>
+                          <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
+                            <span style={S.chip((t.is_done||t.done)?"approved":"pending")}>
+                              {(t.is_done||t.done)?"Done":"Open"}
+                            </span>
+                          </td>
+                          <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
+                            <button style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:15 }}
+                              onClick={() => onDeleteTask(t.id)}>✕</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
-          ))}
+          )}
         </div>
       )}
 

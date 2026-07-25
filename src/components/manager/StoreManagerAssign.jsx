@@ -47,44 +47,74 @@ export function StoreManagerAssign({ tasks, categories, branches, profile, compa
           <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>
             Read-only view — add or edit work from the Weekly Plan tab.
           </div>
-          {myTasks.length === 0 && <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>}
-          {myTasks.map(t => (
-            <div key={t.id} style={{ ...S.card, marginBottom:10 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, color:C.accentColor, fontWeight:600, marginBottom:4 }}>
-                    {t.category?.name ?? "—"} · {t.subcategory?.name ?? "—"}
-                  </div>
-                  <div style={{ fontSize:13, color:(t.is_done||t.done)?C.mutedColor:C.textColor,
-                    textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
-                    {t.title ?? t.text}
-                  </div>
-                  <div style={{ display:"flex", gap:6, marginTop:6, flexWrap:"wrap" }}>
-                    <span style={S.chip(t.priority)}>{t.priority}</span>
-                    <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
-                    {t.assigned_to && t.assigned_to !== "all" && (
-                      <span style={{ fontSize:11, color:"#818cf8" }}>
-                        👤 {staff.find(s=>s.id===t.assigned_to)?.full_name ?? t.assigned_to}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display:"flex", gap:6, flexShrink:0, marginLeft:8 }}>
-                  <span style={S.chip((t.is_done||t.done)?"approved":"pending")}>
-                    {(t.is_done||t.done)?"Done":"Open"}
-                  </span>
-                  <button style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:15 }}
-                    onClick={() => onDeleteTask(t.id)}>✕</button>
-                </div>
+          {myTasks.length === 0 ? (
+            <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>
+          ) : (
+            <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
+              <div style={{ overflowX:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", minWidth:680 }}>
+                  <thead>
+                    <tr>
+                      {["Task","Priority","Due","Assigned To","Status","Actions"].map(h => (
+                        <th key={h} style={{
+                          padding:"12px 16px", textAlign:"left", fontSize:11, fontWeight:700,
+                          color:C.mutedColor, letterSpacing:1, textTransform:"uppercase",
+                          background:C.surfaceHigh, borderBottom:`1px solid ${C.accentColor}18`,
+                          whiteSpace:"nowrap",
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {myTasks.map(t => {
+                      const assignee = t.assigned_to === "all" ? "All Staff"
+                        : staff.find(s => s.id === t.assigned_to)?.full_name ?? "—";
+                      return (
+                        <tr key={t.id}>
+                          <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a`, maxWidth:240 }}>
+                            <div style={{ fontSize:13, fontWeight:600,
+                              color:(t.is_done||t.done)?C.mutedColor:C.textColor,
+                              textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
+                              {t.title ?? t.text}
+                            </div>
+                            {(t.category?.name || t.subcategory?.name) && (
+                              <div style={{ fontSize:11, color:C.accentColor, marginTop:2 }}>
+                                {t.category?.name ?? "—"}{t.subcategory?.name ? ` · ${t.subcategory.name}` : ""}
+                              </div>
+                            )}
+                            <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
+                              style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                                fontSize:11, fontWeight:600, padding:0, marginTop:6 }}>
+                              {openTaskId === t.id ? "Hide comments" : "💬 Comments"}
+                            </button>
+                            {openTaskId === t.id && <CommentThread taskId={t.id} profile={profile} />}
+                          </td>
+                          <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
+                            <span style={S.chip(t.priority)}>{t.priority}</span>
+                          </td>
+                          <td style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, borderBottom:`1px solid ${C.accentColor}0a`, whiteSpace:"nowrap" }}>
+                            {t.due_label ?? t.dueDate ?? "—"}
+                          </td>
+                          <td style={{ padding:"12px 16px", fontSize:12, borderBottom:`1px solid ${C.accentColor}0a`, whiteSpace:"nowrap" }}>
+                            {assignee}
+                          </td>
+                          <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
+                            <span style={S.chip((t.is_done||t.done)?"approved":"pending")}>
+                              {(t.is_done||t.done)?"Done":"Open"}
+                            </span>
+                          </td>
+                          <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
+                            <button style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:15 }}
+                              onClick={() => onDeleteTask(t.id)}>✕</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
-                style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                  fontSize:11, fontWeight:600, padding:0, marginTop:8 }}>
-                {openTaskId === t.id ? "Hide comments" : "💬 Comments"}
-              </button>
-              {openTaskId === t.id && <CommentThread taskId={t.id} profile={profile} />}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>
