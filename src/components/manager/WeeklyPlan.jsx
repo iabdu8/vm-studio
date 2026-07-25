@@ -52,6 +52,117 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 const formatDueLabel = (dateStr) =>
   new Date(dateStr).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
+// One self-contained, compact staff × day grid for a single branch —
+// used to render each branch as its own organized section for Head VM / VM Manager.
+function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates }) {
+  const [staff,   setStaff]   = useState([]);
+  const [items,   setItems]   = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!company?.id || !branchId) return;
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      const [{ data: staffData }, { data: plan }] = await Promise.all([
+        supabase.from("profiles").select("id, full_name")
+          .eq("company_id", company.id).eq("branch_id", branchId).in("role", ["vm", "store_manager"]),
+        supabase.from("weekly_plans").select("id")
+          .eq("company_id", company.id).eq("branch_id", branchId).eq("week_start", weekStart).maybeSingle(),
+      ]);
+      if (cancelled) return;
+      setStaff(staffData ?? []);
+      if (!plan) { setItems([]); setLoading(false); return; }
+      const { data: itemsData } = await supabase
+        .from("weekly_plan_items")
+        .select("*, assigned_staff:assigned_staff_id(id, full_name)")
+        .eq("plan_id", plan.id);
+      if (cancelled) return;
+      setItems(itemsData ?? []);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [company?.id, branchId, weekStart]);
+
+  return (
+    <div>
+      <div style={{ ...S.h3, marginBottom:8 }}>📍 {branchName}</div>
+      {loading ? (
+        <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>Loading…</div>
+      ) : staff.length === 0 ? (
+        <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>No staff at this branch.</div>
+      ) : (
+        <div style={{ ...S.card, padding:0, overflow:"hidden", border:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` }}>
+          <table style={{ width:"100%", tableLayout:"fixed", borderCollapse:"collapse", fontSize:11 }}>
+            <colgroup>
+              <col style={{ width:"15%" }} />
+              {weekDates.map(d => <col key={d.index} />)}
+            </colgroup>
+            <thead>
+              <tr>
+                {["Employee", ...weekDates.map(d => `${d.label.slice(0,3)} ${d.dmy.slice(0,5)}`)].map((h, i, arr) => (
+                  <th key={h} style={{
+                    padding:"6px 4px", textAlign:"left", fontSize:9, fontWeight:800,
+                    color:C.accentColor, letterSpacing:.2, textTransform:"uppercase",
+                    background:C.surfaceHigh, borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`,
+                    borderRight: i < arr.length-1 ? `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` : "none",
+                    overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {staff.map((s, si) => {
+                const rowBg = si % 2 === 0 ? "transparent" : C.surfaceHigh;
+                const cellBorder = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
+                return (
+                  <tr key={s.id}>
+                    <td style={{
+                      padding:"6px 4px", fontSize:10, fontWeight:700, wordBreak:"break-word",
+                      borderBottom:cellBorder, borderRight:cellBorder, background: si%2===0 ? C.surfaceColor : C.surfaceHigh,
+                    }}>{s.full_name}</td>
+                    {weekDates.map(d => {
+                      const dayItems = items.filter(i =>
+                        (i.assigned_staff_id === s.id || i.assigned_staff?.id === s.id) && i.day_of_week === d.index
+                      );
+                      return (
+                        <td key={d.index} style={{ padding:"4px 3px", verticalAlign:"top", borderBottom:cellBorder, borderRight:cellBorder, background:rowBg }}>
+                          {dayItems.length === 0 ? (
+                            <span style={{ color:C.mutedColor, fontSize:10 }}>—</span>
+                          ) : (
+                            <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                              {dayItems.map(item => {
+                                const meta = STATUS_META[item.status] ?? STATUS_META.pending;
+                                const [title] = (item.title ?? "").split("\n");
+                                return (
+                                  <div key={item.id} style={{
+                                    padding:"2px 4px", borderRadius:5, background:meta.bg,
+                                    borderLeft:`2px solid ${meta.color}`,
+                                    fontSize:9, fontWeight:600, lineHeight:1.25,
+                                    color: item.status==="done" ? C.mutedColor : C.textColor,
+                                    textDecoration: item.status==="done" ? "line-through" : "none",
+                                    wordBreak:"break-word",
+                                  }}>
+                                    {title}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null, statusEditable = !readOnly, weekNav = !readOnly, onTasksChanged }) {
   const [weekOffset,     setWeekOffset]     = useState(0);
   const [activePlan,     setActivePlan]     = useState(null);
@@ -300,7 +411,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       </div>
 
       {/* Branch selector */}
-      {branches.length > 1 && (
+      {!combinedView && branches.length > 1 && (
         <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
           {branches.map(b => (
             <button key={b.id} className="pill-btn" onClick={() => setSelectedBranch(b.id)} style={{
@@ -347,82 +458,13 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       )}
       {copyMsg && <div style={{ ...S.muted, fontSize:12, marginBottom:10 }}>{copyMsg}</div>}
 
-      {/* Combined grid — Head VM / VM Manager see every employee at once */}
+      {/* Combined grid — Head VM / VM Manager see every branch as its own organized section */}
       {combinedView ? (
-        loading ? (
-          <div style={{ ...S.muted, textAlign:"center", padding:30 }}>Loading…</div>
-        ) : staff.length === 0 ? (
-          <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>
-            <div style={{ fontSize:32, marginBottom:12 }}>👤</div>
-            <div style={{ ...S.muted }}>No staff assigned to this branch yet.</div>
-          </div>
-        ) : (
-          <div style={{ ...S.card, padding:0, overflow:"hidden", border:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` }}>
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", minWidth:760, fontSize:11 }}>
-                <thead>
-                  <tr>
-                    {["Employee", ...weekDates.map(d => `${d.label.slice(0,3)} ${d.dmy.slice(0,5)}`)].map((h, i, arr) => (
-                      <th key={h} style={{
-                        padding:"6px 8px", textAlign:"left", fontSize:10, fontWeight:800,
-                        color:C.accentColor, letterSpacing:.2, textTransform:"uppercase",
-                        background:C.surfaceHigh, borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`,
-                        borderRight: i < arr.length-1 ? `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` : "none",
-                        whiteSpace:"nowrap", position: i===0 ? "sticky" : "static", left: i===0 ? 0 : "auto", zIndex: i===0 ? 1 : 0,
-                      }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {staff.map((s, si) => {
-                    const rowBg = si % 2 === 0 ? "transparent" : C.surfaceHigh;
-                    const cellBorder = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
-                    return (
-                      <tr key={s.id}>
-                        <td style={{
-                          padding:"6px 8px", fontSize:11, fontWeight:700, whiteSpace:"nowrap",
-                          borderBottom:cellBorder, borderRight:cellBorder, background: si%2===0 ? C.surfaceColor : C.surfaceHigh,
-                          position:"sticky", left:0, zIndex:1,
-                        }}>{s.full_name}</td>
-                        {weekDates.map(d => {
-                          const dayItems = items.filter(i =>
-                            (i.assigned_staff_id === s.id || i.assigned_staff?.id === s.id) && i.day_of_week === d.index
-                          );
-                          return (
-                            <td key={d.index} style={{ padding:"5px 6px", verticalAlign:"top", borderBottom:cellBorder, borderRight:cellBorder, background:rowBg, minWidth:96 }}>
-                              {dayItems.length === 0 ? (
-                                <span style={{ color:C.mutedColor, fontSize:11 }}>—</span>
-                              ) : (
-                                <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                                  {dayItems.map(item => {
-                                    const meta = STATUS_META[item.status] ?? STATUS_META.pending;
-                                    const [title] = (item.title ?? "").split("\n");
-                                    return (
-                                      <div key={item.id} title={`${title} · ${meta.label}`} style={{
-                                        padding:"2px 6px", borderRadius:6, background:meta.bg,
-                                        borderLeft:`2px solid ${meta.color}`,
-                                        fontSize:10, fontWeight:600, lineHeight:1.3,
-                                        color: item.status==="done" ? C.mutedColor : C.textColor,
-                                        textDecoration: item.status==="done" ? "line-through" : "none",
-                                        whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:110,
-                                      }}>
-                                        {title}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          {branches.map(b => (
+            <BranchWeekGrid key={b.id} company={company} branchId={b.id} branchName={b.name} weekStart={weekStart} weekDates={weekDates} />
+          ))}
+        </div>
       ) : loading ? (
         <div style={{ ...S.muted, textAlign:"center", padding:30 }}>Loading…</div>
       ) : !selectedStaff ? (
