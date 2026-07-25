@@ -45,7 +45,7 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
 
       {/* Branch selector — scroll through each of his branches */}
       {myBranches.length > 0 && (
-        <div style={{ display:"flex", gap:7, marginBottom:16, overflowX:"auto", paddingBottom:2 }}>
+        <div style={{ display:"flex", flexWrap:"nowrap", gap:7, marginBottom:16, overflowX:"auto", WebkitOverflowScrolling:"touch", paddingBottom:2 }}>
           <button onClick={() => setBranchFilter("all")} style={{
             padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600, flexShrink:0,
             background: branchFilter==="all" ? C.accentColor+"28" : "transparent",
@@ -101,6 +101,66 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
           </div>
         ))}
       </div>
+
+      {/* Branch Activity — everything happening at the selected branch */}
+      {branchFilter !== "all" && (
+        <div style={{ marginTop:14 }}>
+          <div style={{ ...S.h3, marginBottom:10 }}>
+            📍 {myBranches.find(b => b.id === branchFilter)?.name ?? ""} Activity
+          </div>
+
+          <div style={{ ...S.h3, marginTop:10, marginBottom:8, fontSize:11 }}>Tasks ({filteredTasks.length})</div>
+          {filteredTasks.length === 0 && <div style={{ ...S.muted, fontSize:12, marginBottom:10 }}>No tasks yet.</div>}
+          {filteredTasks.map(t => (
+            <div key={t.id} style={{ ...S.card, marginBottom:8 }}>
+              <div style={{ fontSize:11, color:C.accentColor, fontWeight:600, marginBottom:4 }}>
+                {t.category?.name ?? "—"}{t.subcategory?.name ? ` · ${t.subcategory.name}` : ""}
+              </div>
+              <div style={{ fontSize:13, color:(t.is_done||t.done)?C.mutedColor:C.textColor,
+                textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
+                {t.title ?? t.text}
+              </div>
+              <div style={{ display:"flex", gap:6, marginTop:6, flexWrap:"wrap" }}>
+                <span style={S.chip(t.priority)}>{t.priority}</span>
+                <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
+                <span style={S.chip((t.is_done||t.done)?"approved":"pending")}>{(t.is_done||t.done)?"Done":"Open"}</span>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ ...S.h3, marginTop:14, marginBottom:8, fontSize:11 }}>Submissions ({filteredSubmissions.length})</div>
+          {filteredSubmissions.length === 0 && <div style={{ ...S.muted, fontSize:12 }}>No submissions yet.</div>}
+          {filteredSubmissions.map(s => (
+            <div key={s.id} style={S.card}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:14 }}>{s.submitter?.full_name ?? "VM"}</div>
+                  <div style={{ ...S.muted, fontSize:12 }}>
+                    {s.category?.icon} {s.category?.name} · {s.subcategory?.name}
+                  </div>
+                </div>
+                <span style={S.chip(s.status)}>{s.status}</span>
+              </div>
+              {s.photos?.length > 0 && (
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                  {[["Before", s.photos.filter(p=>p.photo_type==="before")],
+                    ["After",  s.photos.filter(p=>p.photo_type==="after")]].map(([lbl, imgs]) => (
+                    <div key={lbl}>
+                      <div style={S.h3}>{lbl}</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                        {imgs.map((p, i) => (
+                          <img key={i} loading="lazy" src={p.url} alt=""
+                            style={{ width:56, height:56, objectFit:"cover", borderRadius:6 }}/>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

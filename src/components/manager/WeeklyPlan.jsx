@@ -238,7 +238,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
             <button className="btnG" style={{ ...S.btnG, padding:"7px 10px" }} onClick={() => setWeekOffset(o => o - 1)}>‹</button>
           )}
           <div style={{ padding:"7px 14px", borderRadius:10, background:C.surfaceHigh, fontSize:12, fontWeight:600, whiteSpace:"nowrap" }}>
-            📅 {weekDates[0].date} — {weekDates[6].date}
+            📅 {weekNav ? `${weekDates[0].date} — ${weekDates[6].date}` : new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"short", year:"numeric" })}
           </div>
           {weekNav && (
             <button className="btnG" style={{ ...S.btnG, padding:"7px 10px" }} onClick={() => setWeekOffset(o => o + 1)}>›</button>
