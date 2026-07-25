@@ -4,6 +4,7 @@ import { todayStr } from "../../utils.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { CampaignPanel } from "./CampaignPanel.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
+import { TasksTable } from "../shared/TasksTable.jsx";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
@@ -102,33 +103,18 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
         ))}
       </div>
 
-      {/* Branch Activity — everything happening at the selected branch */}
+      {/* Tasks — always visible, view-only (only the VM Controller edits) */}
+      <div style={{ marginTop:14 }}>
+        <div style={{ ...S.h3, marginBottom:10 }}>
+          Tasks ({filteredTasks.length}){branchFilter !== "all" && ` · 📍 ${myBranches.find(b => b.id === branchFilter)?.name ?? ""}`}
+        </div>
+        <TasksTable tasks={filteredTasks} branches={myBranches} showBranchColumn={branchFilter === "all"} profile={profile} />
+      </div>
+
+      {/* Branch Activity (submissions) — only when a specific branch is selected */}
       {branchFilter !== "all" && (
         <div style={{ marginTop:14 }}>
-          <div style={{ ...S.h3, marginBottom:10 }}>
-            📍 {myBranches.find(b => b.id === branchFilter)?.name ?? ""} Activity
-          </div>
-
-          <div style={{ ...S.h3, marginTop:10, marginBottom:8, fontSize:11 }}>Tasks ({filteredTasks.length})</div>
-          {filteredTasks.length === 0 && <div style={{ ...S.muted, fontSize:12, marginBottom:10 }}>No tasks yet.</div>}
-          {filteredTasks.map(t => (
-            <div key={t.id} style={{ ...S.card, marginBottom:8 }}>
-              <div style={{ fontSize:11, color:C.accentColor, fontWeight:600, marginBottom:4 }}>
-                {t.category?.name ?? "—"}{t.subcategory?.name ? ` · ${t.subcategory.name}` : ""}
-              </div>
-              <div style={{ fontSize:13, color:(t.is_done||t.done)?C.mutedColor:C.textColor,
-                textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
-                {t.title ?? t.text}
-              </div>
-              <div style={{ display:"flex", gap:6, marginTop:6, flexWrap:"wrap" }}>
-                <span style={S.chip(t.priority)}>{t.priority}</span>
-                <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
-                <span style={S.chip((t.is_done||t.done)?"approved":"pending")}>{(t.is_done||t.done)?"Done":"Open"}</span>
-              </div>
-            </div>
-          ))}
-
-          <div style={{ ...S.h3, marginTop:14, marginBottom:8, fontSize:11 }}>Submissions ({filteredSubmissions.length})</div>
+          <div style={{ ...S.h3, marginTop:10, marginBottom:8, fontSize:11 }}>Submissions ({filteredSubmissions.length})</div>
           {filteredSubmissions.length === 0 && <div style={{ ...S.muted, fontSize:12 }}>No submissions yet.</div>}
           {filteredSubmissions.map(s => (
             <div key={s.id} style={S.card}>
