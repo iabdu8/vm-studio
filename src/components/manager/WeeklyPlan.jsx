@@ -49,6 +49,9 @@ const getWeekStartOf = (dateStr) => {
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
+const formatDueLabel = (dateStr) =>
+  new Date(dateStr).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
 export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null, statusEditable = !readOnly, weekNav = !readOnly, onTasksChanged }) {
   const [weekOffset,     setWeekOffset]     = useState(0);
   const [activePlan,     setActivePlan]     = useState(null);
@@ -157,13 +160,17 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     if (plan) {
       // Fresh `tasks` row per item — last week's task (already reviewed/submitted) must not be reused.
       for (const i of lastItems) {
+        const itemDate = new Date(weekStart);
+        itemDate.setDate(itemDate.getDate() + i.day_of_week);
+        const itemDateStr = itemDate.toISOString().slice(0, 10);
         const { data: task } = await supabase
           .from("tasks")
           .insert({
             company_id: company.id, branch_id: selectedBranch,
             category_id: i.category_id, created_by: profile.id,
             assigned_to: i.assigned_staff_id, target_controller_id: profile.id,
-            title: (i.title ?? "").split("\n")[0], priority: "medium", due_label: "This week",
+            title: (i.title ?? "").split("\n")[0], priority: "medium",
+            due_date: itemDateStr, due_label: formatDueLabel(itemDateStr),
           })
           .select().single();
         await supabase.from("weekly_plan_items").insert({
@@ -202,7 +209,8 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
         company_id: company.id, branch_id: selectedBranch,
         category_id: addCat || null, created_by: profile.id,
         assigned_to: selectedStaff, target_controller_id: profile.id,
-        title: addTitle, priority: "medium", due_label: "This week",
+        title: addTitle, priority: "medium",
+        due_date: addDate, due_label: formatDueLabel(addDate),
       })
       .select().single();
 

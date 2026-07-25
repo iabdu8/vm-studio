@@ -2,6 +2,9 @@ import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { CommentThread } from "./CommentThread.jsx";
 
+const BORDER      = `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`;
+const BORDER_SOFT = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
+
 // Shared "All Tasks" table — everyone can view, only the VM Controller can edit (canDelete=true).
 export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn = false, profile, canDelete = false, onDeleteTask }) {
   const [openTaskId, setOpenTaskId] = useState(null);
@@ -10,10 +13,17 @@ export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn 
     return <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>;
   }
 
+  // Chronological order — earliest scheduled date first (falls back to created_at for legacy rows with no due_date).
+  const sorted = [...tasks].sort((a, b) => {
+    const da = a.due_date ?? a.created_at ?? "";
+    const db = b.due_date ?? b.created_at ?? "";
+    return da < db ? -1 : da > db ? 1 : 0;
+  });
+
   const headers = ["Task", ...(showBranchColumn ? ["Branch"] : []), "Priority", "Due", "Assigned To", "Status", ...(canDelete ? ["Actions"] : [])];
 
   return (
-    <div style={{ ...S.card, padding:0, overflow:"hidden", border:`1px solid ${C.accentColor}33` }}>
+    <div style={{ ...S.card, padding:0, overflow:"hidden", border:BORDER }}>
       <div style={{ overflowX:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", minWidth: showBranchColumn ? 720 : 680 }}>
           <thead>
@@ -22,19 +32,19 @@ export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn 
                 <th key={h} style={{
                   padding:"14px 16px", textAlign:"left", fontSize:13, fontWeight:800,
                   color:C.accentColor, letterSpacing:.5, textTransform:"uppercase",
-                  background:C.surfaceHigh, borderBottom:`2px solid ${C.accentColor}44`,
-                  borderRight: i < arr.length-1 ? `1px solid ${C.accentColor}22` : "none",
+                  background:C.surfaceHigh, borderBottom:BORDER,
+                  borderRight: i < arr.length-1 ? BORDER : "none",
                   whiteSpace:"nowrap",
                 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {tasks.map((t, i) => {
+            {sorted.map((t, i) => {
               const assignee = t.assigned_to === "all" ? "All Staff"
                 : staff.find(s => s.id === t.assigned_to)?.full_name ?? "—";
-              const rowBg = i % 2 === 0 ? "transparent" : C.surfaceHigh + "55";
-              const cellStyle = { padding:"14px 16px", borderBottom:`1px solid ${C.accentColor}22`, borderRight:`1px solid ${C.accentColor}14`, background:rowBg };
+              const rowBg = i % 2 === 0 ? "transparent" : C.surfaceHigh;
+              const cellStyle = { padding:"14px 16px", borderBottom:BORDER_SOFT, borderRight:BORDER_SOFT, background:rowBg };
               return (
                 <tr key={t.id}>
                   <td style={{ ...cellStyle, maxWidth:240 }}>
@@ -64,7 +74,9 @@ export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn 
                     <span style={S.chip(t.priority)}>{t.priority}</span>
                   </td>
                   <td style={{ ...cellStyle, fontSize:14, color:C.mutedColor, fontWeight:600, whiteSpace:"nowrap" }}>
-                    {t.due_label ?? t.dueDate ?? "—"}
+                    {t.due_date
+                      ? new Date(t.due_date).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" })
+                      : t.due_label ?? t.dueDate ?? "—"}
                   </td>
                   <td style={{ ...cellStyle, fontSize:14, fontWeight:600, whiteSpace:"nowrap" }}>
                     {assignee}
