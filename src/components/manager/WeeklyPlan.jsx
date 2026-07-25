@@ -14,7 +14,8 @@ const STATUS_META = {
   done:        { bg:"#4ade8018", color:"#4ade80", label:"Done" },
 };
 
-const DAY_LABELS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+// Gulf work week: Saturday → Friday
+const DAY_LABELS = ["Saturday","Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"];
 
 const getWeekDates = (weekStartStr) => {
   return Array.from({ length: 7 }, (_, i) => {
@@ -31,17 +32,18 @@ const getWeekDates = (weekStartStr) => {
 
 const getWeekStart = (offset = 0) => {
   const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
-  d.setDate(diff);
+  const day = d.getDay(); // Sun=0 .. Sat=6
+  const daysSinceSat = (day + 1) % 7;
+  d.setDate(d.getDate() - daysSinceSat + offset * 7);
   return d.toISOString().slice(0, 10);
 };
 
-// Monday of the week containing an arbitrary date (for the open date picker)
-const getMondayOf = (dateStr) => {
+// Saturday of the week containing an arbitrary date (for the open date picker)
+const getWeekStartOf = (dateStr) => {
   const d = new Date(dateStr);
   const day = d.getDay();
-  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  const daysSinceSat = (day + 1) % 7;
+  d.setDate(d.getDate() - daysSinceSat);
   return d.toISOString().slice(0, 10);
 };
 
@@ -187,7 +189,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     if (!addTitle.trim() || !selectedStaff || !addDate) return;
     setSaving(true);
 
-    const targetMonday = getMondayOf(addDate);
+    const targetMonday = getWeekStartOf(addDate);
     const dayOfWeek = Math.round((new Date(addDate) - new Date(targetMonday)) / 86400000);
     const plan = await ensurePlanFor(targetMonday);
     if (!plan) { setSaving(false); return; }
