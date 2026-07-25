@@ -1,5 +1,6 @@
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
+import { PromotionCard } from "../shared/PromotionCard.jsx";
 
 // ============================================================
 //  STORE MANAGER SHELL
@@ -42,12 +43,7 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
       {promotions?.length > 0 && (
         <div style={{ ...S.card, marginBottom:14 }}>
           <div style={S.h3}>Active Promotions ({promotions.length})</div>
-          {promotions.map(p => (
-            <div key={p.id} style={{ padding:"7px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
-              <div style={{ fontSize:13, fontWeight:700, color:C.accentColor }}>🏷️ {p.name}</div>
-              <div style={{ ...S.muted, fontSize:11, marginTop:2 }}>{p.date_from} → {p.date_to}</div>
-            </div>
-          ))}
+          {promotions.map(p => <PromotionCard key={p.id} promotion={p} />)}
         </div>
       )}
 

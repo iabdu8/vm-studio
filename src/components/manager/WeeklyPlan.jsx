@@ -272,6 +272,9 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
 
   const selectedStaffObj = staff.find(s => s.id === selectedStaff);
 
+  // Head VM / VM Manager: one combined grid — every employee at once, no switching.
+  const combinedView = readOnly && !lockedStaffId;
+
   return (
     <div>
       {/* Header */}
@@ -311,39 +314,117 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       )}
 
       {/* Employee selector + Total Tasks + Add Task */}
-      <div style={{ display:"flex", flexWrap:"wrap", gap:10, alignItems:"center", marginBottom:16 }}>
-        <div style={{ ...S.card, marginBottom:0, display:"flex", alignItems:"center", gap:10, padding:"10px 16px", flex:"1 1 260px" }}>
-          <div style={{ ...S.avatar(34) }}>{selectedStaffObj?.full_name?.split(" ").map(x=>x[0]).join("").slice(0,2) ?? "—"}</div>
-          {lockedStaffId ? (
-            <div style={{ fontSize:14, fontWeight:700 }}>{selectedStaffObj?.full_name ?? "My Plan"}</div>
-          ) : (
-            <select style={{ background:"none", border:"none", color:C.textColor, fontSize:14, fontWeight:700,
-              fontFamily:"'DM Sans',sans-serif", flex:1, cursor:"pointer" }}
-              value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}>
-              {staff.length === 0 && <option value="">No staff at this branch</option>}
-              {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-            </select>
+      {!combinedView && (
+        <div style={{ display:"flex", flexWrap:"wrap", gap:10, alignItems:"center", marginBottom:16 }}>
+          <div style={{ ...S.card, marginBottom:0, display:"flex", alignItems:"center", gap:10, padding:"10px 16px", flex:"1 1 260px" }}>
+            <div style={{ ...S.avatar(34) }}>{selectedStaffObj?.full_name?.split(" ").map(x=>x[0]).join("").slice(0,2) ?? "—"}</div>
+            {lockedStaffId ? (
+              <div style={{ fontSize:14, fontWeight:700 }}>{selectedStaffObj?.full_name ?? "My Plan"}</div>
+            ) : (
+              <select style={{ background:"none", border:"none", color:C.textColor, fontSize:14, fontWeight:700,
+                fontFamily:"'DM Sans',sans-serif", flex:1, cursor:"pointer" }}
+                value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}>
+                {staff.length === 0 && <option value="">No staff at this branch</option>}
+                {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+              </select>
+            )}
+          </div>
+          <div style={{ ...S.card, marginBottom:0, padding:"10px 16px", textAlign:"center" }}>
+            <div style={{ ...S.dFont, fontSize:20, fontWeight:700, color:C.accentColor, lineHeight:1 }}>{myItems.length}</div>
+            <div style={{ fontSize:10, color:C.mutedColor, marginTop:2 }}>Total Tasks This Week</div>
+          </div>
+          {!readOnly && (
+            <>
+              <button className="btnG" style={S.btnG} onClick={copyLastWeek} disabled={creating || !selectedBranch}>
+                📋 Copy Last Week
+              </button>
+              <button className="btnP" style={S.btnP} onClick={() => openAdd(weekDates[0].index)} disabled={!selectedStaff}>
+                ＋ Add Task
+              </button>
+            </>
           )}
         </div>
-        <div style={{ ...S.card, marginBottom:0, padding:"10px 16px", textAlign:"center" }}>
-          <div style={{ ...S.dFont, fontSize:20, fontWeight:700, color:C.accentColor, lineHeight:1 }}>{myItems.length}</div>
-          <div style={{ fontSize:10, color:C.mutedColor, marginTop:2 }}>Total Tasks This Week</div>
-        </div>
-        {!readOnly && (
-          <>
-            <button className="btnG" style={S.btnG} onClick={copyLastWeek} disabled={creating || !selectedBranch}>
-              📋 Copy Last Week
-            </button>
-            <button className="btnP" style={S.btnP} onClick={() => openAdd(weekDates[0].index)} disabled={!selectedStaff}>
-              ＋ Add Task
-            </button>
-          </>
-        )}
-      </div>
+      )}
       {copyMsg && <div style={{ ...S.muted, fontSize:12, marginBottom:10 }}>{copyMsg}</div>}
 
-      {/* Table */}
-      {loading ? (
+      {/* Combined grid — Head VM / VM Manager see every employee at once */}
+      {combinedView ? (
+        loading ? (
+          <div style={{ ...S.muted, textAlign:"center", padding:30 }}>Loading…</div>
+        ) : staff.length === 0 ? (
+          <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>
+            <div style={{ fontSize:32, marginBottom:12 }}>👤</div>
+            <div style={{ ...S.muted }}>No staff assigned to this branch yet.</div>
+          </div>
+        ) : (
+          <div style={{ ...S.card, padding:0, overflow:"hidden", border:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` }}>
+            <div style={{ overflowX:"auto" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
+                <thead>
+                  <tr>
+                    {["Employee", ...weekDates.map(d => `${d.label.slice(0,3)} ${d.dmy.slice(0,5)}`)].map((h, i, arr) => (
+                      <th key={h} style={{
+                        padding:"12px 14px", textAlign:"left", fontSize:12, fontWeight:800,
+                        color:C.accentColor, letterSpacing:.3, textTransform:"uppercase",
+                        background:C.surfaceHigh, borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`,
+                        borderRight: i < arr.length-1 ? `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` : "none",
+                        whiteSpace:"nowrap", position: i===0 ? "sticky" : "static", left: i===0 ? 0 : "auto", zIndex: i===0 ? 1 : 0,
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {staff.map((s, si) => {
+                    const rowBg = si % 2 === 0 ? "transparent" : C.surfaceHigh;
+                    const cellBorder = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
+                    return (
+                      <tr key={s.id}>
+                        <td style={{
+                          padding:"12px 14px", fontSize:13, fontWeight:700, whiteSpace:"nowrap",
+                          borderBottom:cellBorder, borderRight:cellBorder, background: si%2===0 ? C.surfaceColor : C.surfaceHigh,
+                          position:"sticky", left:0, zIndex:1,
+                        }}>{s.full_name}</td>
+                        {weekDates.map(d => {
+                          const dayItems = items.filter(i =>
+                            (i.assigned_staff_id === s.id || i.assigned_staff?.id === s.id) && i.day_of_week === d.index
+                          );
+                          return (
+                            <td key={d.index} style={{ padding:"10px 12px", verticalAlign:"top", borderBottom:cellBorder, borderRight:cellBorder, background:rowBg, minWidth:150 }}>
+                              {dayItems.length === 0 ? (
+                                <span style={{ color:C.mutedColor, fontSize:12 }}>—</span>
+                              ) : (
+                                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                                  {dayItems.map(item => {
+                                    const meta = STATUS_META[item.status] ?? STATUS_META.pending;
+                                    const [title] = (item.title ?? "").split("\n");
+                                    return (
+                                      <div key={item.id} style={{
+                                        padding:"4px 8px", borderRadius:8, background:meta.bg,
+                                        borderLeft:`3px solid ${meta.color}`,
+                                      }}>
+                                        <div style={{ fontSize:12, fontWeight:600,
+                                          color: item.status==="done" ? C.mutedColor : C.textColor,
+                                          textDecoration: item.status==="done" ? "line-through" : "none" }}>
+                                          {title}
+                                        </div>
+                                        <div style={{ fontSize:10, color:meta.color, fontWeight:700, marginTop:2 }}>{meta.label}</div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      ) : loading ? (
         <div style={{ ...S.muted, textAlign:"center", padding:30 }}>Loading…</div>
       ) : !selectedStaff ? (
         <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>

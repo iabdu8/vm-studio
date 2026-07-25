@@ -1,6 +1,7 @@
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { CampaignFileBox } from "../shared/CampaignFileBox.jsx";
+import { PromotionCard } from "../shared/PromotionCard.jsx";
 
 export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, campaign, promotions = [] }) {
   const name     = user?.full_name ?? user?.name ?? "";
@@ -55,11 +56,7 @@ export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, cam
         <div style={{ ...S.card, marginBottom:16 }} className="fu3">
           <div style={S.h3}>Current Promotions</div>
           {promotions.map(p => (
-            <div key={p.id} style={{ padding:"8px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
-              <div style={{ fontSize:13, fontWeight:700, color:C.accentColor }}>🏷️ {p.name}</div>
-              {p.description && <div style={{ fontSize:12, opacity:.85, marginTop:2 }}>{p.description}</div>}
-              <div style={{ ...S.muted, fontSize:11, marginTop:3 }}>{p.date_from} → {p.date_to}</div>
-            </div>
+            <PromotionCard key={p.id} promotion={p} extra={p.description} />
           ))}
         </div>
       )}

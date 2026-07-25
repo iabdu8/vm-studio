@@ -217,6 +217,24 @@ export async function uploadCampaignFile(campaign_id, uploaded_by, file) {
   };
 }
 
+// ── CAMPAIGN COVER IMAGE (small thumbnail for the banner card) ──
+export async function uploadCampaignImage(campaign_id, file) {
+  const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const image_path = `campaigns/${campaign_id}/cover-${safeName}`;
+  const { error: upErr } = await supabase.storage.from("vm-guidelines").upload(image_path, file);
+  if (upErr) throw upErr;
+  const { data, error } = await supabase
+    .from("campaigns")
+    .update({ image_path })
+    .eq("id", campaign_id)
+    .select().single();
+  if (error) throw error;
+  return {
+    ...data,
+    image_url: supabase.storage.from("vm-guidelines").getPublicUrl(image_path).data.publicUrl,
+  };
+}
+
 // ── CAMPAIGN COMMENTS ───────────────────────────────────────────
 export async function getCampaignComments(campaign_id) {
   const { data, error } = await supabase

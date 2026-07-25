@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
+import { PromotionCard } from "../shared/PromotionCard.jsx";
 
 export function MgrOverview({
   tasks, submissions, log, company,
@@ -144,28 +145,13 @@ export function MgrOverview({
           const targetNames = (p.target_branches ?? [])
             .map(tb => branches.find(b => b.id === tb.branch_id)?.name)
             .filter(Boolean);
+          const extraBits = [
+            p.description,
+            p.campaign?.name && `📣 ${p.campaign.name}`,
+            targetNames.length > 0 ? `📍 ${targetNames.join(", ")}` : "📍 All branches",
+          ].filter(Boolean).join(" · ");
           return (
-            <div key={p.id} style={{ padding: "10px 0", borderBottom: `1px solid ${C.accentColor}0a` }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.accentColor }}>🏷️ {p.name}</div>
-                  {p.description && (
-                    <div style={{ fontSize: 12, color: C.textColor, opacity: .85, marginTop: 3 }}>{p.description}</div>
-                  )}
-                  <div style={{ ...S.muted, fontSize: 11, marginTop: 4 }}>
-                    {p.date_from} → {p.date_to}
-                    {p.campaign?.name && <> · 📣 {p.campaign.name}</>}
-                    {targetNames.length > 0
-                      ? <> · 📍 {targetNames.join(", ")}</>
-                      : <> · 📍 All branches</>}
-                  </div>
-                </div>
-                <button onClick={() => onDeletePromotion?.(p.id)}
-                  style={{ background: "none", border: "none", color: C.mutedColor, cursor: "pointer", fontSize: 14, flexShrink: 0 }}>
-                  ✕
-                </button>
-              </div>
-            </div>
+            <PromotionCard key={p.id} promotion={p} onDelete={onDeletePromotion} extra={extraBits} />
           );
         })}
       </div>
