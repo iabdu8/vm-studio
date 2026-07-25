@@ -4,7 +4,6 @@ import { todayStr } from "../../utils.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { CampaignPanel } from "./CampaignPanel.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
-import { TasksTable } from "../shared/TasksTable.jsx";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
@@ -101,14 +100,6 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Tasks — always visible, view-only (only the VM Controller edits) */}
-      <div style={{ marginTop:14 }}>
-        <div style={{ ...S.h3, marginBottom:10 }}>
-          Tasks ({filteredTasks.length}){branchFilter !== "all" && ` · 📍 ${myBranches.find(b => b.id === branchFilter)?.name ?? ""}`}
-        </div>
-        <TasksTable tasks={filteredTasks} branches={myBranches} showBranchColumn={branchFilter === "all"} profile={profile} />
       </div>
 
       {/* Branch Activity (submissions) — only when a specific branch is selected */}

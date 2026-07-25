@@ -359,13 +359,13 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
         ) : (
           <div style={{ ...S.card, padding:0, overflow:"hidden", border:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` }}>
             <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", minWidth:900 }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", minWidth:760, fontSize:11 }}>
                 <thead>
                   <tr>
                     {["Employee", ...weekDates.map(d => `${d.label.slice(0,3)} ${d.dmy.slice(0,5)}`)].map((h, i, arr) => (
                       <th key={h} style={{
-                        padding:"12px 14px", textAlign:"left", fontSize:12, fontWeight:800,
-                        color:C.accentColor, letterSpacing:.3, textTransform:"uppercase",
+                        padding:"6px 8px", textAlign:"left", fontSize:10, fontWeight:800,
+                        color:C.accentColor, letterSpacing:.2, textTransform:"uppercase",
                         background:C.surfaceHigh, borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`,
                         borderRight: i < arr.length-1 ? `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` : "none",
                         whiteSpace:"nowrap", position: i===0 ? "sticky" : "static", left: i===0 ? 0 : "auto", zIndex: i===0 ? 1 : 0,
@@ -380,7 +380,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                     return (
                       <tr key={s.id}>
                         <td style={{
-                          padding:"12px 14px", fontSize:13, fontWeight:700, whiteSpace:"nowrap",
+                          padding:"6px 8px", fontSize:11, fontWeight:700, whiteSpace:"nowrap",
                           borderBottom:cellBorder, borderRight:cellBorder, background: si%2===0 ? C.surfaceColor : C.surfaceHigh,
                           position:"sticky", left:0, zIndex:1,
                         }}>{s.full_name}</td>
@@ -389,25 +389,24 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                             (i.assigned_staff_id === s.id || i.assigned_staff?.id === s.id) && i.day_of_week === d.index
                           );
                           return (
-                            <td key={d.index} style={{ padding:"10px 12px", verticalAlign:"top", borderBottom:cellBorder, borderRight:cellBorder, background:rowBg, minWidth:150 }}>
+                            <td key={d.index} style={{ padding:"5px 6px", verticalAlign:"top", borderBottom:cellBorder, borderRight:cellBorder, background:rowBg, minWidth:96 }}>
                               {dayItems.length === 0 ? (
-                                <span style={{ color:C.mutedColor, fontSize:12 }}>—</span>
+                                <span style={{ color:C.mutedColor, fontSize:11 }}>—</span>
                               ) : (
-                                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                                <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
                                   {dayItems.map(item => {
                                     const meta = STATUS_META[item.status] ?? STATUS_META.pending;
                                     const [title] = (item.title ?? "").split("\n");
                                     return (
-                                      <div key={item.id} style={{
-                                        padding:"4px 8px", borderRadius:8, background:meta.bg,
-                                        borderLeft:`3px solid ${meta.color}`,
+                                      <div key={item.id} title={`${title} · ${meta.label}`} style={{
+                                        padding:"2px 6px", borderRadius:6, background:meta.bg,
+                                        borderLeft:`2px solid ${meta.color}`,
+                                        fontSize:10, fontWeight:600, lineHeight:1.3,
+                                        color: item.status==="done" ? C.mutedColor : C.textColor,
+                                        textDecoration: item.status==="done" ? "line-through" : "none",
+                                        whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:110,
                                       }}>
-                                        <div style={{ fontSize:12, fontWeight:600,
-                                          color: item.status==="done" ? C.mutedColor : C.textColor,
-                                          textDecoration: item.status==="done" ? "line-through" : "none" }}>
-                                          {title}
-                                        </div>
-                                        <div style={{ fontSize:10, color:meta.color, fontWeight:700, marginTop:2 }}>{meta.label}</div>
+                                        {title}
                                       </div>
                                     );
                                   })}
