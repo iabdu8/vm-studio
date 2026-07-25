@@ -9,7 +9,7 @@ const STATUS_META = {
 };
 const NEXT_STATUS = { not_started: "in_progress", in_progress: "completed", completed: "not_started" };
 
-export function CampaignPanel({ campaign, onSaveCampaign, campaignProgress = [], onSetBranchStatus, campaignAck, onAcknowledgeCampaign }) {
+export function CampaignPanel({ campaign, onSaveCampaign, campaignProgress = [], onSetBranchStatus, campaignAck, onAcknowledgeCampaign, canUploadFile = false, uploaderId, onFileUploaded }) {
   const [editing,  setEditing]  = useState(false);
   const [campName, setCampName] = useState("");
   const [campFrom, setCampFrom] = useState("");
@@ -161,7 +161,9 @@ export function CampaignPanel({ campaign, onSaveCampaign, campaignProgress = [],
         </div>
       )}
 
-      {!editing && campaign?.name && <CampaignFileBox campaign={campaign} />}
+      {!editing && campaign?.name && (
+        <CampaignFileBox campaign={campaign} canUpload={canUploadFile} uploaderId={uploaderId} onUploaded={onFileUploaded} />
+      )}
     </div>
   );
 }

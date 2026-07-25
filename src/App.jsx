@@ -41,6 +41,7 @@ import { AnalyticsDashboard }   from "./components/manager/Analytics.jsx";
 import { StoreVisits }          from "./components/manager/StoreVisits.jsx";
 import { StoreManagerHome }     from "./components/manager/StoreManagerShell.jsx";
 import { StoreManagerAssign }   from "./components/manager/StoreManagerAssign.jsx";
+import { StoreManagerCampaignGuides } from "./components/manager/StoreManagerCampaignGuides.jsx";
 import { AreaManagerOverview, AreaManagerRequests, AreaManagerCampaignGuides } from "./components/manager/AreaManagerShell.jsx";
 import { SuperAdminPanel }      from "./components/superadmin/SuperAdminPanel.jsx";
 import { S, C }                 from "./styles/theme.js";
@@ -351,14 +352,15 @@ function AuthenticatedApp() {
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} />
           <div style={S.main}>
-            {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} onCampaignFileUploaded={handleCampaignFileUploaded} />}
+            {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} />}
             {smPage==="assign"   && <StoreManagerAssign tasks={tasks} categories={categories} branches={activeBranches} profile={profile} company={company} onDeleteTask={handleDeleteTask} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
+            {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onCampaignFileUploaded={handleCampaignFileUploaded} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}
             {smPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["home",HomeIcon,"Home"],["assign",AssignIcon,"Tasks"],["requests",RequestsIcon,"Approvals"],["reports",AnalyticsIcon,"Reports"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
+            {[["home",HomeIcon,"Home"],["assign",AssignIcon,"Tasks"],["requests",RequestsIcon,"Approvals"],["campaign",GuidesIcon,"Campaign"],["reports",AnalyticsIcon,"Reports"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(smPage===k)} onClick={() => setSmPage(k)}>
                 <Icon size={22} /><span>{lbl}</span>
               </button>

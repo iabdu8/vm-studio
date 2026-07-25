@@ -1,14 +1,12 @@
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
-import { CommentThread } from "../shared/CommentThread.jsx";
-import { CampaignFileBox } from "../shared/CampaignFileBox.jsx";
 
 // ============================================================
 //  STORE MANAGER SHELL
 //  يشوف فرعه فقط — يعطي ملاحظات — يتابع التنفيذ
 // ============================================================
 
-export function StoreManagerHome({ profile, tasks, submissions, campaign, promotions, floorWalks, demoHolds, onCampaignFileUploaded }) {
+export function StoreManagerHome({ profile, tasks, submissions, campaign, promotions, floorWalks, demoHolds }) {
   const branch = profile?.branch?.name ?? "My Branch";
 
   const pending   = submissions.filter(s => s.status === "pending").length;
@@ -25,7 +23,7 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
         {branch} · {todayStr()}
       </div>
 
-      {/* Campaign banner */}
+      {/* Campaign banner — see the Campaign tab to view the file / comment */}
       {campaign?.name && (
         <div style={{ ...S.card, border:`1px solid ${C.accentColor}33`, marginBottom:14 }}>
           <div style={S.h3}>Current Campaign</div>
@@ -37,8 +35,6 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
               {campaign.date_from} → {campaign.date_to}
             </div>
           )}
-          <CampaignFileBox campaign={campaign} canUpload uploaderId={profile.id} onUploaded={onCampaignFileUploaded} />
-          <CommentThread campaignId={campaign.id} profile={profile} />
         </div>
       )}
 
