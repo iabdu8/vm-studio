@@ -52,15 +52,21 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 const formatDueLabel = (dateStr) =>
   new Date(dateStr).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
+const PRIORITY_COLOR = { high: "#f87171", medium: "#d4a82a", low: "#4ade80" };
+
 // One self-contained, compact staff × day grid for a single branch —
-// used to render each branch as its own organized section for Head VM / VM Manager.
+// used to render each branch as its own organized, collapsible section for
+// Head VM / VM Manager. Collapsed by default and only fetches its data once
+// expanded, so this stays cheap even with 30+ branches.
 function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates }) {
-  const [staff,   setStaff]   = useState([]);
-  const [items,   setItems]   = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const [staff,    setStaff]    = useState([]);
+  const [items,    setItems]    = useState([]);
+  const [loading,  setLoading]  = useState(false);
+  const [loaded,   setLoaded]   = useState(false);
 
   useEffect(() => {
-    if (!company?.id || !branchId) return;
+    if (!expanded || !company?.id || !branchId) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
@@ -72,22 +78,31 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
       ]);
       if (cancelled) return;
       setStaff(staffData ?? []);
-      if (!plan) { setItems([]); setLoading(false); return; }
+      if (!plan) { setItems([]); setLoading(false); setLoaded(true); return; }
       const { data: itemsData } = await supabase
         .from("weekly_plan_items")
-        .select("*, assigned_staff:assigned_staff_id(id, full_name)")
+        .select("*, assigned_staff:assigned_staff_id(id, full_name), category:categories(name, icon), task:task_id(priority)")
         .eq("plan_id", plan.id);
       if (cancelled) return;
       setItems(itemsData ?? []);
       setLoading(false);
+      setLoaded(true);
     })();
     return () => { cancelled = true; };
-  }, [company?.id, branchId, weekStart]);
+  }, [expanded, company?.id, branchId, weekStart]);
+
+  const totalThisWeek = items.length;
 
   return (
     <div>
-      <div style={{ ...S.h3, marginBottom:8 }}>📍 {branchName}</div>
-      {loading ? (
+      <button onClick={() => setExpanded(p => !p)} style={{
+        width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center",
+        background:"none", border:"none", cursor:"pointer", padding:"8px 2px", textAlign:"left",
+      }}>
+        <div style={S.h3}>📍 {branchName}{loaded && ` · ${totalThisWeek} task${totalThisWeek===1?"":"s"}`}</div>
+        <span style={{ color:C.mutedColor, fontSize:12 }}>{expanded ? "▲ Hide" : "▼ Show"}</span>
+      </button>
+      {!expanded ? null : loading ? (
         <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>Loading…</div>
       ) : staff.length === 0 ? (
         <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>No staff at this branch.</div>
@@ -133,17 +148,19 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
                             <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
                               {dayItems.map(item => {
                                 const meta = STATUS_META[item.status] ?? STATUS_META.pending;
+                                const prio = PRIORITY_COLOR[item.task?.priority] ?? PRIORITY_COLOR.medium;
                                 const [title] = (item.title ?? "").split("\n");
                                 return (
-                                  <div key={item.id} style={{
+                                  <div key={item.id} title={item.category?.name ?? ""} style={{
                                     padding:"2px 4px", borderRadius:5, background:meta.bg,
-                                    borderLeft:`2px solid ${meta.color}`,
+                                    borderLeft:`3px solid ${prio}`,
                                     fontSize:9, fontWeight:600, lineHeight:1.25,
                                     color: item.status==="done" ? C.mutedColor : C.textColor,
                                     textDecoration: item.status==="done" ? "line-through" : "none",
                                     wordBreak:"break-word",
                                   }}>
-                                    {title}
+                                    {item.category?.icon ? `${item.category.icon} ` : ""}{title}
+                                    <div style={{ fontSize:8, fontWeight:700, color:meta.color, marginTop:1 }}>{meta.label}</div>
                                   </div>
                                 );
                               })}
