@@ -28,6 +28,7 @@ export function MgrNav({ page, setPage, isSuperAdmin }) {
     ["overview",  OverviewIcon,  "Overview"],
     ["requests",  RequestsIcon,  "Requests"],
     ["assign",    AssignIcon,    "Plan"],
+    ["campaign",  GuidesIcon,    "Campaign"],
     ["visits",    VisitsIcon,    "Visits"],
     ["analytics", AnalyticsIcon, "Analytics"],
     ["chat",      ChatIcon,      "Chat"],
