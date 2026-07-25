@@ -7,8 +7,11 @@ function FilePreview({ url, title, onClose }) {
   if (!url) return null;
   const isPDF = url.toLowerCase().includes(".pdf") || url.toLowerCase().includes("application/pdf");
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  // Desktop browsers render PDFs natively with their own toolbar (search, zoom,
+  // page jump) — only fall back to Google's stripped-down viewer on mobile,
+  // where inline native rendering support is inconsistent.
   const pdfSrc = isPDF
-    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+    ? (isMobile ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true` : `${url}#toolbar=1`)
     : url;
 
   return (

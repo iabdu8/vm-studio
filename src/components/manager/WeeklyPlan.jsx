@@ -37,6 +37,16 @@ const getWeekStart = (offset = 0) => {
   return d.toISOString().slice(0, 10);
 };
 
+// Monday of the week containing an arbitrary date (for the open date picker)
+const getMondayOf = (dateStr) => {
+  const d = new Date(dateStr);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  return d.toISOString().slice(0, 10);
+};
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
 export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null, statusEditable = !readOnly, weekNav = !readOnly, onTasksChanged }) {
   const [weekOffset,     setWeekOffset]     = useState(0);
   const [activePlan,     setActivePlan]     = useState(null);
@@ -50,7 +60,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
 
   // Add task modal
   const [showAdd,    setShowAdd]    = useState(false);
-  const [addDay,     setAddDay]     = useState(0);
+  const [addDate,    setAddDate]    = useState(todayStr());
   const [addTitle,   setAddTitle]   = useState("");
   const [addNotes,   setAddNotes]   = useState("");
   const [addCat,     setAddCat]     = useState("");
@@ -107,16 +117,25 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     setItems(data ?? []);
   };
 
-  const ensurePlan = async () => {
-    if (activePlan) return activePlan;
+  const ensurePlan = async () => ensurePlanFor(weekStart);
+
+  // Find-or-create a plan for an arbitrary week (used when adding a task on a
+  // date outside the currently displayed week via the open date picker).
+  const ensurePlanFor = async (targetWeekStart) => {
+    if (targetWeekStart === weekStart && activePlan) return activePlan;
+    const { data: existing } = await supabase
+      .from("weekly_plans").select("*")
+      .eq("company_id", company.id).eq("branch_id", selectedBranch)
+      .eq("week_start", targetWeekStart).maybeSingle();
+    if (existing) { if (targetWeekStart === weekStart) setActivePlan(existing); return existing; }
     setCreating(true);
     const { data } = await supabase
       .from("weekly_plans")
       .insert({ company_id: company.id, branch_id: selectedBranch,
-        created_by: profile.id, week_start: weekStart })
+        created_by: profile.id, week_start: targetWeekStart })
       .select().single();
     setCreating(false);
-    if (data) setActivePlan(data);
+    if (data && targetWeekStart === weekStart) setActivePlan(data);
     return data;
   };
 
@@ -157,14 +176,20 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
   };
 
   const openAdd = (dayIndex) => {
-    setAddDay(dayIndex); setAddTitle(""); setAddNotes(""); setAddCat("");
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + dayIndex);
+    setAddDate(d.toISOString().slice(0, 10));
+    setAddTitle(""); setAddNotes(""); setAddCat("");
     setShowAdd(true);
   };
 
   const addItem = async () => {
-    if (!addTitle.trim() || !selectedStaff) return;
+    if (!addTitle.trim() || !selectedStaff || !addDate) return;
     setSaving(true);
-    const plan = await ensurePlan();
+
+    const targetMonday = getMondayOf(addDate);
+    const dayOfWeek = Math.round((new Date(addDate) - new Date(targetMonday)) / 86400000);
+    const plan = await ensurePlanFor(targetMonday);
     if (!plan) { setSaving(false); return; }
 
     // The plan item IS the task: create the backing `tasks` row so the VM
@@ -186,12 +211,24 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
         task_id:           task?.id ?? null,
         title:             addNotes.trim() ? `${addTitle}\n${addNotes.trim()}` : addTitle,
         category_id:       addCat || null,
-        day_of_week:       addDay,
+        day_of_week:       dayOfWeek,
         assigned_staff_id: selectedStaff,
         sort_order:        items.length,
       })
       .select("*, category:categories(name, icon), assigned_staff:assigned_staff_id(id, full_name)")
       .single();
+
+    // If the chosen date falls outside the week currently on screen, jump the
+    // view to that week so the new item is visible right away.
+    if (targetMonday !== weekStart) {
+      const newOffset = Math.round((new Date(targetMonday) - new Date(getWeekStart(0))) / (7 * 86400000));
+      setWeekOffset(newOffset);
+      setShowAdd(false);
+      setSaving(false);
+      if (task?.id) notifyUser(company.id, selectedStaff, "task_created", "New Task Assigned 📋", addTitle);
+      onTasksChanged?.();
+      return;
+    }
     if (data) setItems(p => [...p, data]);
     setShowAdd(false);
     setSaving(false);
@@ -398,10 +435,8 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
           <div style={{ background:"var(--clr-surface)", borderRadius:20, padding:26,
             width:"100%", maxWidth:420, border:`1px solid ${C.accentColor}33` }}>
             <div style={{ fontWeight:700, fontSize:16, marginBottom:14 }}>＋ Add Task</div>
-            <div style={S.lbl}>Day</div>
-            <select style={S.sel} value={addDay} onChange={e => setAddDay(+e.target.value)}>
-              {weekDates.map(d => <option key={d.index} value={d.index}>{d.label} · {d.dmy}</option>)}
-            </select>
+            <div style={S.lbl}>Date</div>
+            <input style={S.inp} type="date" value={addDate} onChange={e => setAddDate(e.target.value)} />
             <div style={S.lbl}>Category</div>
             <select style={S.sel} value={addCat} onChange={e => setAddCat(e.target.value)}>
               <option value="">— optional —</option>
