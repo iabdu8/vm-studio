@@ -7,14 +7,20 @@ import { supabase } from "../../lib/supabase.js";
 import { NotificationBell, NotificationPanel } from "./NotificationCenter.jsx";
 
 export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
-  const { company } = useApp();
+  const { company, managerBranches, branches } = useApp();
   const { mode, toggle } = useTheme();
   const [showNotifs, setShowNotifs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const name     = user?.full_name ?? user?.name ?? "";
   const initials = name.split(" ").map(x=>x[0]).join("").slice(0,2);
-  const branch   = user?.branch?.name ?? user?.branch ?? "";
+  const isAreaManager = user?.role === "area_manager";
+  const myBranchNames = isAreaManager
+    ? branches.filter(b => managerBranches.includes(b.id)).map(b => b.name)
+    : [];
+  const branch = isAreaManager
+    ? (myBranchNames.length === 1 ? myBranchNames[0] : myBranchNames.length ? `Area · ${myBranchNames.length} branches` : "")
+    : (user?.branch?.name ?? user?.branch ?? "");
   const logo     = company?.logo_url ?? null;
 
   useEffect(() => {

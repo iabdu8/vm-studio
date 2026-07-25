@@ -79,9 +79,11 @@ export function RegisterPage({ onBack }) {
     if (password.length < 6) { setErr("Password must be at least 6 characters."); return; }
     setLoading(true); setErr("");
     try {
+      // area_manager isn't tied to a single branch — their scope lives in manager_branches
+      const signupBranchId = role === "area_manager" ? null : (branchId || null);
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: email.trim(), password: password.trim(),
-        options: { data: { full_name: name.trim(), role, company_id: company.id, branch_id: branchId || null } },
+        options: { data: { full_name: name.trim(), role, company_id: company.id, branch_id: signupBranchId } },
       });
       if (authErr) throw authErr;
       const userId = authData.user?.id;

@@ -37,7 +37,7 @@ const getWeekStart = (offset = 0) => {
   return d.toISOString().slice(0, 10);
 };
 
-export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null, statusEditable = !readOnly, onTasksChanged }) {
+export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null, statusEditable = !readOnly, weekNav = !readOnly, onTasksChanged }) {
   const [weekOffset,     setWeekOffset]     = useState(0);
   const [activePlan,     setActivePlan]     = useState(null);
   const [items,          setItems]          = useState([]);
@@ -234,12 +234,16 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
           <div style={{ ...S.muted, fontSize:12 }}>Create and assign weekly tasks for your team</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <button className="btnG" style={{ ...S.btnG, padding:"7px 10px" }} onClick={() => setWeekOffset(o => o - 1)}>‹</button>
+          {weekNav && (
+            <button className="btnG" style={{ ...S.btnG, padding:"7px 10px" }} onClick={() => setWeekOffset(o => o - 1)}>‹</button>
+          )}
           <div style={{ padding:"7px 14px", borderRadius:10, background:C.surfaceHigh, fontSize:12, fontWeight:600, whiteSpace:"nowrap" }}>
             📅 {weekDates[0].date} — {weekDates[6].date}
           </div>
-          <button className="btnG" style={{ ...S.btnG, padding:"7px 10px" }} onClick={() => setWeekOffset(o => o + 1)}>›</button>
-          {weekOffset !== 0 && (
+          {weekNav && (
+            <button className="btnG" style={{ ...S.btnG, padding:"7px 10px" }} onClick={() => setWeekOffset(o => o + 1)}>›</button>
+          )}
+          {weekNav && weekOffset !== 0 && (
             <button className="btnG" style={{ ...S.btnG, fontSize:11, padding:"7px 10px" }} onClick={() => setWeekOffset(0)}>This Week</button>
           )}
         </div>

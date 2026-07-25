@@ -27,7 +27,7 @@ import { Chat }                 from "./components/shared/Chat.jsx";
 import { VMGuidelines }         from "./components/shared/Guidelines.jsx";
 import { StatusBar }            from "./components/shared/StatusBar.jsx";
 import { ToastContainer, toast } from "./components/shared/Toast.jsx";
-import { HomeIcon, RequestsIcon, ChatIcon, OverviewIcon, VisitsIcon, AssignIcon, AnalyticsIcon, CalendarIcon } from "./components/shared/Icons.jsx";
+import { HomeIcon, RequestsIcon, ChatIcon, OverviewIcon, VisitsIcon, AssignIcon, AnalyticsIcon, CalendarIcon, GuidesIcon } from "./components/shared/Icons.jsx";
 import { VMHome }               from "./components/vm/VMHome.jsx";
 import { VMTasks }              from "./components/vm/VMTasks.jsx";
 import { WeeklyPlan }           from "./components/manager/WeeklyPlan.jsx";
@@ -41,7 +41,7 @@ import { AnalyticsDashboard }   from "./components/manager/Analytics.jsx";
 import { StoreVisits }          from "./components/manager/StoreVisits.jsx";
 import { StoreManagerHome }     from "./components/manager/StoreManagerShell.jsx";
 import { StoreManagerAssign }   from "./components/manager/StoreManagerAssign.jsx";
-import { AreaManagerOverview, AreaManagerRequests } from "./components/manager/AreaManagerShell.jsx";
+import { AreaManagerOverview, AreaManagerRequests, AreaManagerCampaignGuides } from "./components/manager/AreaManagerShell.jsx";
 import { SuperAdminPanel }      from "./components/superadmin/SuperAdminPanel.jsx";
 import { S, C }                 from "./styles/theme.js";
 import { nowTime }              from "./utils.js";
@@ -371,14 +371,15 @@ function AuthenticatedApp() {
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} />
           <div style={S.main}>
-            {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} />}
+            {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions} branches={activeBranches} managerBranches={managerBranches} />}
             {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} />}
             {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
+            {amPage==="campaign" && <AreaManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} profile={profile} guidelines={guidelines} />}
             {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
             {amPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["plan",CalendarIcon,"Plan"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
+            {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["plan",CalendarIcon,"Plan"],["campaign",GuidesIcon,"Campaign"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
                 <Icon size={22} /><span>{lbl}</span>
               </button>
