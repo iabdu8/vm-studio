@@ -1,14 +1,10 @@
-import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
-import { CommentThread } from "./CommentThread.jsx";
 
 const BORDER      = `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`;
 const BORDER_SOFT = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
 
 // Shared "All Tasks" table — everyone can view, only the VM Controller can edit (canDelete=true).
-export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn = false, profile, canDelete = false, onDeleteTask }) {
-  const [openTaskId, setOpenTaskId] = useState(null);
-
+export function TasksTable({ tasks, branches = [], showBranchColumn = false, canDelete = false, onDeleteTask }) {
   if (tasks.length === 0) {
     return <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No tasks yet.</div>;
   }
@@ -20,7 +16,7 @@ export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn 
     return da < db ? -1 : da > db ? 1 : 0;
   });
 
-  const headers = ["Task", ...(showBranchColumn ? ["Branch"] : []), "Priority", "Due", "Assigned To", "Status", ...(canDelete ? ["Actions"] : [])];
+  const headers = ["Task", ...(showBranchColumn ? ["Branch"] : []), "Priority", "Due", "Controller", "Status", ...(canDelete ? ["Actions"] : [])];
 
   return (
     <div style={{ ...S.card, padding:0, overflow:"hidden", border:BORDER }}>
@@ -41,8 +37,6 @@ export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn 
           </thead>
           <tbody>
             {sorted.map((t, i) => {
-              const assignee = t.assigned_to === "all" ? "All Staff"
-                : staff.find(s => s.id === t.assigned_to)?.full_name ?? "—";
               const rowBg = i % 2 === 0 ? "transparent" : C.surfaceHigh;
               const cellStyle = { padding:"14px 16px", borderBottom:BORDER_SOFT, borderRight:BORDER_SOFT, background:rowBg };
               return (
@@ -58,12 +52,6 @@ export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn 
                         {t.category?.name ?? "—"}{t.subcategory?.name ? ` · ${t.subcategory.name}` : ""}
                       </div>
                     )}
-                    <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
-                      style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                        fontSize:12, fontWeight:700, padding:0, marginTop:7 }}>
-                      {openTaskId === t.id ? "Hide comments" : "💬 Comments"}
-                    </button>
-                    {openTaskId === t.id && profile && <CommentThread taskId={t.id} profile={profile} />}
                   </td>
                   {showBranchColumn && (
                     <td style={{ ...cellStyle, fontSize:14, color:C.mutedColor, fontWeight:600, whiteSpace:"nowrap" }}>
@@ -79,7 +67,7 @@ export function TasksTable({ tasks, staff = [], branches = [], showBranchColumn 
                       : t.due_label ?? t.dueDate ?? "—"}
                   </td>
                   <td style={{ ...cellStyle, fontSize:14, fontWeight:600, whiteSpace:"nowrap" }}>
-                    {assignee}
+                    {t.controller?.full_name ?? "—"}
                   </td>
                   <td style={{ ...cellStyle, borderRight: canDelete ? cellStyle.borderRight : "none" }}>
                     <span style={S.chip((t.is_done||t.done)?"approved":"pending")}>
