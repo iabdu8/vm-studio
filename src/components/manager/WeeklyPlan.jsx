@@ -54,6 +54,11 @@ const formatDueLabel = (dateStr) =>
 
 const PRIORITY_COLOR = { high: "#f87171", medium: "#d4a82a", low: "#4ade80" };
 
+// Supabase/PostgREST sometimes returns a to-one embed as a single-element
+// array instead of an object (depends on how it infers the relationship) —
+// normalize so `.name`/`.icon`/`.priority` access always works.
+const one = (x) => Array.isArray(x) ? x[0] : x;
+
 // One self-contained, compact staff × day grid for a single branch —
 // used to render each branch as its own organized, collapsible section for
 // Head VM / VM Manager. Collapsed by default and only fetches its data once
@@ -84,7 +89,7 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
         .select("*, assigned_staff:assigned_staff_id(id, full_name), category:categories(name, icon), task:task_id(priority)")
         .eq("plan_id", plan.id);
       if (cancelled) return;
-      setItems(itemsData ?? []);
+      setItems((itemsData ?? []).map(i => ({ ...i, category: one(i.category), assigned_staff: one(i.assigned_staff), task: one(i.task) })));
       setLoading(false);
       setLoaded(true);
     })();
@@ -151,7 +156,7 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
                                 const prio = PRIORITY_COLOR[item.task?.priority] ?? PRIORITY_COLOR.medium;
                                 const [title] = (item.title ?? "").split("\n");
                                 return (
-                                  <div key={item.id} title={item.category?.name ?? ""} style={{
+                                  <div key={item.id} style={{
                                     padding:"2px 4px", borderRadius:5, background:meta.bg,
                                     borderLeft:`3px solid ${prio}`,
                                     fontSize:9, fontWeight:600, lineHeight:1.25,
@@ -160,6 +165,9 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
                                     wordBreak:"break-word",
                                   }}>
                                     {item.category?.icon ? `${item.category.icon} ` : ""}{title}
+                                    {item.category?.name && (
+                                      <div style={{ fontSize:8, fontWeight:700, color:C.accentColor, marginTop:1 }}>{item.category.name}</div>
+                                    )}
                                     <div style={{ fontSize:8, fontWeight:700, color:meta.color, marginTop:1 }}>{meta.label}</div>
                                   </div>
                                 );
@@ -247,7 +255,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       .select("*, category:categories(name, icon), assigned_staff:assigned_staff_id(id, full_name)")
       .eq("plan_id", plan_id)
       .order("day_of_week").order("sort_order");
-    setItems(data ?? []);
+    setItems((data ?? []).map(i => ({ ...i, category: one(i.category), assigned_staff: one(i.assigned_staff) })));
   };
 
   const ensurePlan = async () => ensurePlanFor(weekStart);
@@ -367,7 +375,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       onTasksChanged?.();
       return;
     }
-    if (data) setItems(p => [...p, data]);
+    if (data) setItems(p => [...p, { ...data, category: one(data.category), assigned_staff: one(data.assigned_staff) }]);
     setShowAdd(false);
     setSaving(false);
     if (task?.id) notifyUser(company.id, selectedStaff, "task_created", "New Task Assigned 📋", addTitle);
