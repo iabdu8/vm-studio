@@ -3,6 +3,11 @@ import { supabase } from "../lib/supabase.js";
 // ============================================================
 //  TASKS
 // ============================================================
+// Supabase/PostgREST sometimes returns a to-one embed as a single-element
+// array instead of an object depending on how it infers the relationship —
+// normalize so `.name`/`.icon`/`.full_name` access always works.
+const one = (x) => Array.isArray(x) ? x[0] : x;
+
 export async function getTasks(company_id) {
   const { data, error } = await supabase
     .from("tasks")
@@ -10,7 +15,7 @@ export async function getTasks(company_id) {
     .eq("company_id", company_id)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data;
+  return (data ?? []).map(t => ({ ...t, category: one(t.category), subcategory: one(t.subcategory), controller: one(t.controller) }));
 }
 
 export async function createTask(payload) {

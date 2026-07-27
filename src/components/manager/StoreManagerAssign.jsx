@@ -3,6 +3,7 @@ import { S } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
 import { TasksTable } from "../shared/TasksTable.jsx";
+import { Training } from "./Training.jsx";
 
 // ============================================================
 //  VM CONTROLLER — assigns work via the Weekly Plan (which
@@ -32,7 +33,7 @@ export function StoreManagerAssign({ tasks, categories, branches, profile, compa
       {myBranch && <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>📍 {myBranch.name}</div>}
 
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
-        {[["plan","📅 Weekly Plan"],["all","All Tasks"]].map(([k,l]) => (
+        {[["plan","📅 Weekly Plan"],["all","All Tasks"],["training","🎓 Training"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
@@ -49,6 +50,8 @@ export function StoreManagerAssign({ tasks, categories, branches, profile, compa
           <TasksTable tasks={myTasks} staff={staff} profile={profile} canDelete onDeleteTask={onDeleteTask} />
         </div>
       )}
+
+      {tab === "training" && <Training company={company} profile={profile} readOnly/>}
     </div>
   );
 }

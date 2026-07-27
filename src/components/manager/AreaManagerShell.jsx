@@ -4,6 +4,7 @@ import { todayStr } from "../../utils.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { CampaignPanel } from "./CampaignPanel.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
+import { Training } from "./Training.jsx";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
@@ -231,6 +232,9 @@ export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches
       <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>Guidelines</div>
       <GuidelinesManager company={company} guidelines={guidelines}
         onUploadGuideline={onUploadGuideline} onDeleteGuideline={onDeleteGuideline} />
+
+      <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>🎓 Training</div>
+      <Training company={company} profile={profile} readOnly />
     </div>
   );
 }

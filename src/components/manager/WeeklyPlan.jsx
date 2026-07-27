@@ -159,15 +159,18 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
                                   <div key={item.id} style={{
                                     padding:"2px 4px", borderRadius:5, background:meta.bg,
                                     borderLeft:`3px solid ${prio}`,
-                                    fontSize:9, fontWeight:600, lineHeight:1.25,
-                                    color: item.status==="done" ? C.mutedColor : C.textColor,
-                                    textDecoration: item.status==="done" ? "line-through" : "none",
-                                    wordBreak:"break-word",
+                                    lineHeight:1.25, wordBreak:"break-word",
                                   }}>
-                                    {item.category?.icon ? `${item.category.icon} ` : ""}{title}
                                     {item.category?.name && (
-                                      <div style={{ fontSize:8, fontWeight:700, color:C.accentColor, marginTop:1 }}>{item.category.name}</div>
+                                      <div style={{ fontSize:8, fontWeight:800, color:"#818cf8", letterSpacing:.2, textTransform:"uppercase" }}>
+                                        {item.category.name}
+                                      </div>
                                     )}
+                                    <div style={{ fontSize:9, fontWeight:600,
+                                      color: item.status==="done" ? C.mutedColor : C.textColor,
+                                      textDecoration: item.status==="done" ? "line-through" : "none" }}>
+                                      {title}
+                                    </div>
                                     <div style={{ fontSize:8, fontWeight:700, color:meta.color, marginTop:1 }}>{meta.label}</div>
                                   </div>
                                 );
@@ -542,11 +545,15 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                           </>
                         )}
                         <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a`, maxWidth:260 }}>
+                          {item.category?.name && (
+                            <div style={{ fontSize:10, fontWeight:800, color:"#818cf8", letterSpacing:.3, textTransform:"uppercase", marginBottom:2 }}>
+                              {item.category.name}
+                            </div>
+                          )}
                           <div style={{ fontSize:13, fontWeight:600, color: item.status==="done" ? C.mutedColor : C.textColor,
                             textDecoration: item.status==="done" ? "line-through" : "none" }}>
-                            {item.category?.icon ? `${item.category.icon} ` : ""}{title}
+                            {title}
                           </div>
-                          {item.category?.name && <div style={{ fontSize:11, color:C.accentColor, marginTop:2 }}>{item.category.name}</div>}
                         </td>
                         <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
                           {statusEditable ? (

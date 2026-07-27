@@ -4,6 +4,7 @@ import { todayStr } from "../../utils.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { TasksTable } from "../shared/TasksTable.jsx";
+import { Training } from "../manager/Training.jsx";
 
 export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit, onTaskToggle,
   submissions = [], demoHolds = [], onAddDemoHold, onDeleteDemoHold, company, profile }) {
@@ -146,7 +147,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
-        {[["my","📋 My Tasks"],["all","📊 All Tasks"],["submit","📤 Submit Work"],["demo","🏷️ Demo Hold"]].map(([k,l]) => (
+        {[["my","📋 My Tasks"],["all","📊 All Tasks"],["submit","📤 Submit Work"],["demo","🏷️ Demo Hold"],["training","🎓 Training"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -453,6 +454,9 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
           )}
         </div>
       )}
+
+      {/* ── TRAINING (view only) ── */}
+      {tab === "training" && <Training company={company} profile={profile} readOnly />}
     </div>
   );
 }
