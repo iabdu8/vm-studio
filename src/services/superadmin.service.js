@@ -76,7 +76,7 @@ export async function adminDeleteCategory(id) {
 export async function getAllUsers() {
   const { data, error } = await supabase
     .from("profiles")
-    .select("*, company:companies(name)")
+    .select("*, company:companies(name), branch:branches(name)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -93,6 +93,16 @@ export async function assignUserToCompany(user_id, company_id, branch_id) {
   const { data, error } = await supabase
     .from("profiles")
     .update({ company_id, branch_id })
+    .eq("id", user_id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// Reassign a VM / VM Controller to a different branch (e.g. they transferred stores) — company_id untouched.
+export async function assignUserBranch(user_id, branch_id) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ branch_id: branch_id || null })
     .eq("id", user_id).select().single();
   if (error) throw error;
   return data;

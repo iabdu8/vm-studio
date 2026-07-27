@@ -11,6 +11,7 @@ export function RegisterPage({ onBack }) {
   const [company,  setCompany]  = useState(null);
   const [role,     setRole]     = useState("vm");
   const [name,     setName]     = useState("");
+  const [employeeId, setEmployeeId] = useState("");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [branchId, setBranchId] = useState("");
@@ -92,6 +93,10 @@ export function RegisterPage({ onBack }) {
       if (invite) {
         await markInviteUsed(invite.id, userId);
         if (invite.role === "area_manager") await setManagerBranches(userId, invite.branch_ids);
+      }
+
+      if (employeeId.trim()) {
+        await supabase.from("profiles").update({ employee_id: employeeId.trim() }).eq("id", userId);
       }
 
       setDone(true);
@@ -207,6 +212,9 @@ export function RegisterPage({ onBack }) {
             <div style={S.lbl}>Full Name</div>
             <input style={S.inp} placeholder="Your full name" value={name}
               onChange={e => { setName(e.target.value); setErr(""); }}/>
+            <div style={S.lbl}>Employee ID</div>
+            <input style={S.inp} placeholder="e.g. 10234" value={employeeId}
+              onChange={e => setEmployeeId(e.target.value)}/>
             <div style={S.lbl}>Email</div>
             <input style={S.inp} type="email" placeholder="your@email.com" value={email}
               onChange={e => { setEmail(e.target.value); setErr(""); }}/>

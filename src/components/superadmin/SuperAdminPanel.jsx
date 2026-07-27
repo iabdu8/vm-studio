@@ -6,7 +6,7 @@ import {
   getAllCompanies, createCompany, deleteCompany,
   updateSettings, getCategoriesForCompany,
   adminCreateCategory, adminDeleteCategory,
-  getAllUsers, updateUserRole, assignUserToCompany,
+  getAllUsers, updateUserRole, assignUserToCompany, assignUserBranch,
 } from "../../services/superadmin.service.js";
 import { createInvite, getInvites } from "../../services/enterprise.service.js";
 
@@ -204,13 +204,22 @@ function SubEditor({ category, companyId, onRefresh }) {
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(null);
   const [confirm, setConfirm] = useState(null);
-  useEffect(() => { getAllUsers().then(setUsers); getAllCompanies().then(setCompanies); }, []);
+  useEffect(() => {
+    getAllUsers().then(setUsers);
+    getAllCompanies().then(setCompanies);
+    supabase.from("branches").select("id, name, company_id").then(({ data }) => setBranches(data ?? []));
+  }, []);
 
   const changeRole = async (id, role) => { await updateUserRole(id, role); setUsers(p => p.map(u => u.id===id?{...u,role}:u)); };
-  const assign = async (id, company_id) => { await assignUserToCompany(id, company_id||null, null); setUsers(p => p.map(u => u.id===id?{...u,company_id:company_id||null}:u)); };
+  const assign = async (id, company_id) => { await assignUserToCompany(id, company_id||null, null); setUsers(p => p.map(u => u.id===id?{...u,company_id:company_id||null,branch_id:null,branch:null}:u)); };
+  const changeBranch = async (id, branch_id) => {
+    const updated = await assignUserBranch(id, branch_id);
+    setUsers(p => p.map(u => u.id===id ? { ...u, branch_id: updated.branch_id, branch: branches.find(b=>b.id===updated.branch_id) ?? null } : u));
+  };
   const deleteUser = (id) => {
     setConfirm({ message:"Delete this user permanently?", onConfirm: async () => {
       setDeleting(id); setConfirm(null);
@@ -252,8 +261,10 @@ function UsersTab() {
         <div key={u.id} style={S.card}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
             <div>
-              <div style={{ fontWeight:700, fontSize:14 }}>{u.full_name}</div>
-              <div style={{ fontSize:11, color:"#6b6880" }}>{u.company?.name ?? "No company"}</div>
+              <div style={{ fontWeight:700, fontSize:14 }}>{u.full_name}{u.employee_id && <span style={{ color:"#6b6880", fontWeight:400 }}> · #{u.employee_id}</span>}</div>
+              <div style={{ fontSize:11, color:"#6b6880" }}>
+                {u.company?.name ?? "No company"}{u.branch?.name && ` · 📍 ${u.branch.name}`}
+              </div>
             </div>
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
               <span style={S.chip(u.role)}>{u.role}</span>
@@ -280,6 +291,15 @@ function UsersTab() {
                 {companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
+            {(u.role === "vm" || u.role === "store_manager") && (
+              <div style={{ gridColumn:"1 / -1" }}>
+                <div style={S.lbl}>Branch — change if they transferred stores</div>
+                <select style={S.sel} value={u.branch_id??""} onChange={e=>changeBranch(u.id,e.target.value)} disabled={!u.company_id}>
+                  <option value="">— none —</option>
+                  {branches.filter(b=>b.company_id===u.company_id).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -390,7 +410,7 @@ function ScopedInvitesTab({ profile }) {
     getInvites(selected).then(setInvites);
   }, [selected]);
 
-  const togglePick = (id) => setPicked(p => p.includes(id) ? p.filter(x => x !== id) : (role === "store_manager" ? [id] : [...p, id]));
+  const togglePick = (id) => setPicked(p => p.includes(id) ? p.filter(x => x !== id) : (role !== "area_manager" ? [id] : [...p, id]));
 
   const generate = async () => {
     if (!selected || !picked.length) return;
@@ -408,7 +428,7 @@ function ScopedInvitesTab({ profile }) {
       <div style={{ ...S.card, marginBottom:20 }}>
         <div style={S.h3}>Branch-Scoped Invites</div>
         <div style={{ fontSize:13, color:"#6b6880", lineHeight:1.7 }}>
-          VM Manager and VM Controller accounts are locked to specific branches at creation time —
+          VM, VM Controller, and VM Manager accounts are locked to specific branches at creation time —
           pick the branch(es) here and hand the generated code to the employee.
         </div>
       </div>
@@ -424,11 +444,12 @@ function ScopedInvitesTab({ profile }) {
           <>
             <div style={S.lbl}>Role</div>
             <select style={S.sel} value={role} onChange={e => { setRole(e.target.value); setPicked([]); }}>
+              <option value="vm">VM Staff — single branch</option>
               <option value="store_manager">VM Controller — single branch</option>
               <option value="area_manager">VM Manager — multiple branches</option>
             </select>
 
-            <div style={S.lbl}>{role === "store_manager" ? "Branch (pick one)" : "Branches (pick one or more)"}</div>
+            <div style={S.lbl}>{role !== "area_manager" ? "Branch (pick one)" : "Branches (pick one or more)"}</div>
             <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
               {branches.map(b => (
                 <button key={b.id} onClick={() => togglePick(b.id)} style={{
@@ -464,7 +485,7 @@ function ScopedInvitesTab({ profile }) {
               <div>
                 <div style={{ fontSize:16, fontWeight:700, letterSpacing:2, color:"#a855f7" }}>{inv.code}</div>
                 <div style={{ fontSize:11, color:"#6b6880", marginTop:2 }}>
-                  {inv.role === "store_manager" ? "VM Controller" : "VM Manager"} · {inv.branch_ids.length} branch(es)
+                  {inv.role === "store_manager" ? "VM Controller" : inv.role === "vm" ? "VM Staff" : "VM Manager"} · {inv.branch_ids.length} branch(es)
                 </div>
               </div>
               <span style={{ fontSize:11, fontWeight:700, color: inv.used_by ? "#4ade80" : "#d4a82a" }}>
