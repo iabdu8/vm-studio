@@ -5,7 +5,6 @@ export function VMNav({ page, setPage }) {
   const items = [
     ["home",       HomeIcon,     "Home"],
     ["tasks",      TasksIcon,    "Tasks"],
-    ["plan",       CalendarIcon, "Plan"],
     ["visits",     VisitsIcon,   "Visits"],
     ["guidelines", GuidesIcon,   "Guides"],
     ["chat",       ChatIcon,     "Chat"],

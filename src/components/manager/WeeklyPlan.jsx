@@ -343,6 +343,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     const dayOfWeek = Math.round((new Date(addDate) - new Date(targetMonday)) / 86400000);
     const plan = await ensurePlanFor(targetMonday);
     if (!plan) { setSaving(false); return; }
+    const catId = addCat === "DAYOFF" ? null : (addCat || null);
 
     // The plan item IS the task: create the backing `tasks` row so the VM
     // sees it in My Tasks / Submit Work with before/after + approval flow.
@@ -350,7 +351,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       .from("tasks")
       .insert({
         company_id: company.id, branch_id: selectedBranch,
-        category_id: addCat || null, created_by: profile.id,
+        category_id: catId, created_by: profile.id,
         assigned_to: selectedStaff, target_controller_id: profile.id,
         title: addTitle, priority: "medium",
         due_date: addDate, due_label: formatDueLabel(addDate),
@@ -362,8 +363,8 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       .insert({
         plan_id:           plan.id,
         task_id:           task?.id ?? null,
-        title:             addNotes.trim() ? `${addTitle}\n${addNotes.trim()}` : addTitle,
-        category_id:       addCat || null,
+        title:             addCat === "DAYOFF" ? addTitle : (addNotes.trim() ? `${addTitle}\n${addNotes.trim()}` : addTitle),
+        category_id:       catId,
         day_of_week:       dayOfWeek,
         assigned_staff_id: selectedStaff,
         sort_order:        items.length,
@@ -483,9 +484,6 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
               </button>
               <button className="btnP" style={S.btnP} onClick={() => openAdd(weekDates[0].index)} disabled={!selectedStaff}>
                 ＋ Add Task
-              </button>
-              <button className="btnG" style={S.btnG} onClick={() => openAdd(weekDates[0].index, "Day Off")} disabled={!selectedStaff}>
-                Day Off
               </button>
             </>
           )}
@@ -609,16 +607,44 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
             <div style={S.lbl}>Date</div>
             <input style={S.inp} type="date" value={addDate} onChange={e => setAddDate(e.target.value)} />
             <div style={S.lbl}>Category</div>
-            <select style={S.sel} value={addCat} onChange={e => setAddCat(e.target.value)}>
+            <select style={S.sel} value={addCat} onChange={e => {
+              setAddCat(e.target.value);
+              if (e.target.value === "DAYOFF") setAddTitle("Day Off");
+              else if (addTitle === "Day Off") setAddTitle("");
+            }}>
               <option value="">— optional —</option>
+              <option value="DAYOFF">Day Off</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+
+            {addCat !== "DAYOFF" && (
+              <>
+                <div style={S.lbl}>Quick Select</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:10 }}>
+                  {["Remerchandise","Refresh","New Implementation"].map(p => (
+                    <button key={p} type="button" onClick={() => setAddTitle(p)} style={{
+                      padding:"6px 12px", borderRadius:16, cursor:"pointer", fontSize:12, fontWeight:600,
+                      background: addTitle===p ? C.accentColor+"28" : "transparent",
+                      color:      addTitle===p ? C.accentColor : C.mutedColor,
+                      border:     addTitle===p ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
+                    }}>{p}</button>
+                  ))}
+                </div>
+              </>
+            )}
+
             <div style={S.lbl}>Task</div>
             <input style={S.inp} placeholder="e.g. Update window display"
-              value={addTitle} onChange={e => setAddTitle(e.target.value)} autoFocus />
-            <div style={S.lbl}>Notes / Details</div>
-            <textarea style={{ ...S.inp, minHeight:64, resize:"vertical" }}
-              placeholder="Extra instructions…" value={addNotes} onChange={e => setAddNotes(e.target.value)} />
+              value={addTitle} onChange={e => setAddTitle(e.target.value)}
+              disabled={addCat === "DAYOFF"} autoFocus />
+
+            {addCat !== "DAYOFF" && (
+              <>
+                <div style={S.lbl}>Notes / Details</div>
+                <textarea style={{ ...S.inp, minHeight:64, resize:"vertical" }}
+                  placeholder="Extra instructions…" value={addNotes} onChange={e => setAddNotes(e.target.value)} />
+              </>
+            )}
             <div style={{ display:"flex", gap:8, marginTop:4 }}>
               <button className="btnP" style={{ ...S.btnP, flex:1 }} onClick={addItem} disabled={saving || !addTitle.trim()}>
                 {saving ? "Saving…" : "Add Task →"}

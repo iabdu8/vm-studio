@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useApp } from "./context/AppContext.jsx";
 import { signIn, signOut } from "./services/auth.service.js";
 import {
-  getTasks, updateTask, deleteTask,
+  getTasks, updateTask,
   getSubmissions, reviewSubmission,
   getGuidelines, uploadGuideline, deleteGuideline,
   sendMessage, getActivityLog, logActivity,
@@ -267,7 +267,6 @@ function AuthenticatedApp() {
 
   const handleDeleteSubmission = (id) => showConfirm("Delete this submission permanently?", async () => { await supabase.from("submissions").delete().eq("id", id); setSubmissions(p => p.filter(x => x.id !== id)); setConfirm(null); });
 
-  const handleDeleteTask = (id) => showConfirm("Delete this task?", async () => { await deleteTask(id); getTasks(company.id).then(setTasks); setConfirm(null); });
 
   const handleUploadGuideline = async (title, category, file) => {
     try { await uploadGuideline(company.id, profile.id, title, category, file); getGuidelines(company.id).then(setGuidelines); addLog("Uploaded guideline", title); notifyAll(company.id, "guideline_new", "New Guideline Published 📖", title); }
@@ -348,7 +347,6 @@ function AuthenticatedApp() {
           <div style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} campaign={campaign} promotions={promotions} />}
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks))} />}
-            {vmPage==="plan"       && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => b.id === profile.branch_id)} profile={profile} readOnly lockedStaffId={profile.id} statusEditable onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
             {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
             {vmPage==="chat"       && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
@@ -362,7 +360,7 @@ function AuthenticatedApp() {
           <TopBar user={profile} onLogout={() => signOut()} />
           <div style={S.main}>
             {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} />}
-            {smPage==="assign"   && <StoreManagerAssign tasks={tasks} categories={categories} branches={activeBranches} profile={profile} company={company} onDeleteTask={handleDeleteTask} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
+            {smPage==="assign"   && <StoreManagerAssign categories={categories} branches={activeBranches} profile={profile} company={company} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
             {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onCampaignFileUploaded={handleCampaignFileUploaded} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}

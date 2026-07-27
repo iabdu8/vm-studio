@@ -6,6 +6,9 @@ import { CommentThread } from "../shared/CommentThread.jsx";
 import { TasksTable } from "../shared/TasksTable.jsx";
 import { Training } from "../manager/Training.jsx";
 
+const BORDER      = `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`;
+const BORDER_SOFT = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
+
 export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit, onTaskToggle,
   submissions = [], demoHolds = [], onAddDemoHold, onDeleteDemoHold, company, profile }) {
 
@@ -147,7 +150,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
-        {[["my","📋 My Tasks"],["all","📊 All Tasks"],["submit","📤 Submit Work"],["demo","🏷️ Demo Hold"],["training","🎓 Training"]].map(([k,l]) => (
+        {[["my","📋 My Tasks"],["submit","📤 Submit Work"],["demo","🏷️ Demo Hold"],["training","🎓 Training"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -204,93 +207,91 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
             </div>
           )}
 
-          {categories.map(cat => {
-            const catTasks = myAllTasks.filter(t => t.category_id === cat.id);
-            if (!catTasks.length) return null;
-            return (
-              <div key={cat.id} style={S.card}>
-                <div style={{ ...S.h3, marginBottom:10 }}>{cat.icon} {cat.name}</div>
-                {catTasks.map(t => (
-                  <div key={t.id} style={{ padding:"9px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                    <div style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
-                      <input type="checkbox" checked={t.is_done ?? t.done ?? false}
-                        style={{ marginTop:3, accentColor:C.accentColor }}
-                        onChange={() => onTaskToggle(t.id, !(t.is_done ?? t.done))}/>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:13,
-                          color:(t.is_done||t.done)?C.mutedColor:C.textColor,
-                          textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
-                          {t.title ?? t.text}
-                        </div>
-                        <div style={{ display:"flex", gap:6, marginTop:4, flexWrap:"wrap" }}>
-                          <span style={S.chip(t.priority)}>{t.priority}</span>
-                          <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
-                          {t.assigned_to !== "all" && (
-                            <span style={{ fontSize:11, color:"#818cf8" }}>👤 Assigned to you</span>
+          {myAllTasks.length > 0 && (
+            <div style={{ ...S.card, padding:0, overflow:"hidden", border:BORDER }}>
+              <div style={{ overflowX:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", minWidth:680 }}>
+                  <thead>
+                    <tr>
+                      {["","Task","Priority","Due","Controller","Actions"].map((h, i, arr) => (
+                        <th key={h+i} style={{
+                          padding:"14px 16px", textAlign:"left", fontSize:13, fontWeight:800,
+                          color:C.accentColor, letterSpacing:.5, textTransform:"uppercase",
+                          background:C.surfaceHigh, borderBottom:BORDER,
+                          borderRight: i < arr.length-1 ? BORDER : "none",
+                          whiteSpace:"nowrap",
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...myAllTasks].sort((a, b) => {
+                      const da = a.due_date ?? a.created_at ?? "";
+                      const db = b.due_date ?? b.created_at ?? "";
+                      return da < db ? -1 : da > db ? 1 : 0;
+                    }).map((t, i) => {
+                      const rowBg = i % 2 === 0 ? "transparent" : C.surfaceHigh;
+                      const cellStyle = { padding:"14px 16px", borderBottom:BORDER_SOFT, borderRight:BORDER_SOFT, background:rowBg };
+                      const isDone = t.is_done ?? t.done ?? false;
+                      return (
+                        <>
+                          <tr key={t.id}>
+                            <td style={{ ...cellStyle, width:36 }}>
+                              <input type="checkbox" checked={isDone}
+                                style={{ accentColor:C.accentColor }}
+                                onChange={() => onTaskToggle(t.id, !isDone)}/>
+                            </td>
+                            <td style={{ ...cellStyle, maxWidth:240 }}>
+                              <div style={{ fontSize:15, fontWeight:700,
+                                color:isDone?C.mutedColor:C.textColor,
+                                textDecoration:isDone?"line-through":"none" }}>
+                                {t.title ?? t.text}
+                              </div>
+                              {(t.category?.name || t.subcategory?.name) && (
+                                <div style={{ fontSize:12, color:C.accentColor, marginTop:3, fontWeight:600 }}>
+                                  {t.category?.name ?? "—"}{t.subcategory?.name ? ` · ${t.subcategory.name}` : ""}
+                                </div>
+                              )}
+                            </td>
+                            <td style={cellStyle}>
+                              <span style={S.chip(t.priority)}>{t.priority}</span>
+                            </td>
+                            <td style={{ ...cellStyle, fontSize:14, color:C.mutedColor, fontWeight:600, whiteSpace:"nowrap" }}>
+                              {t.due_date
+                                ? new Date(t.due_date).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" })
+                                : t.due_label ?? t.dueDate ?? "—"}
+                            </td>
+                            <td style={{ ...cellStyle, fontSize:14, fontWeight:600, whiteSpace:"nowrap" }}>
+                              {t.controller?.full_name ?? "—"}
+                            </td>
+                            <td style={{ ...cellStyle, borderRight:"none", whiteSpace:"nowrap" }}>
+                              <button onClick={() => startSubmitFor(t)}
+                                style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                                  fontSize:12, fontWeight:700, padding:0, marginRight:12 }}>
+                                📤 Submit
+                              </button>
+                              <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
+                                style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                                  fontSize:12, fontWeight:700, padding:0 }}>
+                                {openTaskId === t.id ? "Hide" : "💬"}
+                              </button>
+                            </td>
+                          </tr>
+                          {openTaskId === t.id && (
+                            <tr key={t.id+"-c"}>
+                              <td colSpan={6} style={{ padding:"0 16px 14px", background:rowBg, borderBottom:BORDER_SOFT }}>
+                                <CommentThread taskId={t.id} profile={profile} />
+                              </td>
+                            </tr>
                           )}
-                          {t.controller?.full_name && (
-                            <span style={{ fontSize:11, color:C.accentColor }}>→ Reviewed by {t.controller.full_name}</span>
-                          )}
-                        </div>
-                        <div style={{ display:"flex", gap:12, marginTop:6 }}>
-                          <button onClick={() => startSubmitFor(t)}
-                            style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                              fontSize:11, fontWeight:600, padding:0 }}>
-                            📤 Submit
-                          </button>
-                          <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
-                            style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                              fontSize:11, fontWeight:600, padding:0 }}>
-                            {openTaskId === t.id ? "Hide comments" : "💬 Comments"}
-                          </button>
-                        </div>
-                        {openTaskId === t.id && <CommentThread taskId={t.id} profile={profile} />}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            );
-          })}
-
-          {(() => {
-            const uncatTasks = myAllTasks.filter(t => !t.category_id);
-            if (!uncatTasks.length) return null;
-            return (
-              <div style={S.card}>
-                <div style={S.h3}>General</div>
-                {uncatTasks.map(t => (
-                  <div key={t.id} style={{ display:"flex", gap:10, alignItems:"flex-start",
-                    padding:"9px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                    <input type="checkbox" checked={t.is_done ?? t.done ?? false}
-                      style={{ marginTop:3, accentColor:C.accentColor }}
-                      onChange={() => onTaskToggle(t.id, !(t.is_done ?? t.done))}/>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:13,
-                        color:(t.is_done||t.done)?C.mutedColor:C.textColor,
-                        textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
-                        {t.title ?? t.text}
-                      </div>
-                      <div style={{ display:"flex", gap:6, marginTop:4 }}>
-                        <span style={S.chip(t.priority)}>{t.priority}</span>
-                        <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* ── ALL TASKS (view only) ── */}
-      {tab === "all" && (
-        <div>
-          <div style={{ ...S.muted, marginBottom:14, fontSize:12 }}>
-            View-only — tasks are created and managed by your branch's VM Controller.
-          </div>
-          <TasksTable tasks={tasks} branches={branches} showBranchColumn profile={profile} />
+            </div>
+          )}
         </div>
       )}
 
@@ -306,22 +307,6 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                 style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:11 }}>✕ Clear</button>
             </div>
           )}
-          {branches.length > 1 && (
-            <div style={S.card}>
-              <div style={S.h3}>Branch</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-                {branches.map(b => (
-                  <button key={b.id} className="pill-btn" onClick={() => setBranchId(b.id)} style={{
-                    padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                    background:branchId===b.id?C.accentColor+"28":"transparent",
-                    color:branchId===b.id?C.accentColor:C.mutedColor,
-                    border:branchId===b.id?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
-                  }}>{b.name}</button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
             {categories.map(c => (
               <button key={c.id} className="tab-btn" style={S.tab(catId===c.id)} onClick={() => changeCat(c.id)}>
