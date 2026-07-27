@@ -9,6 +9,7 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
   const [managerBranches, setManagerBranches] = useState([]);
+  const [justConfirmedEmail, setJustConfirmedEmail] = useState(false);
 
   const refresh = async () => {
     try {
@@ -23,7 +24,8 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     refresh();
-    const { data: { subscription } } = onAuthChange(async (authSession) => {
+    const { data: { subscription } } = onAuthChange(async (authSession, meta) => {
+      if (meta?.justConfirmed) { setJustConfirmedEmail(true); setSession(null); setLoading(false); return; }
       if (authSession) { await refresh(); }
       else { setSession(null); setLoading(false); }
     });
@@ -46,6 +48,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       session, loading, error, refresh,
       updateCategories, updateSettings,
+      justConfirmedEmail, clearJustConfirmedEmail: () => setJustConfirmedEmail(false),
       // shortcuts
       profile:    session?.profile    ?? null,
       company:    session?.company    ?? null,

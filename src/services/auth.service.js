@@ -82,8 +82,24 @@ function defaultSettings(company_id) {
   };
 }
 
+// Supabase auto-signs the user in as soon as they click the "Confirm email"
+// link (detectSessionInUrl picks up the tokens in the redirect URL). Product
+// wants confirmation to just confirm the address — the user must still sign
+// in manually afterwards.
+export function isEmailConfirmationRedirect() {
+  const hash = window.location.hash || "";
+  const search = window.location.search || "";
+  return /type=signup|type=email_change|type=invite/.test(hash) || /type=signup|type=email_change|type=invite/.test(search);
+}
+
 export function onAuthChange(callback) {
-  return supabase.auth.onAuthStateChange((_event, session) => {
+  return supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === "SIGNED_IN" && isEmailConfirmationRedirect()) {
+      window.history.replaceState(null, "", window.location.pathname);
+      await supabase.auth.signOut();
+      callback(null, { justConfirmed: true });
+      return;
+    }
     callback(session);
   });
 }

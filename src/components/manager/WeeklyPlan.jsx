@@ -155,23 +155,27 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
                                 const meta = STATUS_META[item.status] ?? STATUS_META.pending;
                                 const prio = PRIORITY_COLOR[item.task?.priority] ?? PRIORITY_COLOR.medium;
                                 const [title] = (item.title ?? "").split("\n");
+                                const isDayOff = title.trim().toLowerCase() === "day off";
                                 return (
                                   <div key={item.id} style={{
-                                    padding:"2px 4px", borderRadius:5, background:meta.bg,
-                                    borderLeft:`3px solid ${prio}`,
+                                    padding:"2px 4px", borderRadius:5,
+                                    background: isDayOff ? C.mutedColor+"18" : meta.bg,
+                                    borderLeft: isDayOff ? `3px solid ${C.mutedColor}` : `3px solid ${prio}`,
                                     lineHeight:1.25, wordBreak:"break-word",
                                   }}>
-                                    {item.category?.name && (
+                                    {!isDayOff && item.category?.name && (
                                       <div style={{ fontSize:8, fontWeight:800, color:"#818cf8", letterSpacing:.2, textTransform:"uppercase" }}>
                                         {item.category.name}
                                       </div>
                                     )}
                                     <div style={{ fontSize:9, fontWeight:600,
-                                      color: item.status==="done" ? C.mutedColor : C.textColor,
+                                      color: isDayOff ? C.mutedColor : item.status==="done" ? C.mutedColor : C.textColor,
                                       textDecoration: item.status==="done" ? "line-through" : "none" }}>
-                                      {title}
+                                      {isDayOff ? "Day Off" : title}
                                     </div>
-                                    <div style={{ fontSize:8, fontWeight:700, color:meta.color, marginTop:1 }}>{meta.label}</div>
+                                    {!isDayOff && (
+                                      <div style={{ fontSize:8, fontWeight:700, color:meta.color, marginTop:1 }}>{meta.label}</div>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -323,11 +327,11 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     setCreating(false);
   };
 
-  const openAdd = (dayIndex) => {
+  const openAdd = (dayIndex, presetTitle = "") => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + dayIndex);
     setAddDate(d.toISOString().slice(0, 10));
-    setAddTitle(""); setAddNotes(""); setAddCat("");
+    setAddTitle(presetTitle); setAddNotes(""); setAddCat("");
     setShowAdd(true);
   };
 
@@ -479,6 +483,9 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
               </button>
               <button className="btnP" style={S.btnP} onClick={() => openAdd(weekDates[0].index)} disabled={!selectedStaff}>
                 ＋ Add Task
+              </button>
+              <button className="btnG" style={S.btnG} onClick={() => openAdd(weekDates[0].index, "Day Off")} disabled={!selectedStaff}>
+                Day Off
               </button>
             </>
           )}

@@ -119,6 +119,7 @@ function ForgotPassword({ onBack }) {
 }
 
 function LoginScreen({ onBack }) {
+  const { justConfirmedEmail, clearJustConfirmedEmail } = useApp();
   const [view, setView]       = useState("login");
   const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
@@ -138,6 +139,14 @@ function LoginScreen({ onBack }) {
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:28 }}>
           <Logo size="lg" />
         </div>
+        {justConfirmedEmail && (
+          <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 14px", marginBottom:16,
+            background:"#4ade8018", border:"1px solid #4ade8044", borderRadius:10, fontSize:13, color:"#4ade80" }}>
+            ✓ Email confirmed — sign in below.
+            <button onClick={clearJustConfirmedEmail} style={{ marginLeft:"auto", background:"none", border:"none",
+              color:"#4ade80", cursor:"pointer", fontSize:14, lineHeight:1 }}>✕</button>
+          </div>
+        )}
         <div style={S.lbl}>Email</div>
         <input style={S.inp} type="email" placeholder="Email address" value={email}
           onChange={e => { setEmail(e.target.value); setErr(""); }} onKeyDown={e => e.key==="Enter" && go()} />
