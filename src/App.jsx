@@ -348,7 +348,7 @@ function AuthenticatedApp() {
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} campaign={campaign} promotions={promotions} />}
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks))} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
-            {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} />}
+            {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} campaign={campaign} campaignProgress={campaignProgress} />}
             {vmPage==="chat"       && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
           </div>
           <VMNav page={vmPage} setPage={setVmPage} />

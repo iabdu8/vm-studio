@@ -74,6 +74,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
         branch_name:      activeBranch?.name ?? "",
         before, after, note,
       });
+      if (submitTaskId) onTaskToggle(submitTaskId, true);
       setBefore([]); setAfter([]); setNote(""); setSubmitTaskId(null);
       setSent(true); setTimeout(() => setSent(false), 3000);
     } finally { setSaving(false); }
@@ -158,30 +159,6 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
       {/* ── MY TASKS ── */}
       {tab === "my" && (
         <div>
-          {/* Revision notes */}
-          {(() => {
-            const revisions = submissions.filter(s =>
-              s.status === "revision" && s.submitted_by === user?.id && s.note
-            );
-            if (!revisions.length) return null;
-            return (
-              <div style={{ ...S.card, borderLeft:"4px solid #f87171", background:"#f8717108" }}>
-                <div style={{ ...S.h3, color:"#f87171", marginBottom:10 }}>↩ Revision Requested</div>
-                {revisions.map((s, i) => (
-                  <div key={i} style={{ padding:"10px 0", borderBottom: i < revisions.length-1 ? "1px solid #f8717122" : "none" }}>
-                    <div style={{ fontSize:12, color:"#f87171", fontWeight:600, marginBottom:4 }}>
-                      {s.category_name ?? ""}{s.subcategory_name ? " · " + s.subcategory_name : ""}
-                    </div>
-                    <div style={{ fontSize:13, lineHeight:1.5 }}>{s.note}</div>
-                    <div style={{ fontSize:11, color:"#9ca3af", marginTop:4 }}>
-                      {s.reviewed_at ? new Date(s.reviewed_at).toLocaleDateString("en-GB", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }) : ""}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-
           {/* Progress */}
           {myAllTasks.length > 0 && (
             <div style={{ ...S.card, marginBottom:14 }}>
@@ -213,7 +190,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                 <table style={{ width:"100%", borderCollapse:"collapse", minWidth:680 }}>
                   <thead>
                     <tr>
-                      {["","Task","Priority","Due","Controller","Actions"].map((h, i, arr) => (
+                      {["Task","Priority","Due","Controller","Status","Actions"].map((h, i, arr) => (
                         <th key={h+i} style={{
                           padding:"14px 16px", textAlign:"left", fontSize:13, fontWeight:800,
                           color:C.accentColor, letterSpacing:.5, textTransform:"uppercase",
@@ -233,14 +210,13 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                       const rowBg = i % 2 === 0 ? "transparent" : C.surfaceHigh;
                       const cellStyle = { padding:"14px 16px", borderBottom:BORDER_SOFT, borderRight:BORDER_SOFT, background:rowBg };
                       const isDone = t.is_done ?? t.done ?? false;
+                      const revision = submissions.find(s =>
+                        s.status === "revision" && s.submitted_by === user?.id && s.note &&
+                        (s.task_id ? s.task_id === t.id : s.category_name === t.category?.name)
+                      );
                       return (
                         <>
                           <tr key={t.id}>
-                            <td style={{ ...cellStyle, width:36 }}>
-                              <input type="checkbox" checked={isDone}
-                                style={{ accentColor:C.accentColor }}
-                                onChange={() => onTaskToggle(t.id, !isDone)}/>
-                            </td>
                             <td style={{ ...cellStyle, maxWidth:240 }}>
                               <div style={{ fontSize:15, fontWeight:700,
                                 color:isDone?C.mutedColor:C.textColor,
@@ -250,6 +226,13 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                               {(t.category?.name || t.subcategory?.name) && (
                                 <div style={{ fontSize:12, color:C.accentColor, marginTop:3, fontWeight:600 }}>
                                   {t.category?.name ?? "—"}{t.subcategory?.name ? ` · ${t.subcategory.name}` : ""}
+                                </div>
+                              )}
+                              {revision && (
+                                <div style={{ marginTop:6, padding:"6px 10px", borderRadius:8,
+                                  background:"#f8717114", border:"1px solid #f8717133" }}>
+                                  <div style={{ fontSize:11, fontWeight:700, color:"#f87171" }}>↩ Revision Requested</div>
+                                  <div style={{ fontSize:12, marginTop:2, lineHeight:1.4 }}>{revision.note}</div>
                                 </div>
                               )}
                             </td>
@@ -264,16 +247,19 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                             <td style={{ ...cellStyle, fontSize:14, fontWeight:600, whiteSpace:"nowrap" }}>
                               {t.controller?.full_name ?? "—"}
                             </td>
+                            <td style={cellStyle}>
+                              <span style={S.chip(isDone?"approved":"pending")}>{isDone?"Done":"Open"}</span>
+                            </td>
                             <td style={{ ...cellStyle, borderRight:"none", whiteSpace:"nowrap" }}>
                               <button onClick={() => startSubmitFor(t)}
                                 style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                                  fontSize:12, fontWeight:700, padding:0, marginRight:12 }}>
-                                📤 Submit
+                                  fontSize:15, padding:0, marginRight:14 }}>
+                                📤
                               </button>
                               <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
                                 style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                                  fontSize:12, fontWeight:700, padding:0 }}>
-                                {openTaskId === t.id ? "Hide" : "💬"}
+                                  fontSize:15, padding:0 }}>
+                                💬
                               </button>
                             </td>
                           </tr>

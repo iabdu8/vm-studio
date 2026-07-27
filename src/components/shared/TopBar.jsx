@@ -82,9 +82,8 @@ export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
 
           <div>
             <div style={{ fontSize:12, fontWeight:600, lineHeight:1.2 }}>{name}</div>
-            <div style={{ fontSize:10, color:C.mutedColor }}>
-              {branch}{branch && user?.employee_id ? " · " : ""}{user?.employee_id ? `#${user.employee_id}` : ""}
-            </div>
+            {branch && <div style={{ fontSize:10, color:C.mutedColor, lineHeight:1.3 }}>{branch}</div>}
+            {user?.employee_id && <div style={{ fontSize:10, color:C.mutedColor, lineHeight:1.3 }}>#{user.employee_id}</div>}
           </div>
 
           <span style={S.chip(user?.role)}>

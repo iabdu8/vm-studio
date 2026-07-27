@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
+import { CampaignPanel } from "../manager/CampaignPanel.jsx";
 
 // ── FILE PREVIEW MODAL ────────────────────────────────────────
 function FilePreview({ url, title, onClose }) {
@@ -181,7 +182,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
 }
 
 // ── VM GUIDELINES ─────────────────────────────────────────────
-export function VMGuidelines({ guidelines, userId }) {
+export function VMGuidelines({ guidelines, userId, campaign, campaignProgress = [] }) {
   const [acked,   setAcked]   = useState({});
   const [loading, setLoading] = useState({});
   const [preview, setPreview] = useState(null);
@@ -214,10 +215,6 @@ export function VMGuidelines({ guidelines, userId }) {
     g.category?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (!guidelines.length) return (
-    <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No guidelines published yet.</div>
-  );
-
   return (
     <>
       {preview && <FilePreview url={preview.url} title={preview.title} onClose={() => setPreview(null)}/>}
@@ -228,6 +225,18 @@ export function VMGuidelines({ guidelines, userId }) {
         <div style={{ ...S.muted, marginBottom:12, fontSize:12 }}>
           Review and acknowledge all guidelines
         </div>
+
+        {campaign?.name && (
+          <div style={{ marginBottom:16 }}>
+            <CampaignPanel campaign={campaign} campaignProgress={campaignProgress} />
+          </div>
+        )}
+
+        {!guidelines.length && (
+          <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No guidelines published yet.</div>
+        )}
+
+        {guidelines.length > 0 && <>
         {/* Search bar */}
         <div style={{ position:"relative", marginBottom:16 }}>
           <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
@@ -296,6 +305,7 @@ export function VMGuidelines({ guidelines, userId }) {
             </button>
           </div>
         ))}
+        </>}
       </div>
     </>
   );
