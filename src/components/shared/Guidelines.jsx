@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
-import { CampaignPanel } from "../manager/CampaignPanel.jsx";
+import { CampaignBranchFiles } from "./CampaignBranchFiles.jsx";
 
 // ── FILE PREVIEW MODAL ────────────────────────────────────────
 function FilePreview({ url, title, onClose }) {
@@ -182,7 +182,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
 }
 
 // ── VM GUIDELINES ─────────────────────────────────────────────
-export function VMGuidelines({ guidelines, userId, campaign, campaignProgress = [] }) {
+export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignProgress = [] }) {
   const [acked,   setAcked]   = useState({});
   const [loading, setLoading] = useState({});
   const [preview, setPreview] = useState(null);
@@ -227,8 +227,9 @@ export function VMGuidelines({ guidelines, userId, campaign, campaignProgress = 
         </div>
 
         {campaign?.name && (
-          <div style={{ marginBottom:16 }}>
-            <CampaignPanel campaign={campaign} campaignProgress={campaignProgress} />
+          <div style={{ ...S.card, marginBottom:16 }}>
+            <div style={{ ...S.h3, marginBottom:10 }}>📣 Campaign Files — {campaign.name}</div>
+            <CampaignBranchFiles campaignProgress={campaignProgress} myBranchId={branchId} />
           </div>
         )}
 

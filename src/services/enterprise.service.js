@@ -44,10 +44,28 @@ export async function deletePromotion(id) {
 export async function getCampaignProgress(campaign_id) {
   const { data, error } = await supabase
     .from("campaign_branches")
-    .select("branch_id, status, branch:branches(id,name)")
+    .select("branch_id, status, file_path, file_type, file_uploaded_at, branch:branches(id,name), uploader:file_uploaded_by(full_name)")
     .eq("campaign_id", campaign_id);
   if (error) throw error;
   return data ?? [];
+}
+
+// ── PER-BRANCH CAMPAIGN FILE (uploaded by that branch's VM Controller) ──
+export async function uploadCampaignBranchFile(campaign_id, branch_id, uploaded_by, file) {
+  const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  const file_type = isPdf ? "pdf" : "ppt";
+  const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const file_path = `campaigns/${campaign_id}/${branch_id}/${safeName}`;
+  const { error: upErr } = await supabase.storage.from("vm-guidelines").upload(file_path, file);
+  if (upErr) throw upErr;
+  const { data, error } = await supabase
+    .from("campaign_branches")
+    .update({ file_path, file_type, file_uploaded_by: uploaded_by, file_uploaded_at: new Date().toISOString() })
+    .eq("campaign_id", campaign_id).eq("branch_id", branch_id)
+    .select("branch_id, status, file_path, file_type, file_uploaded_at, branch:branches(id,name), uploader:file_uploaded_by(full_name)")
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 // عند إنشاء حملة — كل الفروع تبدأ not_started

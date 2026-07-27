@@ -12,6 +12,7 @@ import {
   getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
   notifyAll, notifyManagers, notifyUser, notifyBranch,
   getCampaignAcknowledgement, acknowledgeCampaign,
+  uploadCampaignBranchFile,
 } from "./services/enterprise.service.js";
 import { supabase }             from "./lib/supabase.js";
 import { useOfflineSync }       from "./hooks/useOfflineSync.js";
@@ -317,9 +318,14 @@ function AuthenticatedApp() {
     catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to acknowledge campaign."); }
   };
 
-  const handleCampaignFileUploaded = (updated) => setCampaign(c => (c ? { ...c, ...updated } : c));
 
   const handleSetBranchStatus = async (branch_id, status) => { if (!campaign?.id) return; await setCampaignBranchStatus(campaign.id, branch_id, status); getCampaignProgress(campaign.id).then(setCampaignProgress); };
+
+  const handleUploadBranchCampaignFile = async (branch_id, file) => {
+    if (!campaign?.id) return;
+    await uploadCampaignBranchFile(campaign.id, branch_id, profile.id, file);
+    getCampaignProgress(campaign.id).then(setCampaignProgress);
+  };
   const handleCreatePromotion = async (payload, branchIds) => { await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds); getPromotions(company.id).then(setPromotions); addLog("Created promotion", payload.name); notifyAll(company.id, "guideline_new", "New Promotion 🏷️", payload.name); };
   const handleDeletePromotion = async (id) => { await deletePromotion(id); setPromotions(p => p.filter(x => x.id !== id)); };
   const handleDeleteVisit = (id) => showConfirm("Delete this visit report?", async () => { await supabase.from("store_visits").delete().eq("id", id); setVisits(p => p.filter(x => x.id !== id)); setConfirm(null); });
@@ -348,7 +354,7 @@ function AuthenticatedApp() {
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} campaign={campaign} promotions={promotions} />}
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks))} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
-            {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} campaign={campaign} campaignProgress={campaignProgress} />}
+            {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} branchId={profile.branch_id} campaign={campaign} campaignProgress={campaignProgress} />}
             {vmPage==="chat"       && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
           </div>
           <VMNav page={vmPage} setPage={setVmPage} />
@@ -362,7 +368,7 @@ function AuthenticatedApp() {
             {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} />}
             {smPage==="assign"   && <StoreManagerAssign categories={categories} branches={activeBranches} profile={profile} company={company} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
-            {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onCampaignFileUploaded={handleCampaignFileUploaded} />}
+            {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onUploadBranchFile={handleUploadBranchCampaignFile} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}
             {smPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
           </div>
