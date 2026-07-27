@@ -10,7 +10,7 @@ import {
 import {
   getPromotions, createPromotion, deletePromotion,
   getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
-  notifyAll, notifyManagers, notifyUser, notifyBranch,
+  notifyManagers, notifyUser, notifyBranch,
   getCampaignAcknowledgement, acknowledgeCampaign,
   uploadCampaignBranchFile,
 } from "./services/enterprise.service.js";
@@ -270,7 +270,7 @@ function AuthenticatedApp() {
 
 
   const handleUploadGuideline = async (title, category, file) => {
-    try { await uploadGuideline(company.id, profile.id, title, category, file); getGuidelines(company.id).then(setGuidelines); addLog("Uploaded guideline", title); notifyAll(company.id, "guideline_new", "New Guideline Published 📖", title); }
+    try { await uploadGuideline(company.id, profile.id, title, category, file); getGuidelines(company.id).then(setGuidelines); addLog("Uploaded guideline", title); }
     catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to upload guideline."); }
   };
 
@@ -309,7 +309,6 @@ function AuthenticatedApp() {
       const { data } = await supabase.from("campaigns").insert({ company_id:company.id, name, date_from:date_from||null, date_to:date_to||null, is_active:true, created_by:profile.id }).select().single();
       if (data) { setCampaign(data); setCampaignAck(null); await initCampaignBranches(data.id, activeBranches.map(b => b.id)); getCampaignProgress(data.id).then(setCampaignProgress); }
       addLog("Updated campaign", name);
-      notifyAll(company.id, "campaign_created", "New Campaign 📣", name);
     } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to save campaign."); }
   };
 
@@ -326,7 +325,7 @@ function AuthenticatedApp() {
     await uploadCampaignBranchFile(campaign.id, branch_id, profile.id, file);
     getCampaignProgress(campaign.id).then(setCampaignProgress);
   };
-  const handleCreatePromotion = async (payload, branchIds) => { await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds); getPromotions(company.id).then(setPromotions); addLog("Created promotion", payload.name); notifyAll(company.id, "guideline_new", "New Promotion 🏷️", payload.name); };
+  const handleCreatePromotion = async (payload, branchIds) => { await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds); getPromotions(company.id).then(setPromotions); addLog("Created promotion", payload.name); };
   const handleDeletePromotion = async (id) => { await deletePromotion(id); setPromotions(p => p.filter(x => x.id !== id)); };
   const handleDeleteVisit = (id) => showConfirm("Delete this visit report?", async () => { await supabase.from("store_visits").delete().eq("id", id); setVisits(p => p.filter(x => x.id !== id)); setConfirm(null); });
   const handleDeleteDemoHold = (id) => showConfirm("Remove this item from hold?", async () => { await supabase.from("demo_holds").delete().eq("id", id); setDemoHolds(p => p.filter(x => x.id !== id)); setConfirm(null); });

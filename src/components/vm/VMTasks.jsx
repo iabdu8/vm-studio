@@ -296,7 +296,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
           <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
             {categories.map(c => (
               <button key={c.id} className="tab-btn" style={S.tab(catId===c.id)} onClick={() => changeCat(c.id)}>
-                {c.icon} {c.name}
+                {c.name}
               </button>
             ))}
           </div>
@@ -343,7 +343,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
 
           <div style={S.card}>
             <div style={{ ...S.h2, marginBottom:14 }}>
-              {activeCat?.icon} {activeCat?.name ?? "—"}
+              {activeCat?.name ?? "—"}
               {activeSub ? ` · ${activeSub.name}` : ""}
               {activeBranch ? <span style={{ ...S.muted, fontSize:13 }}> · {activeBranch.name}</span> : null}
             </div>

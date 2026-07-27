@@ -1,6 +1,5 @@
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
-import { CampaignFileBox } from "../shared/CampaignFileBox.jsx";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
 
 export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, campaign, promotions = [] }) {
@@ -47,7 +46,6 @@ export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, cam
             </div>
             <div style={{ fontSize:28, opacity:.3 }}>◈</div>
           </div>
-          <CampaignFileBox campaign={campaign} />
         </div>
       )}
 

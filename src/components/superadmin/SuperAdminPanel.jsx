@@ -220,6 +220,10 @@ function UsersTab() {
     const updated = await assignUserBranch(id, branch_id);
     setUsers(p => p.map(u => u.id===id ? { ...u, branch_id: updated.branch_id, branch: branches.find(b=>b.id===updated.branch_id) ?? null } : u));
   };
+  const changeEmployeeId = async (id, employee_id) => {
+    await supabase.from("profiles").update({ employee_id: employee_id || null }).eq("id", id);
+    setUsers(p => p.map(u => u.id===id ? { ...u, employee_id: employee_id || null } : u));
+  };
   const deleteUser = (id) => {
     setConfirm({ message:"Delete this user permanently?", onConfirm: async () => {
       setDeleting(id); setConfirm(null);
@@ -300,6 +304,12 @@ function UsersTab() {
                 </select>
               </div>
             )}
+            <div style={{ gridColumn:"1 / -1" }}>
+              <div style={S.lbl}>Employee ID</div>
+              <input style={S.inp} placeholder="e.g. 10234" defaultValue={u.employee_id ?? ""}
+                key={u.id + (u.employee_id ?? "")}
+                onBlur={e => { if (e.target.value !== (u.employee_id ?? "")) changeEmployeeId(u.id, e.target.value.trim()); }}/>
+            </div>
           </div>
         </div>
       ))}
