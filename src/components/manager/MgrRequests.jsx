@@ -1,20 +1,31 @@
 import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
+import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
+import { flagSubmissionPhotos } from "../../services/data.service.js";
 
 export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile }) {
   const [filter,       setFilter]       = useState("pending");
   const [revisionId,   setRevisionId]   = useState(null);
   const [revisionNote, setRevisionNote] = useState("");
+  const [flaggedIds,   setFlaggedIds]   = useState([]);
   const [saving,       setSaving]       = useState(false);
   const [openId,       setOpenId]       = useState(null);
+  const [lightbox,     setLightbox]     = useState(null); // { photos, index }
+
+  const toggleFlag = (photoId) =>
+    setFlaggedIds(p => p.includes(photoId) ? p.filter(id => id !== photoId) : [...p, photoId]);
 
   const submitRevision = async () => {
     if (!revisionNote.trim()) return;
     setSaving(true);
-    await onReview(revisionId, "revision", revisionNote);
-    setRevisionId(null); setRevisionNote("");
-    setSaving(false);
+    try {
+      if (flaggedIds.length) await flagSubmissionPhotos(flaggedIds, true);
+      await onReview(revisionId, "revision", revisionNote);
+    } finally {
+      setRevisionId(null); setRevisionNote(""); setFlaggedIds([]);
+      setSaving(false);
+    }
   };
 
   const shown = filter === "all"
@@ -74,27 +85,36 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile
               </div>
             </div>
 
-            {s.photos?.length > 0 && (
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
-                {[["Before", s.photos.filter(p=>p.photo_type==="before")],
-                  ["After",  s.photos.filter(p=>p.photo_type==="after")]
-                ].map(([lbl, imgs]) => (
-                  <div key={lbl}>
-                    <div style={S.h3}>{lbl}</div>
-                    {imgs.length === 0
-                      ? <div style={{ ...S.muted, fontSize:12 }}>No photos</div>
-                      : <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
-                          {imgs.map((f, i) => (
-                            <img loading="lazy" key={i} src={f.url ?? f} alt=""
-                              style={{ width:56, height:56, objectFit:"cover", borderRadius:6,
-                                border:`1px solid ${C.accentColor}22` }}/>
-                          ))}
-                        </div>
-                    }
-                  </div>
-                ))}
-              </div>
-            )}
+            {s.photos?.length > 0 && (() => {
+              const allPhotos = s.photos.map(p => ({ ...p, url: p.url ?? p, label: p.photo_type === "before" ? "Before" : "After" }));
+              return (
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+                  {[["Before", allPhotos.filter(p=>p.photo_type==="before")],
+                    ["After",  allPhotos.filter(p=>p.photo_type==="after")]
+                  ].map(([lbl, imgs]) => (
+                    <div key={lbl}>
+                      <div style={S.h3}>{lbl}</div>
+                      {imgs.length === 0
+                        ? <div style={{ ...S.muted, fontSize:12 }}>No photos</div>
+                        : <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                            {imgs.map((f, i) => (
+                              <div key={i} style={{ position:"relative", cursor:"pointer" }}
+                                onClick={() => setLightbox({ photos: allPhotos, index: allPhotos.indexOf(f), selectable: s.status === "pending" })}>
+                                <img loading="lazy" src={f.url} alt=""
+                                  style={{ width:56, height:56, objectFit:"cover", borderRadius:6,
+                                    border: f.flagged ? "2px solid #f87171" : `1px solid ${C.accentColor}22` }}/>
+                                {f.flagged && (
+                                  <div style={{ position:"absolute", top:-4, right:-4, fontSize:12 }}>🚩</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                      }
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {s.note && (
               <div style={{ fontSize:13, opacity:.85, marginBottom:12,
@@ -155,6 +175,9 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile
             <div style={{ fontWeight:700, fontSize:16, marginBottom:6 }}>↩ Needs Revision</div>
             <div style={{ ...S.muted, fontSize:12, marginBottom:16 }}>
               Write what needs to be fixed — the VM will see this message in their Tasks.
+              {flaggedIds.length > 0
+                ? ` ${flaggedIds.length} photo${flaggedIds.length===1?"":"s"} flagged — the rest stay as-is.`
+                : " Tap a photo above and \"Flag This Photo\" to point at a specific one, or leave none flagged for a general note."}
             </div>
             <textarea
               style={{ ...S.inp, minHeight:100, resize:"vertical" }}
@@ -170,10 +193,22 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile
                 {saving ? "Sending…" : "Send Revision →"}
               </button>
               <button className="btnG" style={{ ...S.btnG }}
-                onClick={() => setRevisionId(null)}>Cancel</button>
+                onClick={() => { setRevisionId(null); setFlaggedIds([]); }}>Cancel</button>
             </div>
           </div>
         </div>
+      )}
+
+      {lightbox && (
+        <PhotoLightbox
+          photos={lightbox.photos}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onIndexChange={i => setLightbox(p => ({ ...p, index:i }))}
+          selectable={lightbox.selectable}
+          flaggedIds={flaggedIds}
+          onToggleFlag={toggleFlag}
+        />
       )}
     </div>
   );

@@ -88,6 +88,15 @@ export async function createSubmission(payload, beforeFiles, afterFiles) {
   return sub;
 }
 
+export async function flagSubmissionPhotos(photoIds, flagged = true) {
+  if (!photoIds?.length) return;
+  const { error } = await supabase
+    .from("submission_photos")
+    .update({ flagged })
+    .in("id", photoIds);
+  if (error) throw error;
+}
+
 export async function reviewSubmission(id, status, score, reviewer_id, manager_note) {
   const updates = { status, score, reviewed_by: reviewer_id, reviewed_at: new Date().toISOString() };
   if (manager_note) updates.note = manager_note;

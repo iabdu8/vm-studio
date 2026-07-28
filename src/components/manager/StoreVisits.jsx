@@ -79,10 +79,8 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
   const [visitDate,    setVisitDate]    = useState(new Date().toISOString().slice(0,10));
   const [notes,        setNotes]        = useState("");
   const [photos,       setPhotos]       = useState([]);
-  const [findings,     setFindings]     = useState([{ finding:"", recommendation:"" }]);
   const [saving,       setSaving]       = useState(false);
   const [activeReport, setActiveReport] = useState(null);
-  const [taskSuccess,  setTaskSuccess]  = useState(null);
   const cameraRef = useRef();
 
   const handleFiles = (e) => {
@@ -94,10 +92,6 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
   const updatePhotoComment = (i, val) =>
     setPhotos(p => p.map((ph, idx) => idx===i ? { ...ph, comment:val } : ph));
   const removePhoto  = (i) => setPhotos(p => p.filter((_, idx) => idx !== i));
-  const addFinding   = () => setFindings(p => [...p, { finding:"", recommendation:"" }]);
-  const updateFinding = (i, key, val) =>
-    setFindings(p => p.map((f, idx) => idx===i ? { ...f, [key]:val } : f));
-  const removeFinding = (i) => setFindings(p => p.filter((_, idx) => idx !== i));
 
   const saveVisit = async () => {
     if (!branchId) return;
@@ -119,10 +113,6 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           await supabase.from("visit_findings")
             .insert({ visit_id:visit.id, finding:"Photo", image_url:url, recommendation:p.comment||"" });
         }
-        for (const f of findings.filter(f => f.finding.trim())) {
-          await supabase.from("visit_findings")
-            .insert({ visit_id:visit.id, finding:f.finding, recommendation:f.recommendation });
-        }
         notifyManagers(company.id, "visit_created", "New Store Visit 🚶",
           (profile.full_name ?? "") + " submitted a visit report for " +
           (branches.find(b => b.id === branchId)?.name ?? ""));
@@ -131,21 +121,8 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       }
       onVisitCreated?.();
       setShowForm(false);
-      setNotes(""); setPhotos([]); setFindings([{ finding:"", recommendation:"" }]);
+      setNotes(""); setPhotos([]);
     } finally { setSaving(false); }
-  };
-
-  const convertToTask = async (finding) => {
-    if (!finding.finding.trim() || finding.finding === "Photo") return;
-    const { data } = await supabase.from("tasks")
-      .insert({ company_id:company.id, branch_id:branchId,
-        title:finding.finding, priority:"high",
-        due_label:"This week", assigned_to:"all", created_by:profile.id })
-      .select().single();
-    if (data) {
-      await supabase.from("visit_findings").update({ task_id:data.id }).eq("id", finding.id);
-      setTaskSuccess(finding.id);
-    }
   };
 
   const openReport = (v) => {
@@ -233,28 +210,6 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                   </div>
                 </div>
               ))}
-              <div style={{ ...S.h3, marginTop:8 }}>Observations & Recommendations</div>
-              {findings.map((f, i) => (
-                <div key={i} style={{ marginBottom:10, padding:"12px", background:C.surfaceHigh, borderRadius:10 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:C.accentColor }}>Observation {i+1}</div>
-                    {findings.length > 1 && (
-                      <button onClick={() => removeFinding(i)}
-                        style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:13 }}>✕</button>
-                    )}
-                  </div>
-                  <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Observation</div>
-                  <input style={{ ...S.inp, marginTop:0, marginBottom:8 }}
-                    placeholder="What did you observe?" value={f.finding}
-                    onChange={e => updateFinding(i, "finding", e.target.value)}/>
-                  <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Recommendation</div>
-                  <input style={{ ...S.inp, marginTop:0, marginBottom:0 }}
-                    placeholder="Recommendation (optional)" value={f.recommendation}
-                    onChange={e => updateFinding(i, "recommendation", e.target.value)}/>
-                </div>
-              ))}
-              <button className="btnG" style={{ ...S.btnG, fontSize:12, marginBottom:14 }}
-                onClick={addFinding}>＋ Add Observation</button>
               <button className="btnP" style={{ ...S.btnP, width:"100%" }}
                 onClick={saveVisit} disabled={saving}>
                 {saving ? "Saving…" : "Submit Visit Report →"}

@@ -5,6 +5,7 @@ import { ImageUploader } from "../shared/Atoms.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { TasksTable } from "../shared/TasksTable.jsx";
 import { Training } from "../manager/Training.jsx";
+import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
 
 const BORDER      = `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`;
 const BORDER_SOFT = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
@@ -14,6 +15,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
 
   const [tab,      setTab]      = useState("my");
   const [openTaskId, setOpenTaskId] = useState(null);
+  const [lightbox, setLightbox] = useState(null); // { photos, index }
   const [catId,    setCatId]    = useState(categories[0]?.id ?? "");
   const [subId,    setSubId]    = useState(categories[0]?.subcategories?.[0]?.id ?? "");
   const [branchId, setBranchId] = useState(user?.branch_id ?? branches[0]?.id ?? "");
@@ -214,6 +216,12 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                         s.status === "revision" && s.submitted_by === user?.id && s.note &&
                         (s.task_id ? s.task_id === t.id : s.category_name === t.category?.name)
                       );
+                      const mySubmissions = submissions
+                        .filter(s => s.task_id === t.id && s.submitted_by === user?.id && s.photos?.length)
+                        .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+                      const myPhotos = (mySubmissions[0]?.photos ?? []).map(p => ({
+                        ...p, label: p.photo_type === "before" ? "Before" : "After",
+                      }));
                       return (
                         <>
                           <tr key={t.id}>
@@ -256,6 +264,14 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                                   fontSize:15, padding:0, marginRight:14 }}>
                                 📤
                               </button>
+                              {myPhotos.length > 0 && (
+                                <button onClick={() => setLightbox({ photos: myPhotos, index: 0 })}
+                                  title="View my submitted photos"
+                                  style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                                    fontSize:15, padding:0, marginRight:14 }}>
+                                  📷
+                                </button>
+                              )}
                               <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
                                 style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
                                   fontSize:15, padding:0 }}>
@@ -428,6 +444,15 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
 
       {/* ── TRAINING (view only) ── */}
       {tab === "training" && <Training company={company} profile={profile} readOnly />}
+
+      {lightbox && (
+        <PhotoLightbox
+          photos={lightbox.photos}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onIndexChange={i => setLightbox(p => ({ ...p, index:i }))}
+        />
+      )}
     </div>
   );
 }
