@@ -253,7 +253,7 @@ function AuthenticatedApp() {
       if (isOnline) getSubmissions(company.id).then(setSubmissions);
       addLog("Submitted implementation", category_name ?? "");
       notifyManagers(company.id, "submission_new", "New Submission 📤", (profile.full_name ?? "") + " submitted a VM report");
-    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to submit. Please try again."); }
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast(e?.message ? `Failed to submit: ${e.message}` : "Failed to submit. Please try again."); }
   };
 
   const handleReview = async (id, status, revisionNote) => {
