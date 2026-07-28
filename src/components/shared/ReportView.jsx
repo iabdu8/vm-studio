@@ -57,7 +57,7 @@ export function ReportView({ report, onClose }) {
           </div>`).join("")}
       </div>` : ""}
     ${textItems.length ? `
-      <div class="section-title">Findings (${textItems.length})</div>
+      <div class="section-title">Observations (${textItems.length})</div>
       ${textItems.map(f => `
         <div class="finding">
           <div class="finding-title">🔍 ${f.finding ?? f.title}</div>
@@ -125,20 +125,22 @@ export function ReportView({ report, onClose }) {
                     borderRadius:10, overflow:"hidden" }}>
                     <img loading="lazy" src={p.image_url ?? p.url} alt=""
                       style={{ width:"100%", height:160, objectFit:"cover", display:"block" }}/>
-                    <div style={{ padding:"8px 12px", fontSize:12,
-                      background:C.surfaceHigh, color:C.mutedColor }}>
-                      {p.recommendation || p.comment || "—"}
-                    </div>
+                    {(p.recommendation || p.comment) && (
+                      <div style={{ padding:"8px 12px", background:C.surfaceHigh }}>
+                        <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:2 }}>Comment</div>
+                        <div style={{ fontSize:12, color:C.mutedColor }}>{p.recommendation || p.comment}</div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Findings */}
+          {/* Observations */}
           {textItems.length > 0 && (
             <div>
-              <div style={S.h3}>Findings ({textItems.length})</div>
+              <div style={S.h3}>Observations ({textItems.length})</div>
               {textItems.map((f, i) => (
                 <div key={i} style={{ padding:"12px 0",
                   borderBottom:`1px solid ${C.accentColor}0a` }}>

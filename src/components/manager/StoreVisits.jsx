@@ -54,8 +54,9 @@ function FloorWalkForm({ onAdd, onCancel }) {
         <div key={i} style={{ marginBottom:10, border:`1px solid ${C.accentColor}18`, borderRadius:10, overflow:"hidden" }}>
           <img loading="lazy" src={p.url} alt="" style={{ width:"100%", maxHeight:160, objectFit:"cover", display:"block" }}/>
           <div style={{ padding:"8px 12px", background:C.surfaceHigh }}>
+            <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Comment</div>
             <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:"var(--clr-surface)" }}
-              placeholder="Comment..." value={p.comment}
+              placeholder="Comment on this photo…" value={p.comment}
               onChange={e => setPhotos(prev => prev.map((ph,idx) => idx===i ? {...ph,comment:e.target.value} : ph))}/>
           </div>
         </div>
@@ -225,32 +226,35 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                       width:26, height:26, cursor:"pointer", fontSize:13 }}>✕</button>
                   </div>
                   <div style={{ padding:"8px 12px", background:C.surfaceHigh }}>
+                    <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Comment</div>
                     <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:"var(--clr-surface)" }}
                       placeholder="Comment on this photo…" value={p.comment}
                       onChange={e => updatePhotoComment(i, e.target.value)}/>
                   </div>
                 </div>
               ))}
-              <div style={{ ...S.h3, marginTop:8 }}>Findings & Recommendations</div>
+              <div style={{ ...S.h3, marginTop:8 }}>Observations & Recommendations</div>
               {findings.map((f, i) => (
                 <div key={i} style={{ marginBottom:10, padding:"12px", background:C.surfaceHigh, borderRadius:10 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:C.accentColor }}>Finding {i+1}</div>
+                    <div style={{ fontSize:12, fontWeight:600, color:C.accentColor }}>Observation {i+1}</div>
                     {findings.length > 1 && (
                       <button onClick={() => removeFinding(i)}
                         style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:13 }}>✕</button>
                     )}
                   </div>
+                  <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Observation</div>
                   <input style={{ ...S.inp, marginTop:0, marginBottom:8 }}
                     placeholder="What did you observe?" value={f.finding}
                     onChange={e => updateFinding(i, "finding", e.target.value)}/>
+                  <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Recommendation</div>
                   <input style={{ ...S.inp, marginTop:0, marginBottom:0 }}
                     placeholder="Recommendation (optional)" value={f.recommendation}
                     onChange={e => updateFinding(i, "recommendation", e.target.value)}/>
                 </div>
               ))}
               <button className="btnG" style={{ ...S.btnG, fontSize:12, marginBottom:14 }}
-                onClick={addFinding}>＋ Add Finding</button>
+                onClick={addFinding}>＋ Add Observation</button>
               <button className="btnP" style={{ ...S.btnP, width:"100%" }}
                 onClick={saveVisit} disabled={saving}>
                 {saving ? "Saving…" : "Submit Visit Report →"}
@@ -280,7 +284,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                     </div>
                     <div style={{ display:"flex", gap:10, marginTop:6 }}>
                       {photoCount > 0 && <span style={{ fontSize:11, color:C.accentColor }}>📷 {photoCount} photos</span>}
-                      {findingCount > 0 && <span style={{ fontSize:11, color:C.mutedColor }}>🔍 {findingCount} findings</span>}
+                      {findingCount > 0 && <span style={{ fontSize:11, color:C.mutedColor }}>🔍 {findingCount} observations</span>}
                     </div>
                   </div>
                   <div style={{ display:"flex", gap:6, alignItems:"center" }}>

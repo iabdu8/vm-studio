@@ -93,7 +93,7 @@ export function VMVisits({ profile, floorWalks = [] }) {
                     <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>{v.visit_date}</div>
                     <div style={{ display:"flex", gap:10, marginTop:6 }}>
                       {photoCount > 0 && <span style={{ fontSize:11, color:C.accentColor }}>📷 {photoCount} photos</span>}
-                      {findingCount > 0 && <span style={{ fontSize:11, color:C.mutedColor }}>🔍 {findingCount} findings</span>}
+                      {findingCount > 0 && <span style={{ fontSize:11, color:C.mutedColor }}>🔍 {findingCount} observations</span>}
                     </div>
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
