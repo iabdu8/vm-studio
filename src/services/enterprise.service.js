@@ -130,6 +130,17 @@ export async function notifyManagers(company_id, type, title, body) {
   logNotifyError(error);
 }
 
+export async function notifyBranchController(company_id, branch_id, type, title, body) {
+  const { data: users } = await supabase
+    .from('profiles').select('id')
+    .eq('company_id', company_id).eq('branch_id', branch_id).eq('role', 'store_manager');
+  if (!users?.length) return;
+  const { error } = await supabase.from('notifications').insert(
+    users.map(u => ({ company_id, user_id: u.id, type, title, body }))
+  );
+  logNotifyError(error);
+}
+
 export async function notifyBranch(company_id, branch_id, type, title, body) {
   const { data: users } = await supabase
     .from('profiles').select('id')

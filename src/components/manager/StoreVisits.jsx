@@ -2,7 +2,7 @@ import { compressImage } from "../../lib/imageCompression.js";
 import { useState, useRef, useCallback } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
-import { notifyManagers, notifyBranch } from "../../services/enterprise.service.js";
+import { notifyBranch } from "../../services/enterprise.service.js";
 import { ReportView } from "../shared/ReportView.jsx";
 
 const STATUS_META = {
@@ -113,9 +113,6 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           await supabase.from("visit_findings")
             .insert({ visit_id:visit.id, finding:"Photo", image_url:url, recommendation:p.comment||"" });
         }
-        notifyManagers(company.id, "visit_created", "New Store Visit 🚶",
-          (profile.full_name ?? "") + " submitted a visit report for " +
-          (branches.find(b => b.id === branchId)?.name ?? ""));
         notifyBranch(company.id, branchId, "visit_created", "Store Visit Report 🚶",
           "A visit report was submitted for your branch");
       }

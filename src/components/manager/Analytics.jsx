@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { S, C } from "../../styles/theme.js";
 
 // ============================================================
@@ -83,84 +83,137 @@ function DonutChart({ segments, size = 100 }) {
   );
 }
 
-// ── Trend Line ────────────────────────────────────────────────
-function TrendLine({ data, color = C.accentColor, height = 60 }) {
-  if (data.length < 2) return null;
-  const max  = Math.max(...data.map(d => d.value), 1);
-  const step = 100 / (data.length - 1);
+const monthLabel = (d) => d.toLocaleDateString("en-GB", { month:"long", year:"numeric" });
+const inSameMonth = (dateStr, ref) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
+};
 
-  const points = data.map((d, i) => ({
-    x: i * step,
-    y: height - (d.value / max) * (height - 10) - 5,
-    ...d,
-  }));
-
-  const polyline = points.map(p => `${p.x},${p.y}`).join(" ");
-  const area     = `M ${points[0].x},${height} ` +
-    points.map(p => `L ${p.x},${p.y}`).join(" ") +
-    ` L ${points[points.length-1].x},${height} Z`;
+// ── Branch card — expandable, lists every VM under it with their rating ──
+function BranchCard({ branch, rank, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const scoreColor = branch.avgScore == null ? C.mutedColor
+    : branch.avgScore >= 80 ? "#4ade80" : branch.avgScore >= 60 ? C.accentColor : "#f87171";
 
   return (
-    <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none"
-      style={{ width:"100%", height, display:"block" }}>
-      <path d={area} fill={color} fillOpacity="0.12" />
-      <polyline points={polyline} fill="none" stroke={color} strokeWidth="1.5"
-        strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="1.8" fill={color} />
-      ))}
-    </svg>
+    <div style={{ ...S.card, marginBottom:10 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }}
+        onClick={() => setOpen(o => !o)}>
+        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700,
+          color: rank===0?C.accentColor:C.mutedColor, width:22, flexShrink:0 }}>
+          {rank===0?"🥇":rank===1?"🥈":rank===2?"🥉":rank+1}
+        </span>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:14, fontWeight:700 }}>{branch.name}</div>
+          <div style={{ ...S.muted, fontSize:11 }}>{branch.vms.length} VM{branch.vms.length===1?"":"s"} · {branch.total} submissions</div>
+        </div>
+        <div style={{ textAlign:"right", flexShrink:0 }}>
+          <div style={{ fontSize:18, fontWeight:700, color:scoreColor }}>
+            {branch.avgScore ?? `${branch.approvalRate}%`}
+          </div>
+          <div style={{ ...S.muted, fontSize:10 }}>{branch.avgScore != null ? "avg/100" : "approval"}</div>
+        </div>
+        <span style={{ color:C.mutedColor, fontSize:12, flexShrink:0, transform: open ? "rotate(180deg)" : "none", transition:"transform .2s" }}>▾</span>
+      </div>
+
+      {open && (
+        <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.accentColor}14` }}>
+          {branch.vms.length === 0 && <div style={{ ...S.muted, fontSize:12 }}>No submissions this month.</div>}
+          {branch.vms.map((v, i) => (
+            <div key={v.name} style={{ display:"flex", alignItems:"center", gap:10,
+              padding:"7px 0", borderBottom: i < branch.vms.length-1 ? `1px solid ${C.accentColor}0a` : "none" }}>
+              <div style={{ ...S.avatar(26), flexShrink:0, fontSize:11 }}>
+                {v.name.split(" ").map(x => x[0]).join("").slice(0,2)}
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:12, fontWeight:600 }}>{v.name}</div>
+                <div style={{ ...S.muted, fontSize:10 }}>{v.total} submissions · {v.approved} approved</div>
+              </div>
+              <span style={{
+                fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:12, flexShrink:0,
+                color: v.avgScore == null ? C.mutedColor : v.avgScore>=80?"#4ade80":v.avgScore>=60?C.accentColor:"#f87171",
+                background: (v.avgScore == null ? C.mutedColor : v.avgScore>=80?"#4ade80":v.avgScore>=60?C.accentColor:"#f87171")+"18",
+              }}>
+                {v.avgScore ?? `${v.approvalRate}%`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
 // ── Main Analytics Page ───────────────────────────────────────
 export function AnalyticsDashboard({ tasks, submissions, company }) {
-  // ── Computed stats ──────────────────────────────────────────
+  const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, -1 = last month...
+
+  const refDate = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + monthOffset);
+    return d;
+  }, [monthOffset]);
+
   const stats = useMemo(() => {
-    const approved = submissions.filter(s => s.status === "approved");
-    const pending  = submissions.filter(s => s.status === "pending");
-    const revision = submissions.filter(s => s.status === "revision");
-    const scored   = submissions.filter(s => s.score != null);
-    const avgScore = scored.length
+    const monthSubs = submissions.filter(s => inSameMonth(s.created_at, refDate));
+    const approved  = monthSubs.filter(s => s.status === "approved");
+    const pending   = monthSubs.filter(s => s.status === "pending");
+    const revision  = monthSubs.filter(s => s.status === "revision");
+    const scored    = monthSubs.filter(s => s.score != null);
+    const avgScore  = scored.length
       ? Math.round(scored.reduce((a, s) => a + s.score, 0) / scored.length)
       : 0;
 
-    // Submissions by day (last 7 days)
-    const days    = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-    const byDay   = days.map(label => ({ label, value: Math.floor(Math.random() * 8) + 1 }));
-    // ↑ Replace with real groupBy date logic once Supabase connected
+    // Submissions per day — real data, last 7 calendar days
+    const today = new Date();
+    const byDay = Array.from({ length:7 }).map((_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - (6 - i));
+      const dateStr = d.toISOString().slice(0, 10);
+      const value = submissions.filter(s => (s.created_at ?? "").slice(0, 10) === dateStr).length;
+      return { label: d.toLocaleDateString("en-GB", { weekday:"short" }), value };
+    });
 
-    // Branch performance
+    // Branch → VM nested breakdown, scoped to the selected month
     const branchMap = {};
-    submissions.forEach(s => {
-      const name = s.branch?.name ?? s.branch ?? "Unknown";
-      if (!branchMap[name]) branchMap[name] = { approved:0, total:0 };
-      if (s.status === "approved") branchMap[name].approved++;
-      branchMap[name].total++;
-    });
-    const branchPerf = Object.entries(branchMap).map(([label, b]) => ({
-      label: label.split(" ")[0],
-      value: b.total ? Math.round((b.approved / b.total) * 100) : 0,
-    })).sort((a, b) => b.value - a.value);
+    monthSubs.forEach(s => {
+      const bName = s.branch?.name ?? s.branch_name ?? "Unknown";
+      if (!branchMap[bName]) branchMap[bName] = { name:bName, total:0, approved:0, scoreSum:0, scoreCount:0, vms:{} };
+      const b = branchMap[bName];
+      b.total++;
+      if (s.status === "approved") b.approved++;
+      if (s.score != null) { b.scoreSum += s.score; b.scoreCount++; }
 
-    // VM leaderboard
-    const vmMap = {};
-    scored.forEach(s => {
-      const name = s.submitter?.full_name ?? s.vm ?? "Unknown";
-      if (!vmMap[name]) vmMap[name] = { name, total:0, count:0, branch: s.branch?.name ?? s.branch ?? "" };
-      vmMap[name].total += s.score;
-      vmMap[name].count++;
+      const vmName = s.submitter?.full_name ?? "Unknown";
+      if (!b.vms[vmName]) b.vms[vmName] = { name:vmName, total:0, approved:0, scoreSum:0, scoreCount:0 };
+      const v = b.vms[vmName];
+      v.total++;
+      if (s.status === "approved") v.approved++;
+      if (s.score != null) { v.scoreSum += s.score; v.scoreCount++; }
     });
-    const leaderboard = Object.values(vmMap)
-      .map(v => ({ ...v, avg: Math.round(v.total / v.count) }))
-      .sort((a, b) => b.avg - a.avg);
+
+    const branchList = Object.values(branchMap).map(b => ({
+      name: b.name,
+      total: b.total,
+      approvalRate: b.total ? Math.round((b.approved / b.total) * 100) : 0,
+      avgScore: b.scoreCount ? Math.round(b.scoreSum / b.scoreCount) : null,
+      vms: Object.values(b.vms)
+        .map(v => ({
+          name: v.name, total: v.total, approved: v.approved,
+          approvalRate: v.total ? Math.round((v.approved / v.total) * 100) : 0,
+          avgScore: v.scoreCount ? Math.round(v.scoreSum / v.scoreCount) : null,
+        }))
+        .sort((a, b) => (b.avgScore ?? b.approvalRate) - (a.avgScore ?? a.approvalRate)),
+    })).sort((a, b) => (b.avgScore ?? b.approvalRate) - (a.avgScore ?? a.approvalRate));
+
+    const bestBranch = branchList.length > 0 && branchList[0].total > 0 ? branchList[0] : null;
 
     // Category breakdown
     const catMap = {};
-    submissions.forEach(s => {
+    monthSubs.forEach(s => {
       const name = s.category?.name ?? "Other";
-      if (!catMap[name]) catMap[name] = 0;
-      catMap[name]++;
+      catMap[name] = (catMap[name] ?? 0) + 1;
     });
     const catData = Object.entries(catMap).map(([label, value]) => ({ label, value }));
 
@@ -172,25 +225,64 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
       { label:"<50",    value: scored.filter(s => s.score < 50).length, color:"#f87171" },
     ];
 
-    return { approved, pending, revision, avgScore, byDay, branchPerf, leaderboard, catData, scoreDist };
-  }, [tasks, submissions]);
+    return { monthSubs, approved, pending, revision, avgScore, byDay, branchList, bestBranch, catData, scoreDist };
+  }, [submissions, refDate]);
 
-  const doneT = tasks.filter(t => t.is_done ?? t.done).length;
-  const pct   = tasks.length ? Math.round((doneT / tasks.length) * 100) : 0;
+  const monthTasks = tasks.filter(t => inSameMonth(t.created_at, refDate));
+  const doneT = monthTasks.filter(t => t.is_done ?? t.done).length;
+  const pct   = monthTasks.length ? Math.round((doneT / monthTasks.length) * 100) : 0;
 
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
         Analytics <span style={S.accent}>Dashboard</span>
       </div>
-      <div style={{ ...S.muted, marginBottom:18, fontSize:12 }}>
-        {company?.name ?? "Company"} · Live data
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }} className="fu">
+        <div style={{ ...S.muted, fontSize:12 }}>{company?.name ?? "Company"}</div>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <button onClick={() => setMonthOffset(m => m - 1)}
+            style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:16, padding:"0 4px" }}>‹</button>
+          <span style={{ fontSize:12, fontWeight:700, minWidth:110, textAlign:"center" }}>{monthLabel(refDate)}</span>
+          <button onClick={() => setMonthOffset(m => Math.min(0, m + 1))} disabled={monthOffset === 0}
+            style={{ background:"none", border:"none", color: monthOffset===0 ? C.mutedColor : C.accentColor,
+              cursor: monthOffset===0 ? "default" : "pointer", fontSize:16, padding:"0 4px" }}>›</button>
+        </div>
       </div>
+
+      {/* Best Branch of the Month */}
+      {stats.bestBranch && (
+        <div style={{ ...S.card, background:`linear-gradient(135deg,${C.accentColor}22,transparent)`,
+          border:`1px solid ${C.accentColor}44`, marginBottom:14 }} className="fu2">
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ fontSize:32 }}>🏆</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:C.accentColor, letterSpacing:1, textTransform:"uppercase" }}>
+                Best Branch — {monthLabel(refDate)}
+              </div>
+              <div style={{ ...S.dFont, fontSize:20, fontWeight:700 }}>{stats.bestBranch.name}</div>
+              <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>
+                {stats.bestBranch.vms[0] ? `Top VM: ${stats.bestBranch.vms[0].name}` : ""}
+              </div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:26, fontWeight:700, color:C.accentColor }}>
+                {stats.bestBranch.avgScore ?? `${stats.bestBranch.approvalRate}%`}
+              </div>
+              <div style={{ ...S.muted, fontSize:10 }}>{stats.bestBranch.avgScore != null ? "avg score" : "approval rate"}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      {!stats.bestBranch && (
+        <div style={{ ...S.card, textAlign:"center", padding:"20px", marginBottom:14 }} className="fu2">
+          <div style={{ ...S.muted, fontSize:12 }}>No submissions in {monthLabel(refDate)} yet.</div>
+        </div>
+      )}
 
       {/* Top KPIs */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:14 }} className="fu2">
         {[
-          { n:submissions.length, l:"Submissions",  c:C.accentColor },
+          { n:stats.monthSubs.length, l:"Submissions",  c:C.accentColor },
           { n:stats.approved.length, l:"Approved",  c:"#4ade80" },
           { n:`${stats.avgScore}`,   l:"Avg Score", c:"#818cf8" },
           { n:`${pct}%`,            l:"Task Done",  c:"#d4a82a" },
@@ -202,9 +294,9 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
         ))}
       </div>
 
-      {/* Submissions per day */}
+      {/* Submissions per day — always last 7 real days regardless of month filter */}
       <div style={S.card} className="fu3">
-        <div style={S.h3}>Submissions This Week</div>
+        <div style={S.h3}>Submissions — Last 7 Days</div>
         <BarChart data={stats.byDay} color={C.accentColor} height={80} />
       </div>
 
@@ -224,68 +316,14 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
         </div>
       </div>
 
-      {/* Branch performance bars */}
-      {stats.branchPerf.length > 0 && (
-        <div style={S.card}>
-          <div style={S.h3}>Branch Approval Rate</div>
-          {stats.branchPerf.slice(0, 6).map((b, i) => (
-            <div key={b.label} style={{ marginBottom:10 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                <span style={{ fontSize:12, fontWeight:600 }}>
-                  {i===0?"🥇 ":i===1?"🥈 ":i===2?"🥉 ":""}{b.label}
-                </span>
-                <span style={{ fontSize:12, fontWeight:700, color:b.value>=80?C.accentColor:b.value>=60?C.textColor:C.mutedColor }}>
-                  {b.value}%
-                </span>
-              </div>
-              <div style={{ height:5, borderRadius:3, background:C.surfaceHigh }}>
-                <div style={{
-                  height:"100%", borderRadius:3, transition:"width .5s",
-                  background: b.value>=80?C.accentColor:b.value>=60?"#4ade80":"#d4a82a",
-                  width:`${b.value}%`,
-                }} />
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Branch performance — expandable, VM ratings underneath */}
+      <div style={{ ...S.h3, marginBottom:10 }}>Branch Performance</div>
+      {stats.branchList.length === 0 && (
+        <div style={{ ...S.muted, textAlign:"center", padding:20 }}>No data for {monthLabel(refDate)}.</div>
       )}
-
-      {/* VM Leaderboard */}
-      <div style={S.card}>
-        <div style={S.h3}>🏆 VM Leaderboard</div>
-        {stats.leaderboard.length === 0 && (
-          <div style={S.muted}>No scored submissions yet.</div>
-        )}
-        {stats.leaderboard.map((v, i) => (
-          <div key={v.name} style={{
-            display:"flex", alignItems:"center", gap:10,
-            padding:"9px 0", borderBottom:`1px solid ${C.accentColor}0a`,
-          }}>
-            <span style={{
-              fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700,
-              color: i===0?C.accentColor:C.mutedColor, width:24, flexShrink:0,
-            }}>
-              {i+1}
-            </span>
-            <div style={{ ...S.avatar(32), flexShrink:0 }}>
-              {v.name.split(" ").map(x => x[0]).join("").slice(0,2)}
-            </div>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:13, fontWeight:600 }}>{v.name}</div>
-              <div style={{ ...S.muted, fontSize:11 }}>{v.branch} · {v.count} submissions</div>
-            </div>
-            <div style={{ textAlign:"right" }}>
-              <div style={{
-                fontSize:18, fontWeight:700,
-                color: i===0?C.accentColor:C.textColor,
-              }}>
-                {v.avg}
-              </div>
-              <div style={{ ...S.muted, fontSize:10 }}>avg/100</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      {stats.branchList.map((b, i) => (
+        <BranchCard key={b.name} branch={b} rank={i} defaultOpen={i === 0} />
+      ))}
     </div>
   );
 }

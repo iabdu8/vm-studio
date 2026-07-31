@@ -10,7 +10,7 @@ import {
 import {
   getPromotions, createPromotion, deletePromotion,
   getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
-  notifyManagers, notifyUser, notifyBranch,
+  notifyBranchController, notifyUser, notifyBranch,
   getCampaignAcknowledgement, acknowledgeCampaign,
   uploadCampaignBranchFile, reviewCampaignBranchFile,
 } from "./services/enterprise.service.js";
@@ -252,7 +252,7 @@ function AuthenticatedApp() {
       toast("Report submitted!", "success");
       if (isOnline) getSubmissions(company.id).then(setSubmissions);
       addLog("Submitted implementation", category_name ?? "");
-      notifyManagers(company.id, "submission_new", "New Submission 📤", (profile.full_name ?? "") + " submitted a VM report");
+      if (branch_id) notifyBranchController(company.id, branch_id, "submission_new", "New Submission 📤", (profile.full_name ?? "") + " submitted a VM report");
     } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast(e?.message ? `Failed to submit: ${e.message}` : "Failed to submit. Please try again."); }
   };
 
