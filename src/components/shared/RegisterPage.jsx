@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase.js";
 import { S, C } from "../../styles/theme.js";
 import { StyleTag } from "./Atoms.jsx";
 import { Logo } from "./Logo.jsx";
-import { redeemInvite, markInviteUsed, setManagerBranches } from "../../services/enterprise.service.js";
+import { lookupScopedInvite, lookupCompanyByCode, lookupActiveBranches, markInviteUsed, setManagerBranches } from "../../services/enterprise.service.js";
 
 export function RegisterPage({ onBack }) {
   const [step,     setStep]     = useState(1);
@@ -28,46 +28,26 @@ export function RegisterPage({ onBack }) {
       const upperCode = code.trim().toUpperCase();
 
       // Scoped invite (VM Manager / VM Controller — branches preset by super_admin)
-      const scopedInvite = await redeemInvite(upperCode);
+      const scopedInvite = await lookupScopedInvite(upperCode);
       if (scopedInvite) {
-        const { data: co } = await supabase.from("companies")
-          .select("id, name, logo_url, accent_color").eq("id", scopedInvite.company_id).single();
-        const { data: br } = await supabase.from("branches").select("id, name")
-          .in("id", scopedInvite.branch_ids);
-        setCompany(co); setRole(scopedInvite.role); setInvite(scopedInvite);
-        setBranches(br ?? []);
+        const allBranches = await lookupActiveBranches(scopedInvite.company_id);
+        setCompany({ id: scopedInvite.company_id, name: scopedInvite.company_name,
+          logo_url: scopedInvite.company_logo_url, accent_color: scopedInvite.company_accent_color });
+        setRole(scopedInvite.role);
+        setInvite({ id: scopedInvite.id, company_id: scopedInvite.company_id,
+          role: scopedInvite.role, branch_ids: scopedInvite.branch_ids });
+        setBranches(allBranches.filter(b => scopedInvite.branch_ids.includes(b.id)));
         setBranchId(scopedInvite.branch_ids[0]);
         setStep(2); return;
       }
 
-      const { data } = await supabase
-        .from("companies")
-        .select("id, name, logo_url, accent_color")
-        .eq("invite_code", upperCode)
-        .single();
-      if (data) {
-        setCompany(data); setRole("vm"); setInvite(null);
-        // Load branches for this company
-        const { data: branchData } = await supabase
-          .from("branches")
-          .select("id, name")
-          .eq("company_id", data.id)
-          .eq("is_active", true)
-          .order("sort_order");
-        setBranches(branchData ?? []);
-        if (branchData?.length === 1) setBranchId(branchData[0].id);
-        setStep(2); return;
-      }
-      // VMC
-      const { data: vmcData } = await supabase.from("companies")
-        .select("id, name, logo_url, accent_color")
-        .eq("vmc_invite_code", upperCode).single();
-      if (vmcData) {
-        setCompany(vmcData); setRole("manager"); setInvite(null);
-        const { data: br } = await supabase.from("branches").select("id, name")
-          .eq("company_id", vmcData.id).eq("is_active", true).order("sort_order");
-        setBranches(br ?? []);
-        if (br?.length === 1) setBranchId(br[0].id);
+      // Flat company code (vm) or VMC code (manager)
+      const companyMatch = await lookupCompanyByCode(upperCode);
+      if (companyMatch) {
+        setCompany(companyMatch); setRole(companyMatch.role); setInvite(null);
+        const branchData = await lookupActiveBranches(companyMatch.id);
+        setBranches(branchData);
+        if (branchData.length === 1) setBranchId(branchData[0].id);
         setStep(2); return;
       }
 

@@ -212,15 +212,25 @@ export async function getInvites(company_id) {
   return data ?? [];
 }
 
-export async function redeemInvite(code) {
-  const { data, error } = await supabase
-    .from("invites")
-    .select("*")
-    .eq("code", code.trim().toUpperCase())
-    .is("used_by", null)
-    .maybeSingle();
+// These three go through SECURITY DEFINER RPCs (not direct table selects) —
+// an anonymous registrant looking up their own code must not be able to
+// bulk-select every company's/invite's row via a loose RLS policy.
+export async function lookupScopedInvite(code) {
+  const { data, error } = await supabase.rpc("lookup_scoped_invite", { p_code: code.trim().toUpperCase() });
   if (error) throw error;
-  return data;
+  return data?.[0] ?? null;
+}
+
+export async function lookupCompanyByCode(code) {
+  const { data, error } = await supabase.rpc("lookup_company_by_code", { p_code: code.trim().toUpperCase() });
+  if (error) throw error;
+  return data?.[0] ?? null;
+}
+
+export async function lookupActiveBranches(company_id) {
+  const { data, error } = await supabase.rpc("lookup_active_branches", { p_company_id: company_id });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function markInviteUsed(invite_id, used_by) {
