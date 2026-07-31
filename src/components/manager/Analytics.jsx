@@ -146,7 +146,7 @@ function BranchCard({ branch, rank, defaultOpen = false }) {
 }
 
 // ── Main Analytics Page ───────────────────────────────────────
-export function AnalyticsDashboard({ tasks, submissions, company }) {
+export function AnalyticsDashboard({ tasks, submissions, company, regions = [] }) {
   const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, -1 = last month...
 
   const refDate = useMemo(() => {
@@ -178,9 +178,10 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
     // Branch → VM nested breakdown, scoped to the selected month
     const branchMap = {};
     monthSubs.forEach(s => {
+      const bId   = s.branch_id ?? s.branch?.name ?? "unknown";
       const bName = s.branch?.name ?? s.branch_name ?? "Unknown";
-      if (!branchMap[bName]) branchMap[bName] = { name:bName, total:0, approved:0, scoreSum:0, scoreCount:0, vms:{} };
-      const b = branchMap[bName];
+      if (!branchMap[bId]) branchMap[bId] = { id:bId, name:bName, total:0, approved:0, scoreSum:0, scoreCount:0, vms:{} };
+      const b = branchMap[bId];
       b.total++;
       if (s.status === "approved") b.approved++;
       if (s.score != null) { b.scoreSum += s.score; b.scoreCount++; }
@@ -204,6 +205,7 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
       a.name.localeCompare(b.name);
 
     const branchList = Object.values(branchMap).map(b => ({
+      id: b.id,
       name: b.name,
       total: b.total,
       approvalRate: b.total ? Math.round((b.approved / b.total) * 100) : 0,
@@ -218,6 +220,23 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
     })).sort(rankCompare);
 
     const bestBranch = branchList.length > 0 && branchList[0].total > 0 ? branchList[0] : null;
+
+    // Group branches by region (VM Manager's assigned branches)
+    const managerNameByBranch = {};
+    regions.forEach(r => { managerNameByBranch[r.branch_id] = r.manager_name; });
+    const regionMap = {};
+    branchList.forEach(b => {
+      const region = managerNameByBranch[b.id] ?? "Unassigned";
+      if (!regionMap[region]) regionMap[region] = [];
+      regionMap[region].push(b);
+    });
+    const regionList = Object.entries(regionMap)
+      .map(([region, branchesInRegion]) => ({
+        region,
+        branches: [...branchesInRegion].sort(rankCompare),
+        best: [...branchesInRegion].sort(rankCompare)[0],
+      }))
+      .sort((a, b) => a.region === "Unassigned" ? 1 : b.region === "Unassigned" ? -1 : a.region.localeCompare(b.region));
 
     // Category breakdown
     const catMap = {};
@@ -235,8 +254,8 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
       { label:"<50",    value: scored.filter(s => s.score < 50).length, color:"#f87171" },
     ];
 
-    return { monthSubs, approved, pending, revision, avgScore, byDay, branchList, bestBranch, catData, scoreDist };
-  }, [submissions, refDate]);
+    return { monthSubs, approved, pending, revision, avgScore, byDay, branchList, bestBranch, regionList, catData, scoreDist };
+  }, [submissions, refDate, regions]);
 
   const monthTasks = tasks.filter(t => inSameMonth(t.created_at, refDate));
   const doneT = monthTasks.filter(t => t.is_done ?? t.done).length;
@@ -333,13 +352,32 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
         </div>
       </div>
 
-      {/* Branch performance — expandable, VM ratings underneath */}
+      {/* Branch performance — grouped by region (VM Manager) when regions exist, expandable to VM ratings */}
       <div style={{ ...S.h3, marginBottom:10 }}>Branch Performance</div>
       {stats.branchList.length === 0 && (
         <div style={{ ...S.muted, textAlign:"center", padding:20 }}>No data for {monthLabel(refDate)}.</div>
       )}
-      {stats.branchList.map((b, i) => (
-        <BranchCard key={b.name} branch={b} rank={i} defaultOpen={i === 0} />
+
+      {regions.length === 0 && stats.branchList.map((b, i) => (
+        <BranchCard key={b.id} branch={b} rank={i} defaultOpen={i === 0} />
+      ))}
+
+      {regions.length > 0 && stats.regionList.map(r => (
+        <div key={r.region} style={{ marginBottom:18 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:C.accentColor, textTransform:"uppercase", letterSpacing:.5 }}>
+              📍 {r.region === "Unassigned" ? "Unassigned Branches" : r.region}
+            </div>
+            {r.best && r.best.total > 0 && (
+              <div style={{ fontSize:11, color:C.mutedColor }}>
+                🏅 Best: <span style={{ fontWeight:700, color:C.textColor }}>{r.best.name}</span>
+              </div>
+            )}
+          </div>
+          {r.branches.map((b, i) => (
+            <BranchCard key={b.id} branch={b} rank={i} defaultOpen={i === 0} />
+          ))}
+        </div>
       ))}
     </div>
   );

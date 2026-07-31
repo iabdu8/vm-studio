@@ -190,6 +190,31 @@ export async function getManagerBranches(manager_id) {
   return (data ?? []).map(r => r.branch_id);
 }
 
+// All VM Manager → branch assignments for a company, with manager names —
+// used to group branch performance by region on the Analytics dashboard.
+export async function getAllManagerBranchAssignments(company_id) {
+  const { data: managers, error: mErr } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .eq("company_id", company_id)
+    .eq("role", "area_manager");
+  if (mErr) throw mErr;
+  if (!managers?.length) return [];
+
+  const { data, error } = await supabase
+    .from("manager_branches")
+    .select("manager_id, branch_id")
+    .in("manager_id", managers.map(m => m.id));
+  if (error) throw error;
+
+  const nameById = Object.fromEntries(managers.map(m => [m.id, m.full_name]));
+  return (data ?? []).map(r => ({
+    manager_id: r.manager_id,
+    manager_name: nameById[r.manager_id] ?? "—",
+    branch_id: r.branch_id,
+  }));
+}
+
 export async function setManagerBranches(manager_id, branchIds) {
   await supabase.from("manager_branches").delete().eq("manager_id", manager_id);
   if (!branchIds?.length) return;

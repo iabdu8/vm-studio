@@ -12,7 +12,7 @@ import {
   getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
   notifyBranchController, notifyUser, notifyBranch,
   getCampaignAcknowledgement, acknowledgeCampaign,
-  uploadCampaignBranchFile, reviewCampaignBranchFile,
+  uploadCampaignBranchFile, reviewCampaignBranchFile, getAllManagerBranchAssignments,
 } from "./services/enterprise.service.js";
 import { supabase }             from "./lib/supabase.js";
 import { useOfflineSync }       from "./hooks/useOfflineSync.js";
@@ -200,6 +200,7 @@ function AuthenticatedApp() {
   const [campaignProgress, setCampaignProgress] = useState([]);
   const [promotions,   setPromotions]   = useState([]);
   const [visits,       setVisits]       = useState([]);
+  const [regionAssignments, setRegionAssignments] = useState([]);
   const [localBranches, setLocalBranches] = useState([]);
   const [dataLoaded,   setDataLoaded]   = useState(false);
   const [confirm,      setConfirm]      = useState(null);
@@ -226,6 +227,7 @@ function AuthenticatedApp() {
       getSubmissions(company.id).then(setSubmissions),
       getGuidelines(company.id).then(setGuidelines),
       (isManager || isAreaManager) ? getActivityLog(company.id).then(setLog) : Promise.resolve(),
+      isManager ? getAllManagerBranchAssignments(company.id).then(setRegionAssignments) : Promise.resolve(),
       supabase.from("branches").select("*").eq("company_id", company.id).eq("is_active", true).order("sort_order")
         .then(({ data }) => setLocalBranches(data ?? [])),
       supabase.from("campaigns").select("*, uploader:file_uploaded_by(full_name)").eq("company_id", company.id).eq("is_active", true)
@@ -417,7 +419,7 @@ function AuthenticatedApp() {
             {mgrPage==="campaign"   && <CampaignGuidesPage company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} campaign={campaign} onSaveCampaign={handleSaveCampaign} campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={handleAcknowledgeCampaign} onReviewBranchFile={handleReviewCampaignBranchFile} profile={profile} />}
             {mgrPage==="reports"    && <MgrReports tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
             {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
-            {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} />}
+            {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} regions={regionAssignments} />}
             {mgrPage==="chat"       && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
             {mgrPage==="superadmin" && isSuperAdmin && <SuperAdminPanel />}
           </div>
