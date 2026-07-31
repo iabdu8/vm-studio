@@ -1,17 +1,25 @@
+import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { printHTML } from "../../lib/printReport.js";
+import { PhotoLightbox } from "./PhotoLightbox.jsx";
 
 // ============================================================
 //  REPORT VIEW — عرض تقرير جميل داخل التطبيق
 // ============================================================
 
 export function ReportView({ report, onClose }) {
+  const [lightbox, setLightbox] = useState(null); // index into photoItems
+
   if (!report) return null;
 
   const { type, title, branch, date, by, notes, photos, findings } = report;
 
   const photoItems  = photos ?? [];
   const textItems   = findings ?? [];
+  const lightboxPhotos = photoItems.map(p => ({
+    url: p.image_url ?? p.url,
+    comment: p.recommendation || p.comment || "",
+  }));
 
   const handlePrint = () => {
     const html = `<!DOCTYPE html><html><head>
@@ -122,7 +130,8 @@ export function ReportView({ report, onClose }) {
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                 {photoItems.map((p, i) => (
                   <div key={i} style={{ border:`1px solid ${C.accentColor}14`,
-                    borderRadius:10, overflow:"hidden" }}>
+                    borderRadius:10, overflow:"hidden", cursor:"pointer" }}
+                    onClick={() => setLightbox(i)}>
                     <img loading="lazy" src={p.image_url ?? p.url} alt=""
                       style={{ width:"100%", height:160, objectFit:"cover", display:"block" }}/>
                     {(p.recommendation || p.comment) && (
@@ -160,6 +169,15 @@ export function ReportView({ report, onClose }) {
           )}
         </div>
       </div>
+
+      {lightbox != null && (
+        <PhotoLightbox
+          photos={lightboxPhotos}
+          index={lightbox}
+          onClose={() => setLightbox(null)}
+          onIndexChange={setLightbox}
+        />
+      )}
     </div>
   );
 }

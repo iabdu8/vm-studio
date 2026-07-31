@@ -237,9 +237,11 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
                                 </div>
                               )}
                               {revision && (
-                                <div style={{ marginTop:6, padding:"6px 10px", borderRadius:8,
+                                <div onClick={() => startSubmitFor(t)}
+                                  title="Tap to redo this task"
+                                  style={{ marginTop:6, padding:"6px 10px", borderRadius:8, cursor:"pointer",
                                   background:"#f8717114", border:"1px solid #f8717133" }}>
-                                  <div style={{ fontSize:11, fontWeight:700, color:"#f87171" }}>↩ Revision Requested</div>
+                                  <div style={{ fontSize:11, fontWeight:700, color:"#f87171" }}>↩ Revision Requested — tap to redo</div>
                                   <div style={{ fontSize:12, marginTop:2, lineHeight:1.4 }}>{revision.note}</div>
                                 </div>
                               )}
