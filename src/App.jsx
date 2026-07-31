@@ -355,7 +355,7 @@ function AuthenticatedApp() {
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} />
           <StatusBar isOnline={isOnline} queueSize={queueSize} syncing={syncing} onSyncNow={syncQueue} />
-          <div style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
+          <div key={vmPage} className="page-transition" style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} campaign={campaign} promotions={promotions} />}
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks))} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
@@ -369,7 +369,7 @@ function AuthenticatedApp() {
       {isStoreManager && (
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} />
-          <div style={S.main}>
+          <div key={smPage} className="page-transition" style={S.main}>
             {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} />}
             {smPage==="assign"   && <StoreManagerAssign categories={categories} branches={activeBranches} profile={profile} company={company} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
@@ -390,7 +390,7 @@ function AuthenticatedApp() {
       {isAreaManager && (
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} />
-          <div style={S.main}>
+          <div key={amPage} className="page-transition" style={S.main}>
             {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions} branches={activeBranches} managerBranches={managerBranches} />}
             {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} />}
             {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
@@ -411,7 +411,7 @@ function AuthenticatedApp() {
       {isManager && (
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} isSuperAdmin={isSuperAdmin} onSuperAdmin={() => setMgrPage("superadmin")} />
-          <div style={S.main}>
+          <div key={mgrPage} className="page-transition" style={S.main}>
             {mgrPage==="overview"   && <MgrOverview tasks={tasks} submissions={submissions} log={log} company={company} branches={activeBranches} campaign={campaign} promotions={promotions} onCreatePromotion={handleCreatePromotion} onDeletePromotion={handleDeletePromotion} profile={profile} />}
             {mgrPage==="assign"     && <MgrAssign tasks={tasks} categories={categories} branches={activeBranches} company={company} profile={profile} />}
             {mgrPage==="campaign"   && <CampaignGuidesPage company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} campaign={campaign} onSaveCampaign={handleSaveCampaign} campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={handleAcknowledgeCampaign} onReviewBranchFile={handleReviewCampaignBranchFile} profile={profile} />}

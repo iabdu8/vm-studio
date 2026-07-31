@@ -110,6 +110,11 @@ body { background: var(--clr-primary); color: var(--clr-text); transition: backg
 .fu  { animation: fadeUp .4s ease both; }
 .fu2 { animation: fadeUp .4s .1s ease both; }
 .fu3 { animation: fadeUp .4s .2s ease both; }
+@keyframes pageFade { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+.page-transition { animation: pageFade .22s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .fu, .fu2, .fu3, .page-transition { animation: none; }
+}
 .btnP:hover  { filter: brightness(1.1); transform: translateY(-1px); }
 .btnG:hover  { opacity: .8; }
 .pill-btn:hover { opacity: .8; }
