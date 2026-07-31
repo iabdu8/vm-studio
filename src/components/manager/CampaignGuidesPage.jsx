@@ -1,9 +1,10 @@
 import { S } from "../../styles/theme.js";
 import { CampaignPanel } from "./CampaignPanel.jsx";
+import { CampaignFileReview } from "../shared/CampaignFileReview.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 
 export function CampaignGuidesPage({ company, guidelines, onUploadGuideline, onDeleteGuideline,
-  campaign, onSaveCampaign, campaignProgress, onSetBranchStatus, campaignAck, onAcknowledgeCampaign }) {
+  campaign, onSaveCampaign, campaignProgress, onSetBranchStatus, campaignAck, onAcknowledgeCampaign, onReviewBranchFile }) {
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
@@ -15,6 +16,13 @@ export function CampaignGuidesPage({ company, guidelines, onUploadGuideline, onD
 
       <CampaignPanel campaign={campaign} onSaveCampaign={onSaveCampaign} campaignProgress={campaignProgress}
         onSetBranchStatus={onSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={onAcknowledgeCampaign} />
+
+      {campaign?.name && onReviewBranchFile && (
+        <div style={S.card}>
+          <div style={{ ...S.h3, marginBottom:6 }}>Campaign Files — Review</div>
+          <CampaignFileReview campaignProgress={campaignProgress} onReview={onReviewBranchFile} />
+        </div>
+      )}
 
       <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>Guidelines</div>
       <GuidelinesManager company={company} guidelines={guidelines}

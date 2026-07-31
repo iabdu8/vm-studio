@@ -44,10 +44,27 @@ export async function deletePromotion(id) {
 export async function getCampaignProgress(campaign_id) {
   const { data, error } = await supabase
     .from("campaign_branches")
-    .select("branch_id, status, file_path, file_type, file_uploaded_at, branch:branches(id,name), uploader:file_uploaded_by(full_name)")
+    .select("branch_id, status, file_path, file_type, file_uploaded_at, file_status, file_review_note, file_reviewed_at, branch:branches(id,name), uploader:file_uploaded_by(full_name), reviewer:file_reviewed_by(full_name)")
     .eq("campaign_id", campaign_id);
   if (error) throw error;
   return data ?? [];
+}
+
+// ── CAMPAIGN FILE REVIEW (Head VM / VM Manager approve or request changes) ──
+export async function reviewCampaignBranchFile(campaign_id, branch_id, status, note, reviewer_id) {
+  const { data, error } = await supabase
+    .from("campaign_branches")
+    .update({
+      file_status: status,
+      file_review_note: note || null,
+      file_reviewed_by: reviewer_id,
+      file_reviewed_at: new Date().toISOString(),
+    })
+    .eq("campaign_id", campaign_id).eq("branch_id", branch_id)
+    .select("branch_id, status, file_path, file_type, file_uploaded_at, file_status, file_review_note, file_reviewed_at, branch:branches(id,name), uploader:file_uploaded_by(full_name), reviewer:file_reviewed_by(full_name)")
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 // ── PER-BRANCH CAMPAIGN FILE (uploaded by that branch's VM Controller) ──

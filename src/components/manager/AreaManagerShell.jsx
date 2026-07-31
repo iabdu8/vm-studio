@@ -3,6 +3,7 @@ import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { CampaignPanel } from "./CampaignPanel.jsx";
+import { CampaignFileReview } from "../shared/CampaignFileReview.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 import { Training } from "./Training.jsx";
 
@@ -204,7 +205,7 @@ export function AreaManagerRequests({ submissions, profile }) {
 }
 
 // Campaign (view + comment, no edit/acknowledge) + Guidelines (VM Manager can publish)
-export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches, managerBranches = [], profile, guidelines, company, onUploadGuideline, onDeleteGuideline }) {
+export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches, managerBranches = [], profile, guidelines, company, onUploadGuideline, onDeleteGuideline, onReviewBranchFile }) {
   const myBranches = branches.filter(b => managerBranches.includes(b.id));
   const myProgress = campaignProgress.filter(cp => myBranches.some(b => b.id === cp.branch_id));
 
@@ -220,6 +221,12 @@ export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches
       {campaign?.name && (
         <>
           <CampaignPanel campaign={campaign} campaignProgress={myProgress} />
+          {onReviewBranchFile && (
+            <div style={S.card}>
+              <div style={{ ...S.h3, marginBottom:6 }}>Campaign Files — Review</div>
+              <CampaignFileReview campaignProgress={myProgress} onReview={onReviewBranchFile} />
+            </div>
+          )}
           {profile && <CommentThread campaignId={campaign.id} profile={profile} />}
         </>
       )}
