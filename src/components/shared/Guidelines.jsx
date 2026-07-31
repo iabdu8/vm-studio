@@ -2,64 +2,7 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { CampaignBranchFiles } from "./CampaignBranchFiles.jsx";
-
-// ── FILE PREVIEW MODAL ────────────────────────────────────────
-function FilePreview({ url, title, onClose }) {
-  if (!url) return null;
-  const isPDF = url.toLowerCase().includes(".pdf") || url.toLowerCase().includes("application/pdf");
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  // Desktop browsers render PDFs natively with their own toolbar (search, zoom,
-  // page jump) — only fall back to Google's stripped-down viewer on mobile,
-  // where inline native rendering support is inconsistent.
-  const pdfSrc = isPDF
-    ? (isMobile ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true` : `${url}#toolbar=1`)
-    : url;
-
-  return (
-    <div style={{
-      position:"fixed", inset:0, background:"#000000cc", zIndex:700,
-      display:"flex", flexDirection:"column",
-    }}>
-      {/* Header */}
-      <div style={{
-        display:"flex", justifyContent:"space-between", alignItems:"center",
-        padding:"12px 20px", background:"var(--clr-surface)",
-        borderBottom:`1px solid ${C.accentColor}22`,
-        flexShrink:0,
-      }}>
-        <div style={{ fontWeight:700, fontSize:14, flex:1, marginRight:12,
-          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{title}</div>
-        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          <a href={url} download target="_blank" rel="noopener noreferrer"
-            style={{ textDecoration:"none", fontSize:12, padding:"6px 14px",
-              background:C.accentColor+"22", color:C.accentColor,
-              border:`1px solid ${C.accentColor}44`, borderRadius:8, cursor:"pointer" }}>
-            ⬇️ Download
-          </a>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            style={{ textDecoration:"none", fontSize:12, padding:"6px 14px",
-              background:"transparent", color:C.mutedColor,
-              border:`1px solid ${C.mutedColor}33`, borderRadius:8, cursor:"pointer" }}>
-            ↗ New Tab
-          </a>
-          <button onClick={onClose} style={{ background:"none", border:"none",
-            color:C.mutedColor, cursor:"pointer", fontSize:22, lineHeight:1 }}>✕</button>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={{ flex:1, overflow:"hidden", display:"flex",
-        alignItems:"center", justifyContent:"center", background:"#111" }}>
-        {isPDF ? (
-          <iframe src={pdfSrc} style={{ width:"100%", height:"100%", border:"none" }} title={title}/>
-        ) : (
-          <img loading="lazy" src={url} alt={title}
-            style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain" }}/>
-        )}
-      </div>
-    </div>
-  );
-}
+import { FilePreview } from "./FilePreview.jsx";
 
 // ── GUIDELINES GRID (Manager view) ────────────────────────────
 export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDelete }) {

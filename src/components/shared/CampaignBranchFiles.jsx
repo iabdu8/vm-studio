@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
+import { FilePreview } from "./FilePreview.jsx";
 
 // Lists every branch's uploaded campaign PPT/PDF — own branch first, so
 // staff can also browse other branches' execution for ideas.
 export function CampaignBranchFiles({ campaignProgress = [], myBranchId }) {
+  const [preview, setPreview] = useState(null);
   const withFiles = campaignProgress.filter(b => b.file_path);
 
   if (!withFiles.length) {
@@ -15,30 +18,35 @@ export function CampaignBranchFiles({ campaignProgress = [], myBranchId }) {
   );
 
   return (
-    <div>
-      {sorted.map(b => {
-        const url = supabase.storage.from("vm-guidelines").getPublicUrl(b.file_path).data.publicUrl;
-        const mine = b.branch_id === myBranchId;
-        return (
-          <a key={b.branch_id} href={url} target="_blank" rel="noopener noreferrer" style={{
-            display:"flex", alignItems:"center", gap:10, padding:"10px 14px", marginBottom:8,
-            background: mine ? C.accentColor+"14" : C.surfaceHigh, borderRadius:10,
-            textDecoration:"none", color:C.textColor,
-            border: mine ? `1px solid ${C.accentColor}44` : "1px solid transparent",
-          }}>
-            <span style={{ fontSize:20 }}>{b.file_type === "pdf" ? "📄" : "📊"}</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:13, fontWeight:700 }}>
-                {b.branch?.name ?? "—"}{mine && <span style={{ color:C.accentColor }}> · Your Branch</span>}
+    <>
+      {preview && <FilePreview url={preview.url} title={preview.title} fileType={preview.fileType} onClose={() => setPreview(null)}/>}
+      <div>
+        {sorted.map(b => {
+          const url = supabase.storage.from("vm-guidelines").getPublicUrl(b.file_path).data.publicUrl;
+          const mine = b.branch_id === myBranchId;
+          return (
+            <button key={b.branch_id}
+              onClick={() => setPreview({ url, title: b.branch?.name ?? "Campaign File", fileType: b.file_type })}
+              style={{
+                display:"flex", alignItems:"center", gap:10, padding:"10px 14px", marginBottom:8, width:"100%",
+                background: mine ? C.accentColor+"14" : C.surfaceHigh, borderRadius:10,
+                border: mine ? `1px solid ${C.accentColor}44` : "1px solid transparent",
+                cursor:"pointer", textAlign:"left", fontFamily:"'DM Sans',sans-serif",
+              }}>
+              <span style={{ fontSize:20 }}>{b.file_type === "pdf" ? "📄" : "📊"}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:C.textColor }}>
+                  {b.branch?.name ?? "—"}{mine && <span style={{ color:C.accentColor }}> · Your Branch</span>}
+                </div>
+                {b.uploader?.full_name && (
+                  <div style={{ fontSize:11, color:C.mutedColor }}>Uploaded by {b.uploader.full_name}</div>
+                )}
               </div>
-              {b.uploader?.full_name && (
-                <div style={{ fontSize:11, color:C.mutedColor }}>Uploaded by {b.uploader.full_name}</div>
-              )}
-            </div>
-            <span style={{ fontSize:12, color:C.accentColor, fontWeight:700 }}>Open →</span>
-          </a>
-        );
-      })}
-    </div>
+              <span style={{ fontSize:12, color:C.accentColor, fontWeight:700 }}>👁️ Preview</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }

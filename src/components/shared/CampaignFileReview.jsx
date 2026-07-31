@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
+import { FilePreview } from "./FilePreview.jsx";
 
 const STATUS_META = {
   pending:           { label:"Awaiting Review", color:"#d4a82a" },
@@ -14,6 +15,7 @@ export function CampaignFileReview({ campaignProgress = [], onReview }) {
   const [noteFor, setNoteFor] = useState(null); // branch_id currently writing a "changes requested" note
   const [note,    setNote]    = useState("");
   const [saving,  setSaving]  = useState(null);
+  const [preview, setPreview] = useState(null);
 
   const withFiles = campaignProgress.filter(b => b.file_path);
   if (!withFiles.length) {
@@ -34,15 +36,18 @@ export function CampaignFileReview({ campaignProgress = [], onReview }) {
   };
 
   return (
-    <div>
+    <>
+      {preview && <FilePreview url={preview.url} title={preview.title} fileType={preview.fileType} onClose={() => setPreview(null)}/>}
+      <div>
       {withFiles.map(b => {
         const meta = STATUS_META[b.file_status] ?? STATUS_META.pending;
         const url = supabase.storage.from("vm-guidelines").getPublicUrl(b.file_path).data.publicUrl;
         return (
           <div key={b.branch_id} style={{ padding:"12px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10, marginBottom:8 }}>
-              <a href={url} target="_blank" rel="noopener noreferrer" style={{
-                display:"flex", alignItems:"center", gap:10, textDecoration:"none", color:C.textColor, flex:1, minWidth:0 }}>
+              <button onClick={() => setPreview({ url, title: b.branch?.name ?? "Campaign File", fileType: b.file_type })} style={{
+                display:"flex", alignItems:"center", gap:10, background:"none", border:"none", padding:0,
+                cursor:"pointer", textAlign:"left", color:C.textColor, flex:1, minWidth:0, fontFamily:"'DM Sans',sans-serif" }}>
                 <span style={{ fontSize:20, flexShrink:0 }}>{b.file_type === "pdf" ? "📄" : "📊"}</span>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:700 }}>{b.branch?.name ?? "—"}</div>
@@ -50,7 +55,7 @@ export function CampaignFileReview({ campaignProgress = [], onReview }) {
                     <div style={{ fontSize:11, color:C.mutedColor }}>Uploaded by {b.uploader.full_name}</div>
                   )}
                 </div>
-              </a>
+              </button>
               <span style={{ padding:"3px 10px", borderRadius:12, fontSize:11, fontWeight:700, flexShrink:0,
                 background:meta.color+"1c", color:meta.color, border:`1px solid ${meta.color}44` }}>
                 {meta.label}
@@ -92,6 +97,7 @@ export function CampaignFileReview({ campaignProgress = [], onReview }) {
           </div>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
