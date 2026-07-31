@@ -193,6 +193,16 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
       if (s.score != null) { v.scoreSum += s.score; v.scoreCount++; }
     });
 
+    // Ranking when scores/approval tie: avg score → approval rate → submission
+    // volume (more completed work under an equal rating wins) → name, so the
+    // result is always the same for the same data instead of depending on
+    // insertion order.
+    const rankCompare = (a, b) =>
+      (b.avgScore ?? -1) - (a.avgScore ?? -1) ||
+      b.approvalRate - a.approvalRate ||
+      b.total - a.total ||
+      a.name.localeCompare(b.name);
+
     const branchList = Object.values(branchMap).map(b => ({
       name: b.name,
       total: b.total,
@@ -204,8 +214,8 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
           approvalRate: v.total ? Math.round((v.approved / v.total) * 100) : 0,
           avgScore: v.scoreCount ? Math.round(v.scoreSum / v.scoreCount) : null,
         }))
-        .sort((a, b) => (b.avgScore ?? b.approvalRate) - (a.avgScore ?? a.approvalRate)),
-    })).sort((a, b) => (b.avgScore ?? b.approvalRate) - (a.avgScore ?? a.approvalRate));
+        .sort(rankCompare),
+    })).sort(rankCompare);
 
     const bestBranch = branchList.length > 0 && branchList[0].total > 0 ? branchList[0] : null;
 
@@ -263,6 +273,13 @@ export function AnalyticsDashboard({ tasks, submissions, company }) {
               <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>
                 {stats.bestBranch.vms[0] ? `Top VM: ${stats.bestBranch.vms[0].name}` : ""}
               </div>
+              {stats.branchList[1] && stats.branchList[1].avgScore === stats.bestBranch.avgScore && (
+                <div style={{ ...S.muted, fontSize:11, marginTop:4 }}>
+                  Tied with {stats.branchList[1].name} on score — won on
+                  {stats.branchList[1].approvalRate === stats.bestBranch.approvalRate
+                    ? " submission volume" : " approval rate"}.
+                </div>
+              )}
             </div>
             <div style={{ textAlign:"right" }}>
               <div style={{ fontSize:26, fontWeight:700, color:C.accentColor }}>
