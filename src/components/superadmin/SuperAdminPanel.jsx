@@ -8,7 +8,7 @@ import {
   adminCreateCategory, adminDeleteCategory,
   getAllUsers, updateUserRole, assignUserToCompany, assignUserBranch,
 } from "../../services/superadmin.service.js";
-import { createInvite, getInvites } from "../../services/enterprise.service.js";
+import { createInvite, getInvites, setManagerBranches } from "../../services/enterprise.service.js";
 
 const S = {
   wrap:   { minHeight:"100vh", background:"#0a0a0f", color:"#f0ede8", fontFamily:"'DM Sans',sans-serif", padding:"20px 18px", paddingBottom:80 },
@@ -208,10 +208,16 @@ function UsersTab() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [managerBranchMap, setManagerBranchMap] = useState({}); // manager_id -> [branch_id]
   useEffect(() => {
     getAllUsers().then(setUsers);
     getAllCompanies().then(setCompanies);
     supabase.from("branches").select("id, name, company_id").then(({ data }) => setBranches(data ?? []));
+    supabase.from("manager_branches").select("manager_id, branch_id").then(({ data }) => {
+      const map = {};
+      (data ?? []).forEach(r => { (map[r.manager_id] ??= []).push(r.branch_id); });
+      setManagerBranchMap(map);
+    });
   }, []);
 
   const changeRole = async (id, role) => { await updateUserRole(id, role); setUsers(p => p.map(u => u.id===id?{...u,role}:u)); };
@@ -219,6 +225,12 @@ function UsersTab() {
   const changeBranch = async (id, branch_id) => {
     const updated = await assignUserBranch(id, branch_id);
     setUsers(p => p.map(u => u.id===id ? { ...u, branch_id: updated.branch_id, branch: branches.find(b=>b.id===updated.branch_id) ?? null } : u));
+  };
+  const toggleManagerBranch = async (managerId, branchId) => {
+    const current = managerBranchMap[managerId] ?? [];
+    const next = current.includes(branchId) ? current.filter(b => b !== branchId) : [...current, branchId];
+    setManagerBranchMap(p => ({ ...p, [managerId]: next }));
+    await setManagerBranches(managerId, next);
   };
   const changeEmployeeId = async (id, employee_id) => {
     await supabase.from("profiles").update({ employee_id: employee_id || null }).eq("id", id);
@@ -302,6 +314,31 @@ function UsersTab() {
                   <option value="">— none —</option>
                   {branches.filter(b=>b.company_id===u.company_id).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
+              </div>
+            )}
+            {u.role === "area_manager" && (
+              <div style={{ gridColumn:"1 / -1" }}>
+                <div style={S.lbl}>Assigned Branches — this drives their "region" everywhere (dashboards, analytics)</div>
+                {!u.company_id ? (
+                  <div style={{ fontSize:12, color:"#6b6880" }}>Assign a company first.</div>
+                ) : (
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                    {branches.filter(b=>b.company_id===u.company_id).map(b => {
+                      const picked = (managerBranchMap[u.id] ?? []).includes(b.id);
+                      return (
+                        <button key={b.id} onClick={() => toggleManagerBranch(u.id, b.id)} style={{
+                          padding:"5px 11px", borderRadius:16, fontSize:12, fontWeight:600, cursor:"pointer",
+                          background: picked ? "#a855f728" : "transparent",
+                          color: picked ? "#a855f7" : "#6b6880",
+                          border: picked ? "1px solid #a855f755" : "1px solid #6b688033",
+                        }}>{picked ? "✓ " : ""}{b.name}</button>
+                      );
+                    })}
+                    {branches.filter(b=>b.company_id===u.company_id).length === 0 && (
+                      <div style={{ fontSize:12, color:"#6b6880" }}>No branches in this company yet.</div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             <div style={{ gridColumn:"1 / -1" }}>
