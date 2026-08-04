@@ -9,12 +9,17 @@ import { compressImage } from "../lib/imageCompression.js";
 // normalize so `.name`/`.icon`/`.full_name` access always works.
 const one = (x) => Array.isArray(x) ? x[0] : x;
 
+// Bounded to the most recent rows — keeps the query fast as branches/history
+// grow, without needing pagination UI anywhere that consumes this list.
+const RECENT_ROWS_LIMIT = 2000;
+
 export async function getTasks(company_id) {
   const { data, error } = await supabase
     .from("tasks")
     .select("*, category:categories(name,icon), subcategory:subcategories(name), controller:target_controller_id(full_name)")
     .eq("company_id", company_id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(RECENT_ROWS_LIMIT);
   if (error) throw error;
   return (data ?? []).map(t => ({ ...t, category: one(t.category), subcategory: one(t.subcategory), controller: one(t.controller) }));
 }
@@ -54,7 +59,8 @@ export async function getSubmissions(company_id) {
       photos:submission_photos(*)
     `)
     .eq("company_id", company_id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(RECENT_ROWS_LIMIT);
   if (error) throw error;
 
   return (data ?? []).map(s => ({

@@ -9,6 +9,7 @@ import {
   getAllUsers, updateUserRole, assignUserToCompany, assignUserBranch,
 } from "../../services/superadmin.service.js";
 import { setManagerBranches } from "../../services/enterprise.service.js";
+import { toast } from "../shared/Toast.jsx";
 
 const S = {
   wrap:   { minHeight:"100vh", background:"#0a0a0f", color:"#f0ede8", fontFamily:"'DM Sans',sans-serif", padding:"20px 18px", paddingBottom:80 },
@@ -45,7 +46,7 @@ export function SuperAdminPanel() {
         <button style={S.btnOut} onClick={() => signOut()}>Sign Out</button>
       </div>
       <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
-        {[["companies","🏢 Companies"],["categories","📂 Categories"],["users","👥 Users"],["invites","🔑 Invite Codes"],["scoped","🗺️ Branch Regions"],["settings","⚙️ Settings"]].map(([k,l]) => (
+        {[["companies","🏢 Companies"],["categories","📂 Categories"],["users","👥 Users"],["invites","🔑 Invite Codes"],["scoped","🏬 Branches"],["settings","⚙️ Settings"]].map(([k,l]) => (
           <button key={k} style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
@@ -53,7 +54,7 @@ export function SuperAdminPanel() {
       {tab==="categories" && <CategoriesTab />}
       {tab==="users"      && <UsersTab />}
       {tab==="invites"    && <InviteCodesTab />}
-      {tab==="scoped"     && <BranchRegionsTab />}
+      {tab==="scoped"     && <BranchesTab />}
       {tab==="settings"   && <SettingsTab />}
     </div>
   );
@@ -449,34 +450,64 @@ function InviteCodesTab() {
   );
 }
 
-function BranchRegionsTab() {
+function BranchesTab() {
   const [companies, setCompanies] = useState([]);
   const [selected,  setSelected]  = useState("");
   const [branches,  setBranches]  = useState([]);
   const [regionSaving, setRegionSaving] = useState({});
+  const [newName,   setNewName]   = useState("");
+  const [newRegion, setNewRegion] = useState("");
+  const [adding,    setAdding]    = useState(false);
+  const [toggling,  setToggling]  = useState({});
 
   useEffect(() => { getAllCompanies().then(setCompanies); }, []);
   useEffect(() => {
     if (!selected) { setBranches([]); return; }
-    supabase.from("branches").select("id,name,region").eq("company_id", selected).order("sort_order").then(({ data }) => setBranches(data ?? []));
+    supabase.from("branches").select("id,name,region,is_active").eq("company_id", selected).order("sort_order").then(({ data }) => setBranches(data ?? []));
   }, [selected]);
 
   const saveBranchRegion = async (branchId, value) => {
     setRegionSaving(p => ({ ...p, [branchId]: true }));
-    await supabase.from("branches").update({ region: value || null }).eq("id", branchId);
-    setBranches(p => p.map(b => b.id === branchId ? { ...b, region: value || null } : b));
-    setRegionSaving(p => ({ ...p, [branchId]: false }));
+    try {
+      const { error } = await supabase.from("branches").update({ region: value || null }).eq("id", branchId);
+      if (error) throw error;
+      setBranches(p => p.map(b => b.id === branchId ? { ...b, region: value || null } : b));
+    } catch (e) { toast("Failed to save region."); }
+    finally { setRegionSaving(p => ({ ...p, [branchId]: false })); }
+  };
+
+  const addBranch = async () => {
+    if (!selected || !newName.trim()) return;
+    setAdding(true);
+    try {
+      const { data, error } = await supabase.from("branches")
+        .insert({ company_id: selected, name: newName.trim(), region: newRegion.trim() || null, is_active: true, sort_order: branches.length })
+        .select("id,name,region,is_active").single();
+      if (error) throw error;
+      setBranches(p => [...p, data]);
+      setNewName(""); setNewRegion("");
+    } catch (e) { toast("Failed to add branch. Check the name isn't already used."); }
+    finally { setAdding(false); }
+  };
+
+  const toggleActive = async (branchId, active) => {
+    setToggling(p => ({ ...p, [branchId]: true }));
+    try {
+      const { error } = await supabase.from("branches").update({ is_active: active }).eq("id", branchId);
+      if (error) throw error;
+      setBranches(p => p.map(b => b.id === branchId ? { ...b, is_active: active } : b));
+    } catch (e) { toast("Failed to update branch."); }
+    finally { setToggling(p => ({ ...p, [branchId]: false })); }
   };
 
   return (
     <div>
       <div style={{ ...S.card, marginBottom:20 }}>
-        <div style={S.h3}>Branch Regions</div>
+        <div style={S.h3}>Branches</div>
         <div style={{ fontSize:13, color:"#6b6880", lineHeight:1.7 }}>
-          VM Manager now uses the same flat "VM Manager" invite code as everyone else
-          (see the Invite Codes tab) — at signup they pick their own region, then which
-          branch(es) within it they manage. All you set up here is which region each
-          branch belongs to (e.g. "West", "South", "Riyadh") — do it once per branch.
+          Add branches and set each one's region (e.g. "West", "South", "Riyadh") —
+          VM Manager picks their region(s) and branch(es) at signup based on this.
+          Deactivating a branch hides it from every picker without deleting its history.
         </div>
       </div>
 
@@ -489,15 +520,31 @@ function BranchRegionsTab() {
 
         {selected && (
           <>
+            <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+              <input style={{ ...S.inp, marginBottom:0, flex:1 }} placeholder="New branch name"
+                value={newName} onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => e.key==="Enter" && addBranch()}/>
+              <input style={{ ...S.inp, marginBottom:0, width:130 }} placeholder="Region (optional)"
+                value={newRegion} onChange={e => setNewRegion(e.target.value)}
+                onKeyDown={e => e.key==="Enter" && addBranch()}/>
+              <button style={{ ...S.btnP, flexShrink:0 }} onClick={addBranch} disabled={adding || !newName.trim()}>
+                {adding ? "…" : "＋ Add"}
+              </button>
+            </div>
+
             {branches.length === 0 && <div style={{ fontSize:12, color:"#6b6880" }}>No branches for this company yet.</div>}
             {branches.map(b => (
-              <div key={b.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                <div style={{ fontSize:13, flex:1 }}>{b.name}</div>
-                <input style={{ ...S.inp, marginBottom:0, marginTop:0, width:160 }}
+              <div key={b.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, opacity: b.is_active ? 1 : 0.5 }}>
+                <div style={{ fontSize:13, flex:1 }}>{b.name}{!b.is_active && <span style={{ color:"#f87171", fontSize:11 }}> · inactive</span>}</div>
+                <input style={{ ...S.inp, marginBottom:0, marginTop:0, width:140 }}
                   placeholder="e.g. West" defaultValue={b.region ?? ""}
                   key={b.id + (b.region ?? "")}
                   onBlur={e => { if (e.target.value !== (b.region ?? "")) saveBranchRegion(b.id, e.target.value.trim()); }}/>
                 {regionSaving[b.id] && <span style={{ fontSize:11, color:"#6b6880" }}>…</span>}
+                <button style={{ ...S.btnG, fontSize:11, padding:"6px 10px", flexShrink:0 }}
+                  onClick={() => toggleActive(b.id, !b.is_active)} disabled={toggling[b.id]}>
+                  {toggling[b.id] ? "…" : b.is_active ? "Deactivate" : "Reactivate"}
+                </button>
               </div>
             ))}
           </>
