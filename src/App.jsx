@@ -222,7 +222,7 @@ function AuthenticatedApp() {
 
   useEffect(() => {
     if (!company) { setDataLoaded(true); return; }
-    Promise.all([
+    Promise.allSettled([
       getTasks(company.id).then(setTasks),
       getSubmissions(company.id).then(setSubmissions),
       getGuidelines(company.id).then(setGuidelines),
@@ -238,7 +238,13 @@ function AuthenticatedApp() {
         .order("created_at", { ascending:false }).limit(50).then(({ data }) => setDemoHolds(data ?? [])),
       loadFloorWalks(company.id),
       loadVisits(company.id),
-    ]).finally(() => setDataLoaded(true));
+    ]).then(results => {
+      const failed = results.filter(r => r.status === "rejected");
+      if (failed.length) {
+        process.env?.NODE_ENV !== "production" && console.error(failed.map(f => f.reason));
+        toast("Some data failed to load — pull down or reopen the app to retry.");
+      }
+    }).finally(() => setDataLoaded(true));
     subscribeToPush(profile.id, company.id);
     navigator.serviceWorker?.addEventListener("message", e => { if (e.data?.type === "TRIGGER_SYNC") syncQueue(); });
   }, [company?.id]);
