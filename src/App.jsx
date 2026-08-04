@@ -326,20 +326,27 @@ function AuthenticatedApp() {
   };
 
 
-  const handleSetBranchStatus = async (branch_id, status) => { if (!campaign?.id) return; await setCampaignBranchStatus(campaign.id, branch_id, status); getCampaignProgress(campaign.id).then(setCampaignProgress); };
+  const handleSetBranchStatus = async (branch_id, status) => {
+    if (!campaign?.id) return;
+    try { await setCampaignBranchStatus(campaign.id, branch_id, status); getCampaignProgress(campaign.id).then(setCampaignProgress); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to update branch status."); }
+  };
 
   const handleUploadBranchCampaignFile = async (branch_id, file) => {
     if (!campaign?.id) return;
-    await uploadCampaignBranchFile(campaign.id, branch_id, profile.id, file);
-    getCampaignProgress(campaign.id).then(setCampaignProgress);
+    try { await uploadCampaignBranchFile(campaign.id, branch_id, profile.id, file); getCampaignProgress(campaign.id).then(setCampaignProgress); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to upload campaign file. Please try again."); }
   };
 
   const handleReviewCampaignBranchFile = async (branch_id, status, note) => {
     if (!campaign?.id) return;
-    await reviewCampaignBranchFile(campaign.id, branch_id, status, note, profile.id);
-    getCampaignProgress(campaign.id).then(setCampaignProgress);
+    try { await reviewCampaignBranchFile(campaign.id, branch_id, status, note, profile.id); getCampaignProgress(campaign.id).then(setCampaignProgress); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to save review. Please try again."); }
   };
-  const handleCreatePromotion = async (payload, branchIds) => { await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds); getPromotions(company.id).then(setPromotions); addLog("Created promotion", payload.name); };
+  const handleCreatePromotion = async (payload, branchIds) => {
+    try { await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds); getPromotions(company.id).then(setPromotions); addLog("Created promotion", payload.name); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to create promotion."); }
+  };
   const handleDeletePromotion = async (id) => { await deletePromotion(id); setPromotions(p => p.filter(x => x.id !== id)); };
   const handleDeleteVisit = (id) => showConfirm("Delete this visit report?", async () => { await supabase.from("store_visits").delete().eq("id", id); setVisits(p => p.filter(x => x.id !== id)); setConfirm(null); });
   const handleDeleteDemoHold = (id) => showConfirm("Remove this item from hold?", async () => { await supabase.from("demo_holds").delete().eq("id", id); setDemoHolds(p => p.filter(x => x.id !== id)); setConfirm(null); });
@@ -365,7 +372,7 @@ function AuthenticatedApp() {
           <StatusBar isOnline={isOnline} queueSize={queueSize} syncing={syncing} onSyncNow={syncQueue} />
           <div key={vmPage} className="page-transition" style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} campaign={campaign} promotions={promotions} />}
-            {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks))} />}
+            {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks)).catch(e => { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to update task. Please try again."); })} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
             {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} branchId={profile.branch_id} campaign={campaign} campaignProgress={campaignProgress} />}
             {vmPage==="chat"       && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}

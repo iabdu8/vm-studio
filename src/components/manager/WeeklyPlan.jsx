@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { notifyUser } from "../../services/enterprise.service.js";
+import { toast } from "../shared/Toast.jsx";
 
 // ============================================================
 //  WEEKLY STORE PLAN — Table View
@@ -338,75 +339,91 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
   const addItem = async () => {
     if (!addTitle.trim() || !selectedStaff || !addDate) return;
     setSaving(true);
+    try {
+      const targetMonday = getWeekStartOf(addDate);
+      const dayOfWeek = Math.round((new Date(addDate) - new Date(targetMonday)) / 86400000);
+      const plan = await ensurePlanFor(targetMonday);
+      if (!plan) { toast("Failed to create task. Please try again."); return; }
+      const catId = addCat === "DAYOFF" ? null : (addCat || null);
 
-    const targetMonday = getWeekStartOf(addDate);
-    const dayOfWeek = Math.round((new Date(addDate) - new Date(targetMonday)) / 86400000);
-    const plan = await ensurePlanFor(targetMonday);
-    if (!plan) { setSaving(false); return; }
-    const catId = addCat === "DAYOFF" ? null : (addCat || null);
+      // The plan item IS the task: create the backing `tasks` row so the VM
+      // sees it in My Tasks / Submit Work with before/after + approval flow.
+      const { data: task, error: taskErr } = await supabase
+        .from("tasks")
+        .insert({
+          company_id: company.id, branch_id: selectedBranch,
+          category_id: catId, created_by: profile.id,
+          assigned_to: selectedStaff, target_controller_id: profile.id,
+          title: addTitle, priority: "medium",
+          due_date: addDate, due_label: formatDueLabel(addDate),
+        })
+        .select().single();
+      if (taskErr) throw taskErr;
 
-    // The plan item IS the task: create the backing `tasks` row so the VM
-    // sees it in My Tasks / Submit Work with before/after + approval flow.
-    const { data: task } = await supabase
-      .from("tasks")
-      .insert({
-        company_id: company.id, branch_id: selectedBranch,
-        category_id: catId, created_by: profile.id,
-        assigned_to: selectedStaff, target_controller_id: profile.id,
-        title: addTitle, priority: "medium",
-        due_date: addDate, due_label: formatDueLabel(addDate),
-      })
-      .select().single();
+      const { data, error: itemErr } = await supabase
+        .from("weekly_plan_items")
+        .insert({
+          plan_id:           plan.id,
+          task_id:           task?.id ?? null,
+          title:             addCat === "DAYOFF" ? addTitle : (addNotes.trim() ? `${addTitle}\n${addNotes.trim()}` : addTitle),
+          category_id:       catId,
+          day_of_week:       dayOfWeek,
+          assigned_staff_id: selectedStaff,
+          sort_order:        items.length,
+        })
+        .select("*, category:categories(name, icon), assigned_staff:assigned_staff_id(id, full_name)")
+        .single();
+      if (itemErr) throw itemErr;
 
-    const { data } = await supabase
-      .from("weekly_plan_items")
-      .insert({
-        plan_id:           plan.id,
-        task_id:           task?.id ?? null,
-        title:             addCat === "DAYOFF" ? addTitle : (addNotes.trim() ? `${addTitle}\n${addNotes.trim()}` : addTitle),
-        category_id:       catId,
-        day_of_week:       dayOfWeek,
-        assigned_staff_id: selectedStaff,
-        sort_order:        items.length,
-      })
-      .select("*, category:categories(name, icon), assigned_staff:assigned_staff_id(id, full_name)")
-      .single();
-
-    // If the chosen date falls outside the week currently on screen, jump the
-    // view to that week so the new item is visible right away.
-    if (targetMonday !== weekStart) {
-      const newOffset = Math.round((new Date(targetMonday) - new Date(getWeekStart(0))) / (7 * 86400000));
-      setWeekOffset(newOffset);
+      // If the chosen date falls outside the week currently on screen, jump the
+      // view to that week so the new item is visible right away.
+      if (targetMonday !== weekStart) {
+        const newOffset = Math.round((new Date(targetMonday) - new Date(getWeekStart(0))) / (7 * 86400000));
+        setWeekOffset(newOffset);
+        setShowAdd(false);
+        if (task?.id) notifyUser(company.id, selectedStaff, "task_created", "New Task Assigned 📋", addTitle);
+        onTasksChanged?.();
+        return;
+      }
+      if (data) setItems(p => [...p, { ...data, category: one(data.category), assigned_staff: one(data.assigned_staff) }]);
       setShowAdd(false);
-      setSaving(false);
       if (task?.id) notifyUser(company.id, selectedStaff, "task_created", "New Task Assigned 📋", addTitle);
       onTasksChanged?.();
-      return;
-    }
-    if (data) setItems(p => [...p, { ...data, category: one(data.category), assigned_staff: one(data.assigned_staff) }]);
-    setShowAdd(false);
-    setSaving(false);
-    if (task?.id) notifyUser(company.id, selectedStaff, "task_created", "New Task Assigned 📋", addTitle);
-    onTasksChanged?.();
+    } catch (e) {
+      process.env?.NODE_ENV !== "production" && console.error(e);
+      toast("Failed to create task. Please try again.");
+    } finally { setSaving(false); }
   };
 
   const cycleStatus = async (item) => {
     const next = item.status === "pending" ? "in_progress"
       : item.status === "in_progress" ? "done" : "pending";
-    await supabase.from("weekly_plan_items").update({ status: next }).eq("id", item.id);
-    setItems(p => p.map(i => i.id === item.id ? { ...i, status: next } : i));
-    if (item.task_id) {
-      await supabase.from("tasks").update({ is_done: next === "done" }).eq("id", item.task_id);
-      onTasksChanged?.();
+    try {
+      const { error } = await supabase.from("weekly_plan_items").update({ status: next }).eq("id", item.id);
+      if (error) throw error;
+      setItems(p => p.map(i => i.id === item.id ? { ...i, status: next } : i));
+      if (item.task_id) {
+        await supabase.from("tasks").update({ is_done: next === "done" }).eq("id", item.task_id);
+        onTasksChanged?.();
+      }
+    } catch (e) {
+      process.env?.NODE_ENV !== "production" && console.error(e);
+      toast("Failed to update status. Please try again.");
     }
   };
 
   const deleteItem = async (item) => {
-    await supabase.from("weekly_plan_items").delete().eq("id", item.id);
-    setItems(p => p.filter(i => i.id !== item.id));
-    if (item.task_id) {
-      await supabase.from("tasks").delete().eq("id", item.task_id);
-      onTasksChanged?.();
+    try {
+      const { error } = await supabase.from("weekly_plan_items").delete().eq("id", item.id);
+      if (error) throw error;
+      setItems(p => p.filter(i => i.id !== item.id));
+      if (item.task_id) {
+        await supabase.from("tasks").delete().eq("id", item.task_id);
+        onTasksChanged?.();
+      }
+    } catch (e) {
+      process.env?.NODE_ENV !== "production" && console.error(e);
+      toast("Failed to delete. Please try again.");
     }
   };
 
