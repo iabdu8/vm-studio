@@ -16,9 +16,9 @@ export function RegisterPage({ onBack }) {
   const [password, setPassword] = useState("");
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState([]);
-  const [regions,  setRegions]  = useState([]);           // VM Manager — regions available in this company
-  const [selectedRegion, setSelectedRegion] = useState(""); // VM Manager — region they picked
-  const [pickedBranchIds, setPickedBranchIds] = useState([]); // VM Manager — one or more branches in that region
+  const [regions,  setRegions]  = useState([]);              // VM Manager — regions available in this company
+  const [selectedRegions, setSelectedRegions] = useState([]); // VM Manager — region(s) they picked, e.g. West + South
+  const [pickedBranchIds, setPickedBranchIds] = useState([]); // VM Manager — one or more branches in those regions
   const [err,      setErr]      = useState("");
   const [loading,  setLoading]  = useState(false);
   const [regionLoading, setRegionLoading] = useState(false);
@@ -35,7 +35,7 @@ export function RegisterPage({ onBack }) {
         if (companyMatch.role === "area_manager") {
           const regionList = await lookupRegions(companyMatch.id);
           setRegions(regionList);
-          setSelectedRegion(""); setBranches([]); setPickedBranchIds([]);
+          setSelectedRegions([]); setBranches([]); setPickedBranchIds([]);
         } else {
           const branchData = await lookupActiveBranches(companyMatch.id);
           setBranches(branchData);
@@ -47,19 +47,20 @@ export function RegisterPage({ onBack }) {
     } finally { setLoading(false); }
   };
 
-  const pickRegion = async (r) => {
-    setSelectedRegion(r);
+  const toggleRegion = async (r) => {
+    const next = selectedRegions.includes(r) ? selectedRegions.filter(x => x !== r) : [...selectedRegions, r];
+    setSelectedRegions(next);
     setPickedBranchIds([]);
-    if (!r) { setBranches([]); return; }
+    if (!next.length) { setBranches([]); return; }
     setRegionLoading(true);
-    try { setBranches(await lookupBranchesByRegion(company.id, r)); }
+    try { setBranches(await lookupBranchesByRegion(company.id, next.join(","))); }
     finally { setRegionLoading(false); }
   };
 
   const register = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) { setErr("Please fill in all fields."); return; }
     if (password.length < 6) { setErr("Password must be at least 6 characters."); return; }
-    if (role === "area_manager" && (!selectedRegion || pickedBranchIds.length === 0)) { setErr("Pick your region and at least one branch you manage."); return; }
+    if (role === "area_manager" && (!selectedRegions.length || pickedBranchIds.length === 0)) { setErr("Pick your region(s) and at least one branch you manage."); return; }
     if (role !== "area_manager" && branches.length > 0 && !branchId) { setErr("Please select your branch."); return; }
     setLoading(true); setErr("");
     try {
@@ -170,18 +171,29 @@ export function RegisterPage({ onBack }) {
 
             {role === "area_manager" ? (
               <>
-                <div style={S.lbl}>Your Region</div>
-                <select style={S.sel} value={selectedRegion} onChange={e => pickRegion(e.target.value)}>
-                  <option value="">— Select your region —</option>
-                  {regions.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
-                {regions.length === 0 && (
+                <div style={S.lbl}>Your Region(s) — pick more than one if you cover several</div>
+                {regions.length > 0 ? (
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:12 }}>
+                    {regions.map(r => {
+                      const picked = selectedRegions.includes(r);
+                      return (
+                        <button key={r} type="button" onClick={() => toggleRegion(r)}
+                          style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                            background: picked ? C.accentColor+"28" : "transparent",
+                            color: picked ? C.accentColor : C.mutedColor,
+                            border: picked ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}33` }}>
+                          {picked ? "✓ " : ""}{r}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
                   <div style={{ fontSize:12, color:C.mutedColor, marginBottom:12 }}>No regions set up yet — ask your admin.</div>
                 )}
 
-                {selectedRegion && (
+                {selectedRegions.length > 0 && (
                   <div style={{ marginBottom:12 }}>
-                    <div style={S.lbl}>Which branch(es) in {selectedRegion} do you manage?</div>
+                    <div style={S.lbl}>Which branch(es) in {selectedRegions.join(" + ")} do you manage?</div>
                     {regionLoading ? (
                       <div style={{ fontSize:12, color:C.mutedColor }}>Loading branches…</div>
                     ) : (
