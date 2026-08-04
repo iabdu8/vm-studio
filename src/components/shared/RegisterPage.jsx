@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase.js";
 import { S, C } from "../../styles/theme.js";
 import { StyleTag } from "./Atoms.jsx";
 import { Logo } from "./Logo.jsx";
-import { lookupScopedInvite, lookupCompanyByCode, lookupActiveBranches, lookupBranchesByRegion, markInviteUsed, setManagerBranches } from "../../services/enterprise.service.js";
+import { lookupCompanyByCode, lookupActiveBranches, lookupRegions, lookupBranchesByRegion, setManagerBranches } from "../../services/enterprise.service.js";
 
 export function RegisterPage({ onBack }) {
   const [step,     setStep]     = useState(1);
@@ -16,10 +16,12 @@ export function RegisterPage({ onBack }) {
   const [password, setPassword] = useState("");
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState([]);
-  const [pickedBranchIds, setPickedBranchIds] = useState([]); // VM Manager — one or more branches in their region
-  const [invite,   setInvite]   = useState(null); // matched row from `invites` table, if any
+  const [regions,  setRegions]  = useState([]);           // VM Manager — regions available in this company
+  const [selectedRegion, setSelectedRegion] = useState(""); // VM Manager — region they picked
+  const [pickedBranchIds, setPickedBranchIds] = useState([]); // VM Manager — one or more branches in that region
   const [err,      setErr]      = useState("");
   const [loading,  setLoading]  = useState(false);
+  const [regionLoading, setRegionLoading] = useState(false);
   const [done,     setDone]     = useState(false);
 
   const verifyCode = async () => {
@@ -27,40 +29,37 @@ export function RegisterPage({ onBack }) {
     setLoading(true); setErr("");
     try {
       const upperCode = code.trim().toUpperCase();
-
-      // Region-scoped invite (VM Manager) — they pick which branch(es) in the region they manage
-      const scopedInvite = await lookupScopedInvite(upperCode);
-      if (scopedInvite) {
-        const regionBranches = await lookupBranchesByRegion(scopedInvite.company_id, scopedInvite.region);
-        setCompany({ id: scopedInvite.company_id, name: scopedInvite.company_name,
-          logo_url: scopedInvite.company_logo_url, accent_color: scopedInvite.company_accent_color });
-        setRole(scopedInvite.role);
-        setInvite({ id: scopedInvite.id, company_id: scopedInvite.company_id,
-          role: scopedInvite.role, region: scopedInvite.region });
-        setBranches(regionBranches);
-        setPickedBranchIds([]);
-        setStep(2); return;
-      }
-
-      // Flat company code — vm / manager (Head VM) / store_manager (VM Controller),
-      // registrant picks their own single branch
       const companyMatch = await lookupCompanyByCode(upperCode);
       if (companyMatch) {
-        setCompany(companyMatch); setRole(companyMatch.role); setInvite(null);
-        const branchData = await lookupActiveBranches(companyMatch.id);
-        setBranches(branchData);
-        if (branchData.length === 1) setBranchId(branchData[0].id);
+        setCompany(companyMatch); setRole(companyMatch.role);
+        if (companyMatch.role === "area_manager") {
+          const regionList = await lookupRegions(companyMatch.id);
+          setRegions(regionList);
+          setSelectedRegion(""); setBranches([]); setPickedBranchIds([]);
+        } else {
+          const branchData = await lookupActiveBranches(companyMatch.id);
+          setBranches(branchData);
+          if (branchData.length === 1) setBranchId(branchData[0].id);
+        }
         setStep(2); return;
       }
-
       setErr("Invalid invite code. Please check with your manager.");
     } finally { setLoading(false); }
+  };
+
+  const pickRegion = async (r) => {
+    setSelectedRegion(r);
+    setPickedBranchIds([]);
+    if (!r) { setBranches([]); return; }
+    setRegionLoading(true);
+    try { setBranches(await lookupBranchesByRegion(company.id, r)); }
+    finally { setRegionLoading(false); }
   };
 
   const register = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) { setErr("Please fill in all fields."); return; }
     if (password.length < 6) { setErr("Password must be at least 6 characters."); return; }
-    if (role === "area_manager" && pickedBranchIds.length === 0) { setErr("Pick at least one branch you manage."); return; }
+    if (role === "area_manager" && (!selectedRegion || pickedBranchIds.length === 0)) { setErr("Pick your region and at least one branch you manage."); return; }
     if (role !== "area_manager" && branches.length > 0 && !branchId) { setErr("Please select your branch."); return; }
     setLoading(true); setErr("");
     try {
@@ -74,10 +73,7 @@ export function RegisterPage({ onBack }) {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Failed to create account.");
 
-      if (invite) {
-        await markInviteUsed(invite.id, userId);
-        if (invite.role === "area_manager") await setManagerBranches(userId, pickedBranchIds);
-      }
+      if (role === "area_manager") await setManagerBranches(userId, pickedBranchIds);
 
       if (employeeId.trim()) {
         await supabase.from("profiles").update({ employee_id: employeeId.trim() }).eq("id", userId);
@@ -172,28 +168,45 @@ export function RegisterPage({ onBack }) {
               </div>
             </div>
 
-            {invite ? (
-              <div style={{ marginBottom:12 }}>
-                <div style={S.lbl}>Which branch(es) in {invite.region?.split(",").join(" + ")} do you manage?</div>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                  {branches.map(b => {
-                    const picked = pickedBranchIds.includes(b.id);
-                    return (
-                      <button key={b.id} type="button"
-                        onClick={() => setPickedBranchIds(p => picked ? p.filter(x => x !== b.id) : [...p, b.id])}
-                        style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                          background: picked ? C.accentColor+"28" : "transparent",
-                          color: picked ? C.accentColor : C.mutedColor,
-                          border: picked ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}33` }}>
-                        {picked ? "✓ " : "📍 "}{b.name}
-                      </button>
-                    );
-                  })}
-                  {branches.length === 0 && (
-                    <div style={{ fontSize:12, color:C.mutedColor }}>No branches set up in this region yet — ask your admin.</div>
-                  )}
-                </div>
-              </div>
+            {role === "area_manager" ? (
+              <>
+                <div style={S.lbl}>Your Region</div>
+                <select style={S.sel} value={selectedRegion} onChange={e => pickRegion(e.target.value)}>
+                  <option value="">— Select your region —</option>
+                  {regions.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+                {regions.length === 0 && (
+                  <div style={{ fontSize:12, color:C.mutedColor, marginBottom:12 }}>No regions set up yet — ask your admin.</div>
+                )}
+
+                {selectedRegion && (
+                  <div style={{ marginBottom:12 }}>
+                    <div style={S.lbl}>Which branch(es) in {selectedRegion} do you manage?</div>
+                    {regionLoading ? (
+                      <div style={{ fontSize:12, color:C.mutedColor }}>Loading branches…</div>
+                    ) : (
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                        {branches.map(b => {
+                          const picked = pickedBranchIds.includes(b.id);
+                          return (
+                            <button key={b.id} type="button"
+                              onClick={() => setPickedBranchIds(p => picked ? p.filter(x => x !== b.id) : [...p, b.id])}
+                              style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                                background: picked ? C.accentColor+"28" : "transparent",
+                                color: picked ? C.accentColor : C.mutedColor,
+                                border: picked ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}33` }}>
+                              {picked ? "✓ " : "📍 "}{b.name}
+                            </button>
+                          );
+                        })}
+                        {branches.length === 0 && (
+                          <div style={{ fontSize:12, color:C.mutedColor }}>No branches in this region yet.</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             ) : branches.length > 0 && (
               <>
                 <div style={S.lbl}>Branch</div>
@@ -223,7 +236,7 @@ export function RegisterPage({ onBack }) {
               {loading ? "Creating account…" : "Create Account →"}
             </button>
             <button className="btnG" style={{ ...S.btnG, width:"100%", fontSize:12 }}
-              onClick={() => { setStep(1); setErr(""); setInvite(null); }}>
+              onClick={() => { setStep(1); setErr(""); }}>
               ← Change Code
             </button>
           </>

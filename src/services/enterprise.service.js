@@ -246,6 +246,12 @@ export async function lookupBranchesByRegion(company_id, region) {
   return data ?? [];
 }
 
+export async function lookupRegions(company_id) {
+  const { data, error } = await supabase.rpc("lookup_regions", { p_company_id: company_id });
+  if (error) throw error;
+  return (data ?? []).map(r => r.region);
+}
+
 export async function getInvites(company_id) {
   const { data, error } = await supabase
     .from("invites")
