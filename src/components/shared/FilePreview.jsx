@@ -1,17 +1,31 @@
+import { useState, useEffect } from "react";
 import { C } from "../../styles/theme.js";
 
-// In-app file preview modal — PDF (native on desktop, Google Docs viewer on
-// mobile), PPT/PPTX (Office Online viewer), else treated as an image.
+// In-app file preview modal — PDFs render natively in every browser (no
+// external viewer round-trip, which was the slow path before), PPT/PPTX
+// go through Office Online since browsers can't render those at all,
+// everything else is treated as an image. A spinner + "taking a while?"
+// hint covers the wait instead of leaving a blank screen.
 export function FilePreview({ url, title, fileType, onClose }) {
-  if (!url) return null;
-  const clean = url.split("?")[0].toLowerCase();
+  const [loaded,  setLoaded]  = useState(false);
+  const [slow,    setSlow]    = useState(false);
+
+  const clean = (url ?? "").split("?")[0].toLowerCase();
   const isPDF = fileType === "pdf" || clean.endsWith(".pdf");
   const isPPT = fileType === "ppt" || /\.pptx?$/.test(clean);
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isFramed = isPDF || isPPT;
 
-  const pdfSrc = isMobile
-    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-    : `${url}#toolbar=1`;
+  useEffect(() => {
+    setLoaded(false);
+    setSlow(false);
+    if (!isFramed) return;
+    const t = setTimeout(() => setSlow(true), 4000);
+    return () => clearTimeout(t);
+  }, [url, isFramed]);
+
+  if (!url) return null;
+
+  const pdfSrc    = `${url}#toolbar=1`;
   const officeSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
 
   return (
@@ -45,17 +59,40 @@ export function FilePreview({ url, title, fileType, onClose }) {
         </div>
       </div>
 
+      {isFramed && slow && !loaded && (
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10,
+          padding:"8px 16px", background:"#d4a82a18", borderBottom:"1px solid #d4a82a33",
+          fontSize:12, color:"#d4a82a", flexShrink:0 }}>
+          🐢 Taking longer than usual —
+          <a href={url} target="_blank" rel="noopener noreferrer" style={{ color:"#d4a82a", fontWeight:700 }}>
+            open in a new tab instead →
+          </a>
+        </div>
+      )}
+
       <div style={{ flex:1, overflow:"hidden", display:"flex",
-        alignItems:"center", justifyContent:"center", background:"#111" }}>
+        alignItems:"center", justifyContent:"center", background:"#111", position:"relative" }}>
+        {isFramed && !loaded && (
+          <div style={{ position:"absolute", color:"#fff", fontSize:13, display:"flex",
+            flexDirection:"column", alignItems:"center", gap:10 }}>
+            <div style={{ width:28, height:28, borderRadius:"50%",
+              border:`3px solid ${C.accentColor}33`, borderTopColor:C.accentColor,
+              animation:"spin .8s linear infinite" }}/>
+            Loading…
+          </div>
+        )}
         {isPDF ? (
-          <iframe src={pdfSrc} style={{ width:"100%", height:"100%", border:"none" }} title={title}/>
+          <iframe src={pdfSrc} onLoad={() => setLoaded(true)}
+            style={{ width:"100%", height:"100%", border:"none", opacity: loaded ? 1 : 0 }} title={title}/>
         ) : isPPT ? (
-          <iframe src={officeSrc} style={{ width:"100%", height:"100%", border:"none" }} title={title}/>
+          <iframe src={officeSrc} onLoad={() => setLoaded(true)}
+            style={{ width:"100%", height:"100%", border:"none", opacity: loaded ? 1 : 0 }} title={title}/>
         ) : (
           <img loading="lazy" src={url} alt={title}
             style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain" }}/>
         )}
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
