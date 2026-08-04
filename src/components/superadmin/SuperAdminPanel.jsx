@@ -279,7 +279,14 @@ function UsersTab() {
             <div>
               <div style={{ fontWeight:700, fontSize:14 }}>{u.full_name}{u.employee_id && <span style={{ color:"#6b6880", fontWeight:400 }}> · #{u.employee_id}</span>}</div>
               <div style={{ fontSize:11, color:"#6b6880" }}>
-                {u.company?.name ?? "No company"}{u.branch?.name && ` · 📍 ${u.branch.name}`}
+                {u.company?.name ?? "No company"}
+                {u.branch?.name && ` · 📍 ${u.branch.name}`}
+                {(u.role === "vm" || u.role === "store_manager") && !u.branch?.name && " · ⚠️ No branch assigned"}
+                {u.role === "area_manager" && (
+                  (managerBranchMap[u.id] ?? []).length > 0
+                    ? ` · 📍 ${managerBranchMap[u.id].map(bid => branches.find(b=>b.id===bid)?.name).filter(Boolean).join(", ")}`
+                    : " · ⚠️ No branches assigned"
+                )}
               </div>
             </div>
             <div style={{ display:"flex", gap:8, alignItems:"center" }}>
