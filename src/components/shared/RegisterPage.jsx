@@ -174,7 +174,7 @@ export function RegisterPage({ onBack }) {
 
             {invite ? (
               <div style={{ marginBottom:12 }}>
-                <div style={S.lbl}>Which branch(es) in {invite.region} do you manage?</div>
+                <div style={S.lbl}>Which branch(es) in {invite.region?.split(",").join(" + ")} do you manage?</div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                   {branches.map(b => {
                     const picked = pickedBranchIds.includes(b.id);

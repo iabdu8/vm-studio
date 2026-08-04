@@ -445,7 +445,7 @@ function ScopedInvitesTab({ profile }) {
   const [companies, setCompanies] = useState([]);
   const [selected,  setSelected]  = useState("");
   const [branches,  setBranches]  = useState([]);
-  const [region,    setRegion]    = useState("");
+  const [pickedRegions, setPickedRegions] = useState([]);
   const [invites,   setInvites]   = useState([]);
   const [saving,    setSaving]    = useState(false);
   const [lastCode,  setLastCode]  = useState("");
@@ -458,6 +458,8 @@ function ScopedInvitesTab({ profile }) {
     getInvites(selected).then(setInvites);
   }, [selected]);
 
+  const toggleRegion = (r) => setPickedRegions(p => p.includes(r) ? p.filter(x => x !== r) : [...p, r]);
+
   const regions = [...new Set(branches.map(b => b.region).filter(Boolean))];
 
   const saveBranchRegion = async (branchId, value) => {
@@ -468,12 +470,13 @@ function ScopedInvitesTab({ profile }) {
   };
 
   const generate = async () => {
-    if (!selected || !region.trim()) return;
+    if (!selected || !pickedRegions.length) return;
     setSaving(true);
     try {
-      const inv = await createInvite(selected, "area_manager", { region: region.trim() }, profile.id);
+      const inv = await createInvite(selected, "area_manager", { region: pickedRegions.join(",") }, profile.id);
       setLastCode(inv.code);
       setInvites(p => [inv, ...p]);
+      setPickedRegions([]);
     } finally { setSaving(false); }
   };
 
@@ -490,7 +493,7 @@ function ScopedInvitesTab({ profile }) {
 
       <div style={S.card}>
         <div style={S.lbl}>Company</div>
-        <select style={S.sel} value={selected} onChange={e => { setSelected(e.target.value); setRegion(""); setLastCode(""); }}>
+        <select style={S.sel} value={selected} onChange={e => { setSelected(e.target.value); setPickedRegions([]); setLastCode(""); }}>
           <option value="">— choose a company —</option>
           {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -513,18 +516,23 @@ function ScopedInvitesTab({ profile }) {
               </div>
             ))}
 
-            <div style={{ ...S.lbl, marginTop:16 }}>Region for this invite</div>
+            <div style={{ ...S.lbl, marginTop:16 }}>Region(s) for this invite — pick more than one to combine them for a single VM Manager</div>
             {regions.length > 0 ? (
-              <select style={S.sel} value={region} onChange={e => setRegion(e.target.value)}>
-                <option value="">— choose a region —</option>
-                {regions.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
+                {regions.map(r => (
+                  <button key={r} onClick={() => toggleRegion(r)} style={{
+                    padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                    background: pickedRegions.includes(r) ? "#a855f728" : "transparent",
+                    color:      pickedRegions.includes(r) ? "#a855f7" : "#6b6880",
+                    border:     pickedRegions.includes(r) ? "1px solid #a855f755" : "1px solid #6b688022",
+                  }}>{pickedRegions.includes(r) ? "✓ " : ""}{r}</button>
+                ))}
+              </div>
             ) : (
-              <input style={S.sel} placeholder="Type a region name (set branch regions above first)"
-                value={region} onChange={e => setRegion(e.target.value)}/>
+              <div style={{ fontSize:12, color:"#6b6880", marginBottom:14 }}>Set branch regions above first.</div>
             )}
 
-            <button style={S.btnP} onClick={generate} disabled={saving || !region.trim()}>
+            <button style={S.btnP} onClick={generate} disabled={saving || !pickedRegions.length}>
               {saving ? "Generating…" : "Generate Code →"}
             </button>
 
@@ -547,7 +555,7 @@ function ScopedInvitesTab({ profile }) {
               <div>
                 <div style={{ fontSize:16, fontWeight:700, letterSpacing:2, color:"#a855f7" }}>{inv.code}</div>
                 <div style={{ fontSize:11, color:"#6b6880", marginTop:2 }}>
-                  VM Manager · {inv.region ?? "—"} region
+                  VM Manager · {inv.region ? inv.region.split(",").join(" + ") : "—"}
                 </div>
               </div>
               <span style={{ fontSize:11, fontWeight:700, color: inv.used_by ? "#4ade80" : "#d4a82a" }}>
