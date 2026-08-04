@@ -362,7 +362,7 @@ function AuthenticatedApp() {
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} demoHolds={demoHolds} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks))} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
             {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} branchId={profile.branch_id} campaign={campaign} campaignProgress={campaignProgress} />}
-            {vmPage==="chat"       && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
+            {vmPage==="chat"       && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <VMNav page={vmPage} setPage={setVmPage} />
         </div>
@@ -377,7 +377,7 @@ function AuthenticatedApp() {
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
             {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onUploadBranchFile={handleUploadBranchCampaignFile} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}
-            {smPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
+            {smPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
             {[["home",HomeIcon,"Home"],["assign",AssignIcon,"Tasks"],["requests",RequestsIcon,"Approvals"],["campaign",GuidesIcon,"Campaign"],["reports",AnalyticsIcon,"Reports"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
@@ -398,7 +398,7 @@ function AuthenticatedApp() {
             {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
             {amPage==="campaign" && <AreaManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} profile={profile} guidelines={guidelines} company={company} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onReviewBranchFile={handleReviewCampaignBranchFile} />}
             {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
-            {amPage==="chat"     && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
+            {amPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
             {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["plan",CalendarIcon,"Plan"],["campaign",GuidesIcon,"Campaign"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
@@ -420,7 +420,7 @@ function AuthenticatedApp() {
             {mgrPage==="reports"    && <MgrReports tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
             {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
             {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} regions={regionAssignments} />}
-            {mgrPage==="chat"       && <Chat user={profile} onSend={(room, body) => sendMessage(company.id, profile.id, room, body)} companyId={company.id} branches={activeBranches} />}
+            {mgrPage==="chat"       && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
             {mgrPage==="superadmin" && isSuperAdmin && <SuperAdminPanel />}
           </div>
           <MgrNav page={mgrPage} setPage={setMgrPage} isSuperAdmin={isSuperAdmin} />

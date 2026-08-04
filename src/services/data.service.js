@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase.js";
+import { compressImage } from "../lib/imageCompression.js";
 
 // ============================================================
 //  TASKS
@@ -123,14 +124,34 @@ export async function getChatMessages(company_id, room) {
   return data ?? [];
 }
 
-export async function sendMessage(company_id, sender_id, room, body) {
+export async function sendMessage(company_id, sender_id, room, body, attachment = null) {
+  const payload = { company_id, sender_id, room, body };
+  if (attachment) {
+    payload.attachment_url  = attachment.url;
+    payload.attachment_type = attachment.type;
+    payload.attachment_name = attachment.name;
+  }
   const { data, error } = await supabase
     .from("chat_messages")
-    .insert({ company_id, sender_id, room, body })
+    .insert(payload)
     .select("*, sender:profiles(full_name, avatar_initials, role)")
     .single();
   if (error) throw error;
   return data;
+}
+
+// Images go through vm-photos (compressed to WebP first); other files
+// (PDF, etc.) go through vm-guidelines, same buckets already used elsewhere.
+export async function uploadChatAttachment(company_id, room, file) {
+  const isImage = file.type.startsWith("image/");
+  const uploadFile = isImage ? await compressImage(file, "chat") : file;
+  const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const bucket = isImage ? "vm-photos" : "vm-guidelines";
+  const path = `${company_id}/chat/${room}/${safeName}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, uploadFile);
+  if (error) throw error;
+  const url = supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+  return { url, type: isImage ? "image" : "file", name: file.name };
 }
 
 export function subscribeToChat(company_id, room, onMessage) {

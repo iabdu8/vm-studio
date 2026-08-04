@@ -2,13 +2,18 @@ import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { Avatar } from "./Atoms.jsx";
 import { supabase } from "../../lib/supabase.js";
+import { uploadChatAttachment } from "../../services/data.service.js";
+import { PhotoLightbox } from "./PhotoLightbox.jsx";
 
 // ── Single chat room ──────────────────────────────────────────
 function ChatRoom({ user, room, companyId, onSend }) {
   const [messages, setMessages] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [text,     setText]     = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [lightbox, setLightbox] = useState(null); // { photos, index }
   const bottomRef = useRef();
+  const fileRef = useRef();
 
   useEffect(() => {
     if (!companyId || !room) return;
@@ -53,6 +58,21 @@ function ChatRoom({ user, room, companyId, onSend }) {
     await onSend(room, msg);
   };
 
+  const pickFile = () => fileRef.current?.click();
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const attachment = await uploadChatAttachment(companyId, room, file);
+      const caption = text.trim() || (attachment.type === "image" ? "📷 Photo" : `📎 ${attachment.name}`);
+      setText("");
+      await onSend(room, caption, attachment);
+    } finally { setUploading(false); }
+  };
+
   return (
     <div style={{ ...S.card, display:"flex", flexDirection:"column", height:420, marginBottom:0 }}>
       <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:10, padding:"4px 0" }}>
@@ -76,7 +96,22 @@ function ChatRoom({ user, room, companyId, onSend }) {
                   <span style={S.chip(role)}>{role === "manager" ? "MGR" : role === "area_manager" ? "AM" : role === "store_manager" ? "SM" : "VM"}</span>
                 </div>
               )}
-              <div style={S.bubble(mine)}>{m.body}</div>
+              {m.attachment_url && m.attachment_type === "image" ? (
+                <div style={{ borderRadius:12, overflow:"hidden", cursor:"pointer", marginBottom:4 }}
+                  onClick={() => setLightbox({ photos:[{ url:m.attachment_url, comment:m.body }], index:0 })}>
+                  <img loading="lazy" src={m.attachment_url} alt="" style={{ maxWidth:220, maxHeight:220, display:"block", objectFit:"cover" }}/>
+                </div>
+              ) : m.attachment_url ? (
+                <a href={m.attachment_url} target="_blank" rel="noopener noreferrer" style={{
+                  display:"flex", alignItems:"center", gap:8, padding:"8px 12px", marginBottom:4,
+                  background:C.surfaceHigh, borderRadius:10, textDecoration:"none", color:C.textColor, fontSize:12 }}>
+                  <span style={{ fontSize:16 }}>📎</span>
+                  <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.attachment_name ?? "File"}</span>
+                </a>
+              ) : null}
+              {!(m.attachment_type === "image" && (m.body === "📷 Photo")) && (
+                <div style={S.bubble(mine)}>{m.body}</div>
+              )}
               <div style={{ fontSize:10, color:C.mutedColor, textAlign: mine ? "right" : "left", marginTop:2 }}>
                 {m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : ""}
               </div>
@@ -86,6 +121,12 @@ function ChatRoom({ user, room, companyId, onSend }) {
         <div ref={bottomRef}/>
       </div>
       <div style={{ display:"flex", gap:8, marginTop:10 }}>
+        <button className="btnG" style={{ ...S.btnG, flexShrink:0, padding:"9px 12px" }}
+          onClick={pickFile} disabled={uploading} title="Attach photo or file">
+          {uploading ? "…" : "📎"}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          style={{ display:"none" }} onChange={handleFile}/>
         <input
           style={{ ...S.inp, marginTop:0, marginBottom:0, flex:1 }}
           placeholder="Type a message…"
@@ -95,6 +136,11 @@ function ChatRoom({ user, room, companyId, onSend }) {
         />
         <button className="btnP" style={{ ...S.btnP, flexShrink:0 }} onClick={send}>Send</button>
       </div>
+
+      {lightbox && (
+        <PhotoLightbox photos={lightbox.photos} index={lightbox.index}
+          onClose={() => setLightbox(null)} onIndexChange={i => setLightbox(p => ({ ...p, index:i }))}/>
+      )}
     </div>
   );
 }
