@@ -223,19 +223,27 @@ export async function setManagerBranches(manager_id, branchIds) {
   if (error) throw error;
 }
 
-// ── SCOPED INVITES (area_manager / store_manager, super_admin only) ──
+// ── REGION-SCOPED INVITES (area_manager only, super_admin only) ──
+// VM and VM Controller now use the flat company-wide codes instead
+// (see lookupCompanyByCode) — the registrant picks their own branch.
 function genInviteCode() {
   return Array.from({ length: 8 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
 }
 
-export async function createInvite(company_id, role, branchIds, created_by) {
+export async function createInvite(company_id, role, { region = null, branchIds = null } = {}, created_by) {
   const code = genInviteCode();
   const { data, error } = await supabase
     .from("invites")
-    .insert({ company_id, role, code, branch_ids: branchIds, created_by })
+    .insert({ company_id, role, code, region, branch_ids: branchIds, created_by })
     .select().single();
   if (error) throw error;
   return data;
+}
+
+export async function lookupBranchesByRegion(company_id, region) {
+  const { data, error } = await supabase.rpc("lookup_branches_by_region", { p_company_id: company_id, p_region: region });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function getInvites(company_id) {

@@ -45,7 +45,7 @@ export function SuperAdminPanel() {
         <button style={S.btnOut} onClick={() => signOut()}>Sign Out</button>
       </div>
       <div style={{ display:"flex", gap:6, marginBottom:18, flexWrap:"wrap" }}>
-        {[["companies","🏢 Companies"],["categories","📂 Categories"],["users","👥 Users"],["invites","🔑 Invite Codes"],["scoped","📍 Branch Invites"],["settings","⚙️ Settings"]].map(([k,l]) => (
+        {[["companies","🏢 Companies"],["categories","📂 Categories"],["users","👥 Users"],["invites","🔑 Invite Codes"],["scoped","🗺️ Region Invites"],["settings","⚙️ Settings"]].map(([k,l]) => (
           <button key={k} style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
@@ -362,8 +362,9 @@ function InviteCodesTab() {
   useEffect(() => { getAllCompanies().then(setCompanies); }, []);
 
   const CODE_TYPES = [
-    { key: "invite_code",     label: "VM Staff", color: "#818cf8", desc: "Executes tasks, uploads Before/After" },
-    { key: "vmc_invite_code", label: "Head VM",   color: "#4F46E5", desc: "Company-wide — sees everything, approves campaigns" },
+    { key: "invite_code",            label: "VM Staff",     color: "#818cf8", desc: "Executes tasks, uploads Before/After — picks their own branch at signup" },
+    { key: "controller_invite_code", label: "VM Controller", color: "#4ade80", desc: "Runs one branch — picks which one at signup" },
+    { key: "vmc_invite_code",        label: "Head VM",       color: "#4F46E5", desc: "Company-wide — sees everything, approves campaigns" },
   ];
 
   const saveCode = async (companyId, field, code) => {
@@ -444,72 +445,86 @@ function ScopedInvitesTab({ profile }) {
   const [companies, setCompanies] = useState([]);
   const [selected,  setSelected]  = useState("");
   const [branches,  setBranches]  = useState([]);
-  const [role,      setRole]      = useState("store_manager");
-  const [picked,    setPicked]    = useState([]);
+  const [region,    setRegion]    = useState("");
   const [invites,   setInvites]   = useState([]);
   const [saving,    setSaving]    = useState(false);
   const [lastCode,  setLastCode]  = useState("");
+  const [regionSaving, setRegionSaving] = useState({});
 
   useEffect(() => { getAllCompanies().then(setCompanies); }, []);
   useEffect(() => {
     if (!selected) { setBranches([]); setInvites([]); return; }
-    supabase.from("branches").select("id,name").eq("company_id", selected).eq("is_active", true).order("sort_order").then(({ data }) => setBranches(data ?? []));
+    supabase.from("branches").select("id,name,region").eq("company_id", selected).order("sort_order").then(({ data }) => setBranches(data ?? []));
     getInvites(selected).then(setInvites);
   }, [selected]);
 
-  const togglePick = (id) => setPicked(p => p.includes(id) ? p.filter(x => x !== id) : (role !== "area_manager" ? [id] : [...p, id]));
+  const regions = [...new Set(branches.map(b => b.region).filter(Boolean))];
+
+  const saveBranchRegion = async (branchId, value) => {
+    setRegionSaving(p => ({ ...p, [branchId]: true }));
+    await supabase.from("branches").update({ region: value || null }).eq("id", branchId);
+    setBranches(p => p.map(b => b.id === branchId ? { ...b, region: value || null } : b));
+    setRegionSaving(p => ({ ...p, [branchId]: false }));
+  };
 
   const generate = async () => {
-    if (!selected || !picked.length) return;
+    if (!selected || !region.trim()) return;
     setSaving(true);
     try {
-      const inv = await createInvite(selected, role, picked, profile.id);
+      const inv = await createInvite(selected, "area_manager", { region: region.trim() }, profile.id);
       setLastCode(inv.code);
       setInvites(p => [inv, ...p]);
-      setPicked([]);
     } finally { setSaving(false); }
   };
 
   return (
     <div>
       <div style={{ ...S.card, marginBottom:20 }}>
-        <div style={S.h3}>Branch-Scoped Invites</div>
+        <div style={S.h3}>Region Invites — VM Manager</div>
         <div style={{ fontSize:13, color:"#6b6880", lineHeight:1.7 }}>
-          VM, VM Controller, and VM Manager accounts are locked to specific branches at creation time —
-          pick the branch(es) here and hand the generated code to the employee.
+          VM and VM Controller now pick their own branch when they register with the regular invite codes
+          (see the Invite Codes tab). Here you only assign a VM Manager to a <strong>region</strong>
+          (e.g. "Central", "Western") — they'll pick which branch(es) within it they manage.
         </div>
       </div>
 
       <div style={S.card}>
         <div style={S.lbl}>Company</div>
-        <select style={S.sel} value={selected} onChange={e => { setSelected(e.target.value); setPicked([]); setLastCode(""); }}>
+        <select style={S.sel} value={selected} onChange={e => { setSelected(e.target.value); setRegion(""); setLastCode(""); }}>
           <option value="">— choose a company —</option>
           {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
 
         {selected && (
           <>
-            <div style={S.lbl}>Role</div>
-            <select style={S.sel} value={role} onChange={e => { setRole(e.target.value); setPicked([]); }}>
-              <option value="vm">VM Staff — single branch</option>
-              <option value="store_manager">VM Controller — single branch</option>
-              <option value="area_manager">VM Manager — multiple branches</option>
-            </select>
-
-            <div style={S.lbl}>{role !== "area_manager" ? "Branch (pick one)" : "Branches (pick one or more)"}</div>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
-              {branches.map(b => (
-                <button key={b.id} onClick={() => togglePick(b.id)} style={{
-                  padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                  background: picked.includes(b.id) ? "#a855f728" : "transparent",
-                  color:      picked.includes(b.id) ? "#a855f7" : "#6b6880",
-                  border:     picked.includes(b.id) ? "1px solid #a855f755" : "1px solid #6b688022",
-                }}>{b.name}</button>
-              ))}
-              {branches.length === 0 && <div style={{ fontSize:12, color:"#6b6880" }}>No branches for this company yet.</div>}
+            <div style={S.h3}>Branch Regions</div>
+            <div style={{ fontSize:12, color:"#6b6880", marginBottom:10 }}>
+              Set each branch's region once — invites below pull from these values.
             </div>
+            {branches.length === 0 && <div style={{ fontSize:12, color:"#6b6880", marginBottom:14 }}>No branches for this company yet.</div>}
+            {branches.map(b => (
+              <div key={b.id} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                <div style={{ fontSize:13, flex:1 }}>{b.name}</div>
+                <input style={{ ...S.inp, marginBottom:0, marginTop:0, width:160 }}
+                  placeholder="e.g. Central" defaultValue={b.region ?? ""}
+                  key={b.id + (b.region ?? "")}
+                  onBlur={e => { if (e.target.value !== (b.region ?? "")) saveBranchRegion(b.id, e.target.value.trim()); }}/>
+                {regionSaving[b.id] && <span style={{ fontSize:11, color:"#6b6880" }}>…</span>}
+              </div>
+            ))}
 
-            <button style={S.btnP} onClick={generate} disabled={saving || !picked.length}>
+            <div style={{ ...S.lbl, marginTop:16 }}>Region for this invite</div>
+            {regions.length > 0 ? (
+              <select style={S.sel} value={region} onChange={e => setRegion(e.target.value)}>
+                <option value="">— choose a region —</option>
+                {regions.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            ) : (
+              <input style={S.sel} placeholder="Type a region name (set branch regions above first)"
+                value={region} onChange={e => setRegion(e.target.value)}/>
+            )}
+
+            <button style={S.btnP} onClick={generate} disabled={saving || !region.trim()}>
               {saving ? "Generating…" : "Generate Code →"}
             </button>
 
@@ -532,7 +547,7 @@ function ScopedInvitesTab({ profile }) {
               <div>
                 <div style={{ fontSize:16, fontWeight:700, letterSpacing:2, color:"#a855f7" }}>{inv.code}</div>
                 <div style={{ fontSize:11, color:"#6b6880", marginTop:2 }}>
-                  {inv.role === "store_manager" ? "VM Controller" : inv.role === "vm" ? "VM Staff" : "VM Manager"} · {inv.branch_ids.length} branch(es)
+                  VM Manager · {inv.region ?? "—"} region
                 </div>
               </div>
               <span style={{ fontSize:11, fontWeight:700, color: inv.used_by ? "#4ade80" : "#d4a82a" }}>

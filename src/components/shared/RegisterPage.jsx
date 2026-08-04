@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase.js";
 import { S, C } from "../../styles/theme.js";
 import { StyleTag } from "./Atoms.jsx";
 import { Logo } from "./Logo.jsx";
-import { lookupScopedInvite, lookupCompanyByCode, lookupActiveBranches, markInviteUsed, setManagerBranches } from "../../services/enterprise.service.js";
+import { lookupScopedInvite, lookupCompanyByCode, lookupActiveBranches, lookupBranchesByRegion, markInviteUsed, setManagerBranches } from "../../services/enterprise.service.js";
 
 export function RegisterPage({ onBack }) {
   const [step,     setStep]     = useState(1);
@@ -16,6 +16,7 @@ export function RegisterPage({ onBack }) {
   const [password, setPassword] = useState("");
   const [branchId, setBranchId] = useState("");
   const [branches, setBranches] = useState([]);
+  const [pickedBranchIds, setPickedBranchIds] = useState([]); // VM Manager — one or more branches in their region
   const [invite,   setInvite]   = useState(null); // matched row from `invites` table, if any
   const [err,      setErr]      = useState("");
   const [loading,  setLoading]  = useState(false);
@@ -27,21 +28,22 @@ export function RegisterPage({ onBack }) {
     try {
       const upperCode = code.trim().toUpperCase();
 
-      // Scoped invite (VM Manager / VM Controller — branches preset by super_admin)
+      // Region-scoped invite (VM Manager) — they pick which branch(es) in the region they manage
       const scopedInvite = await lookupScopedInvite(upperCode);
       if (scopedInvite) {
-        const allBranches = await lookupActiveBranches(scopedInvite.company_id);
+        const regionBranches = await lookupBranchesByRegion(scopedInvite.company_id, scopedInvite.region);
         setCompany({ id: scopedInvite.company_id, name: scopedInvite.company_name,
           logo_url: scopedInvite.company_logo_url, accent_color: scopedInvite.company_accent_color });
         setRole(scopedInvite.role);
         setInvite({ id: scopedInvite.id, company_id: scopedInvite.company_id,
-          role: scopedInvite.role, branch_ids: scopedInvite.branch_ids });
-        setBranches(allBranches.filter(b => scopedInvite.branch_ids.includes(b.id)));
-        setBranchId(scopedInvite.branch_ids[0]);
+          role: scopedInvite.role, region: scopedInvite.region });
+        setBranches(regionBranches);
+        setPickedBranchIds([]);
         setStep(2); return;
       }
 
-      // Flat company code (vm) or VMC code (manager)
+      // Flat company code — vm / manager (Head VM) / store_manager (VM Controller),
+      // registrant picks their own single branch
       const companyMatch = await lookupCompanyByCode(upperCode);
       if (companyMatch) {
         setCompany(companyMatch); setRole(companyMatch.role); setInvite(null);
@@ -58,6 +60,8 @@ export function RegisterPage({ onBack }) {
   const register = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) { setErr("Please fill in all fields."); return; }
     if (password.length < 6) { setErr("Password must be at least 6 characters."); return; }
+    if (role === "area_manager" && pickedBranchIds.length === 0) { setErr("Pick at least one branch you manage."); return; }
+    if (role !== "area_manager" && branches.length > 0 && !branchId) { setErr("Please select your branch."); return; }
     setLoading(true); setErr("");
     try {
       // area_manager isn't tied to a single branch — their scope lives in manager_branches
@@ -72,7 +76,7 @@ export function RegisterPage({ onBack }) {
 
       if (invite) {
         await markInviteUsed(invite.id, userId);
-        if (invite.role === "area_manager") await setManagerBranches(userId, invite.branch_ids);
+        if (invite.role === "area_manager") await setManagerBranches(userId, pickedBranchIds);
       }
 
       if (employeeId.trim()) {
@@ -170,14 +174,24 @@ export function RegisterPage({ onBack }) {
 
             {invite ? (
               <div style={{ marginBottom:12 }}>
-                <div style={S.lbl}>{role === "area_manager" ? "Assigned Branches" : "Branch"}</div>
+                <div style={S.lbl}>Which branch(es) in {invite.region} do you manage?</div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                  {branches.map(b => (
-                    <span key={b.id} style={{ padding:"5px 11px", borderRadius:16, fontSize:12, fontWeight:600,
-                      background:C.accentColor+"18", color:C.accentColor, border:`1px solid ${C.accentColor}33` }}>
-                      📍 {b.name}
-                    </span>
-                  ))}
+                  {branches.map(b => {
+                    const picked = pickedBranchIds.includes(b.id);
+                    return (
+                      <button key={b.id} type="button"
+                        onClick={() => setPickedBranchIds(p => picked ? p.filter(x => x !== b.id) : [...p, b.id])}
+                        style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                          background: picked ? C.accentColor+"28" : "transparent",
+                          color: picked ? C.accentColor : C.mutedColor,
+                          border: picked ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}33` }}>
+                        {picked ? "✓ " : "📍 "}{b.name}
+                      </button>
+                    );
+                  })}
+                  {branches.length === 0 && (
+                    <div style={{ fontSize:12, color:C.mutedColor }}>No branches set up in this region yet — ask your admin.</div>
+                  )}
                 </div>
               </div>
             ) : branches.length > 0 && (
