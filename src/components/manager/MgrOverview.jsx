@@ -2,7 +2,75 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
-import { getBestBranchOfMonth, setBestBranchOfMonth } from "../../services/enterprise.service.js";
+import { getBestBranchesOfMonth, setBestBranchOfMonth } from "../../services/enterprise.service.js";
+
+// One editable "Best Branch" card scoped to a single region.
+function BestBranchCard({ region, displayName, branchesInRegion, pick, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [branchId, setBranchId] = useState("");
+  const [note,     setNote]     = useState("");
+  const [saving,   setSaving]   = useState(false);
+
+  const startEdit = () => {
+    setBranchId(pick?.branch_id ?? "");
+    setNote(pick?.note ?? "");
+    setEditing(true);
+  };
+
+  const save = async () => {
+    if (!branchId) return;
+    setSaving(true);
+    try { await onSave(region, branchId, note); setEditing(false); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ ...S.card, background:`linear-gradient(135deg,${C.accentColor}22,transparent)`,
+      border:`1px solid ${C.accentColor}44`, marginBottom:10 }} className="fu2">
+      {editing ? (
+        <div>
+          <div style={S.h3}>🏆 {displayName}</div>
+          <div style={S.lbl}>Branch</div>
+          <select style={S.sel} value={branchId} onChange={e => setBranchId(e.target.value)}>
+            <option value="">— Select a branch —</option>
+            {branchesInRegion.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+          <div style={S.lbl}>Note (optional)</div>
+          <input style={S.inp} placeholder="e.g. Highest approval rate this month"
+            value={note} onChange={e => setNote(e.target.value)}/>
+          <div style={{ display:"flex", gap:8 }}>
+            <button className="btnP" style={{ ...S.btnP, flex:1 }} onClick={save} disabled={saving || !branchId}>
+              {saving ? "Saving…" : "Save →"}
+            </button>
+            <button className="btnG" style={S.btnG} onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ fontSize:28 }}>🏆</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:10, fontWeight:700, color:C.accentColor, letterSpacing:1, textTransform:"uppercase" }}>
+              {region || "Best Branch"} — {new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"})}
+            </div>
+            {pick?.branch?.name ? (
+              <>
+                <div style={{ ...S.dFont, fontSize:18, fontWeight:700 }}>{pick.branch.name}</div>
+                {pick.note && <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>{pick.note}</div>}
+                {pick.setter?.full_name && (
+                  <div style={{ ...S.muted, fontSize:11, marginTop:2 }}>Set by {pick.setter.full_name}</div>
+                )}
+              </>
+            ) : (
+              <div style={{ ...S.muted, fontSize:13, marginTop:2 }}>Not set yet this month.</div>
+            )}
+          </div>
+          <button className="btnG" style={{ ...S.btnG, fontSize:12, padding:"6px 12px", flexShrink:0 }}
+            onClick={startEdit}>✎ Edit</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function MgrOverview({
   tasks, submissions, log, company,
@@ -13,37 +81,33 @@ export function MgrOverview({
 }) {
   const [branchFilter, setBranchFilter] = useState("all");
 
-  // ── Best Branch of the Month (Head VM editable) ──
+  // ── Best Branch of the Month, one pick per region (Head VM editable) ──
   const monthKey = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
-  const [bestBranch,   setBestBranch]   = useState(null);
-  const [bbLoading,    setBbLoading]    = useState(true);
-  const [bbEditing,    setBbEditing]    = useState(false);
-  const [bbBranchId,   setBbBranchId]   = useState("");
-  const [bbNote,       setBbNote]       = useState("");
-  const [bbSaving,     setBbSaving]     = useState(false);
+  const [bbPicks,   setBbPicks]   = useState([]);
+  const [bbLoading, setBbLoading] = useState(true);
 
   useEffect(() => {
     if (!company?.id) return;
     setBbLoading(true);
-    getBestBranchOfMonth(company.id, monthKey)
-      .then(setBestBranch)
+    getBestBranchesOfMonth(company.id, monthKey)
+      .then(setBbPicks)
       .finally(() => setBbLoading(false));
   }, [company?.id, monthKey]);
 
-  const startBbEdit = () => {
-    setBbBranchId(bestBranch?.branch_id ?? "");
-    setBbNote(bestBranch?.note ?? "");
-    setBbEditing(true);
-  };
+  const regionGroups = (() => {
+    const map = {};
+    branches.forEach(b => {
+      const region = b.region ?? "";
+      (map[region] ??= []).push(b);
+    });
+    return Object.entries(map)
+      .map(([region, list]) => ({ region, branches: list }))
+      .sort((a, b) => a.region === "" ? 1 : b.region === "" ? -1 : a.region.localeCompare(b.region));
+  })();
 
-  const saveBb = async () => {
-    if (!bbBranchId) return;
-    setBbSaving(true);
-    try {
-      const updated = await setBestBranchOfMonth(company.id, monthKey, bbBranchId, bbNote, profile.id);
-      setBestBranch(updated);
-      setBbEditing(false);
-    } finally { setBbSaving(false); }
+  const saveBestBranch = async (region, branchId, note) => {
+    const updated = await setBestBranchOfMonth(company.id, monthKey, region, branchId, note, profile.id);
+    setBbPicks(p => [...p.filter(x => x.region !== region), updated]);
   };
 
   const filteredTasks       = branchFilter === "all" ? tasks       : tasks.filter(t => t.branch_id === branchFilter);
@@ -90,51 +154,13 @@ export function MgrOverview({
         {todayStr()} · {company?.name ?? "All branches"}
       </div>
 
-      {/* ════ BEST BRANCH OF THE MONTH ════ */}
+      {/* ════ BEST BRANCH OF THE MONTH — one per region ════ */}
       {!bbLoading && (
-        <div style={{ ...S.card, background:`linear-gradient(135deg,${C.accentColor}22,transparent)`,
-          border:`1px solid ${C.accentColor}44`, marginBottom:16 }} className="fu2">
-          {bbEditing ? (
-            <div>
-              <div style={S.h3}>🏆 Best Branch of the Month</div>
-              <div style={S.lbl}>Branch</div>
-              <select style={S.sel} value={bbBranchId} onChange={e => setBbBranchId(e.target.value)}>
-                <option value="">— Select a branch —</option>
-                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-              <div style={S.lbl}>Note (optional)</div>
-              <input style={S.inp} placeholder="e.g. Highest approval rate this month"
-                value={bbNote} onChange={e => setBbNote(e.target.value)}/>
-              <div style={{ display:"flex", gap:8 }}>
-                <button className="btnP" style={{ ...S.btnP, flex:1 }} onClick={saveBb} disabled={bbSaving || !bbBranchId}>
-                  {bbSaving ? "Saving…" : "Save →"}
-                </button>
-                <button className="btnG" style={S.btnG} onClick={() => setBbEditing(false)}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <div style={{ fontSize:32 }}>🏆</div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:C.accentColor, letterSpacing:1, textTransform:"uppercase" }}>
-                  Best Branch — {new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"})}
-                </div>
-                {bestBranch?.branch?.name ? (
-                  <>
-                    <div style={{ ...S.dFont, fontSize:20, fontWeight:700 }}>{bestBranch.branch.name}</div>
-                    {bestBranch.note && <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>{bestBranch.note}</div>}
-                    {bestBranch.setter?.full_name && (
-                      <div style={{ ...S.muted, fontSize:11, marginTop:2 }}>Set by {bestBranch.setter.full_name}</div>
-                    )}
-                  </>
-                ) : (
-                  <div style={{ ...S.muted, fontSize:13, marginTop:2 }}>Not set yet this month.</div>
-                )}
-              </div>
-              <button className="btnG" style={{ ...S.btnG, fontSize:12, padding:"6px 12px", flexShrink:0 }}
-                onClick={startBbEdit}>✎ Edit</button>
-            </div>
-          )}
+        <div style={{ marginBottom:6 }}>
+          {regionGroups.map(g => (
+            <BestBranchCard key={g.region} region={g.region} displayName={g.region || "Unassigned"} branchesInRegion={g.branches}
+              pick={bbPicks.find(p => p.region === g.region)} onSave={saveBestBranch}/>
+          ))}
         </div>
       )}
 

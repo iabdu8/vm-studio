@@ -351,20 +351,20 @@ export async function addCampaignComment(campaign_id, author_id, body) {
   return data;
 }
 
-export async function getBestBranchOfMonth(company_id, month) {
+// Returns every region's pick for the month (one row per region).
+export async function getBestBranchesOfMonth(company_id, month) {
   const { data, error } = await supabase
     .from("best_branch_of_month")
     .select("*, branch:branch_id(name), setter:set_by(full_name)")
-    .eq("company_id", company_id).eq("month", month)
-    .maybeSingle();
+    .eq("company_id", company_id).eq("month", month);
   if (error) throw error;
-  return data;
+  return data ?? [];
 }
 
-export async function setBestBranchOfMonth(company_id, month, branch_id, note, set_by) {
+export async function setBestBranchOfMonth(company_id, month, region, branch_id, note, set_by) {
   const { data, error } = await supabase
     .from("best_branch_of_month")
-    .upsert({ company_id, month, branch_id, note: note || null, set_by, updated_at: new Date().toISOString() }, { onConflict: "company_id,month" })
+    .upsert({ company_id, month, region: region || "", branch_id, note: note || null, set_by, updated_at: new Date().toISOString() }, { onConflict: "company_id,month,region" })
     .select("*, branch:branch_id(name), setter:set_by(full_name)")
     .single();
   if (error) throw error;
