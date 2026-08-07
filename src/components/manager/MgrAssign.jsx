@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { S } from "../../styles/theme.js";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
-import { TasksWithPhotos } from "../shared/TasksWithPhotos.jsx";
+import { DailyTasksFeed } from "../shared/DailyTasksFeed.jsx";
 
 export function MgrAssign({ tasks, submissions, categories, branches, profile, company }) {
 
@@ -24,9 +24,9 @@ export function MgrAssign({ tasks, submissions, categories, branches, profile, c
         ))}
       </div>
 
-      {/* Tasks (with submitted before/after photos) */}
+      {/* Tasks — day by day, under the VM who did them, with photos + comments */}
       {tab === "tasks" && (
-        <TasksWithPhotos tasks={tasks ?? []} submissions={submissions ?? []} branches={branches} showBranchColumn />
+        <DailyTasksFeed tasks={tasks ?? []} submissions={submissions ?? []} branches={branches} profile={profile} />
       )}
 
       {/* Weekly Plan */}
