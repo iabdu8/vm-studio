@@ -1,5 +1,5 @@
 import { S } from "../../styles/theme.js";
-import { HomeIcon, TasksIcon, VisitsIcon, GuidesIcon, ChatIcon, OverviewIcon, AssignIcon, AnalyticsIcon, CalendarIcon, RequestsIcon } from "./Icons.jsx";
+import { HomeIcon, TasksIcon, VisitsIcon, GuidesIcon, ChatIcon, OverviewIcon, AssignIcon, CalendarIcon, RequestsIcon } from "./Icons.jsx";
 
 export function VMNav({ page, setPage }) {
   const items = [
@@ -29,7 +29,6 @@ export function MgrNav({ page, setPage, isSuperAdmin }) {
     ["campaign",  GuidesIcon,    "Campaign"],
     ["training",  RequestsIcon,  "Training"],
     ["visits",    VisitsIcon,    "Visits"],
-    ["analytics", AnalyticsIcon, "Analytics"],
     ["chat",      ChatIcon,      "Chat"],
   ];
   return (

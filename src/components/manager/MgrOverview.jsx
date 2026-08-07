@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
+import { getBestBranchOfMonth, setBestBranchOfMonth } from "../../services/enterprise.service.js";
 
 export function MgrOverview({
   tasks, submissions, log, company,
@@ -11,6 +12,39 @@ export function MgrOverview({
   profile,
 }) {
   const [branchFilter, setBranchFilter] = useState("all");
+
+  // ── Best Branch of the Month (Head VM editable) ──
+  const monthKey = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+  const [bestBranch,   setBestBranch]   = useState(null);
+  const [bbLoading,    setBbLoading]    = useState(true);
+  const [bbEditing,    setBbEditing]    = useState(false);
+  const [bbBranchId,   setBbBranchId]   = useState("");
+  const [bbNote,       setBbNote]       = useState("");
+  const [bbSaving,     setBbSaving]     = useState(false);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    setBbLoading(true);
+    getBestBranchOfMonth(company.id, monthKey)
+      .then(setBestBranch)
+      .finally(() => setBbLoading(false));
+  }, [company?.id, monthKey]);
+
+  const startBbEdit = () => {
+    setBbBranchId(bestBranch?.branch_id ?? "");
+    setBbNote(bestBranch?.note ?? "");
+    setBbEditing(true);
+  };
+
+  const saveBb = async () => {
+    if (!bbBranchId) return;
+    setBbSaving(true);
+    try {
+      const updated = await setBestBranchOfMonth(company.id, monthKey, bbBranchId, bbNote, profile.id);
+      setBestBranch(updated);
+      setBbEditing(false);
+    } finally { setBbSaving(false); }
+  };
 
   const filteredTasks       = branchFilter === "all" ? tasks       : tasks.filter(t => t.branch_id === branchFilter);
   const filteredSubmissions = branchFilter === "all" ? submissions : submissions.filter(s => s.branch_id === branchFilter);
@@ -68,6 +102,54 @@ export function MgrOverview({
       <div style={{ ...S.muted, marginBottom: 10, fontSize: 12 }}>
         {todayStr()} · {company?.name ?? "All branches"}
       </div>
+
+      {/* ════ BEST BRANCH OF THE MONTH ════ */}
+      {!bbLoading && (
+        <div style={{ ...S.card, background:`linear-gradient(135deg,${C.accentColor}22,transparent)`,
+          border:`1px solid ${C.accentColor}44`, marginBottom:16 }} className="fu2">
+          {bbEditing ? (
+            <div>
+              <div style={S.h3}>🏆 Best Branch of the Month</div>
+              <div style={S.lbl}>Branch</div>
+              <select style={S.sel} value={bbBranchId} onChange={e => setBbBranchId(e.target.value)}>
+                <option value="">— Select a branch —</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <div style={S.lbl}>Note (optional)</div>
+              <input style={S.inp} placeholder="e.g. Highest approval rate this month"
+                value={bbNote} onChange={e => setBbNote(e.target.value)}/>
+              <div style={{ display:"flex", gap:8 }}>
+                <button className="btnP" style={{ ...S.btnP, flex:1 }} onClick={saveBb} disabled={bbSaving || !bbBranchId}>
+                  {bbSaving ? "Saving…" : "Save →"}
+                </button>
+                <button className="btnG" style={S.btnG} onClick={() => setBbEditing(false)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ fontSize:32 }}>🏆</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:C.accentColor, letterSpacing:1, textTransform:"uppercase" }}>
+                  Best Branch — {new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"})}
+                </div>
+                {bestBranch?.branch?.name ? (
+                  <>
+                    <div style={{ ...S.dFont, fontSize:20, fontWeight:700 }}>{bestBranch.branch.name}</div>
+                    {bestBranch.note && <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>{bestBranch.note}</div>}
+                    {bestBranch.setter?.full_name && (
+                      <div style={{ ...S.muted, fontSize:11, marginTop:2 }}>Set by {bestBranch.setter.full_name}</div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ ...S.muted, fontSize:13, marginTop:2 }}>Not set yet this month.</div>
+                )}
+              </div>
+              <button className="btnG" style={{ ...S.btnG, fontSize:12, padding:"6px 12px", flexShrink:0 }}
+                onClick={startBbEdit}>✎ Edit</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ════ BRANCH FILTER ════ */}
       <div style={{ marginBottom: 16 }}>

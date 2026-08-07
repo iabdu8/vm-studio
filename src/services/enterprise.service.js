@@ -351,6 +351,26 @@ export async function addCampaignComment(campaign_id, author_id, body) {
   return data;
 }
 
+export async function getBestBranchOfMonth(company_id, month) {
+  const { data, error } = await supabase
+    .from("best_branch_of_month")
+    .select("*, branch:branch_id(name), setter:set_by(full_name)")
+    .eq("company_id", company_id).eq("month", month)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function setBestBranchOfMonth(company_id, month, branch_id, note, set_by) {
+  const { data, error } = await supabase
+    .from("best_branch_of_month")
+    .upsert({ company_id, month, branch_id, note: note || null, set_by, updated_at: new Date().toISOString() }, { onConflict: "company_id,month" })
+    .select("*, branch:branch_id(name), setter:set_by(full_name)")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function getFloorWalkComments(floor_walk_id) {
   const { data, error } = await supabase
     .from("floor_walk_comments")
