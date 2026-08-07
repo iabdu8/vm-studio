@@ -2,86 +2,9 @@ import { useMemo, useState } from "react";
 import { S, C } from "../../styles/theme.js";
 
 // ============================================================
-//  ANALYTICS DASHBOARD
-//  Pure SVG charts — no external charting library needed
+//  ANALYTICS DASHBOARD — kept deliberately simple: plain numbers
+//  and horizontal bars instead of charts, so it reads at a glance.
 // ============================================================
-
-// ── Mini Bar Chart ────────────────────────────────────────────
-function BarChart({ data, color = C.accentColor, height = 80 }) {
-  if (!data.length) return null;
-  const max  = Math.max(...data.map(d => d.value), 1);
-  const barW = 100 / data.length;
-
-  return (
-    <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none"
-      style={{ width:"100%", height, display:"block" }}>
-      {data.map((d, i) => {
-        const barH   = (d.value / max) * (height - 20);
-        const x      = i * barW + barW * 0.15;
-        const w      = barW * 0.7;
-        const y      = height - barH - 16;
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width={w} height={barH}
-              fill={color} rx="2" opacity="0.85" />
-            <text x={x + w/2} y={height - 4} textAnchor="middle"
-              fontSize="5" fill={C.mutedColor}>{d.label}</text>
-            {barH > 10 && (
-              <text x={x + w/2} y={y - 2} textAnchor="middle"
-                fontSize="5" fill={color} fontWeight="700">{d.value}</text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ── Donut Chart ───────────────────────────────────────────────
-function DonutChart({ segments, size = 100 }) {
-  const total  = segments.reduce((a, s) => a + s.value, 0);
-  if (!total) return <div style={{ ...S.muted, textAlign:"center", padding:20 }}>No data</div>;
-
-  const cx = size / 2, cy = size / 2, r = size * 0.38, sw = size * 0.14;
-  let angle = -Math.PI / 2;
-
-  const paths = segments.map(seg => {
-    const slice    = (seg.value / total) * 2 * Math.PI;
-    const x1       = cx + r * Math.cos(angle);
-    const y1       = cy + r * Math.sin(angle);
-    angle         += slice;
-    const x2       = cx + r * Math.cos(angle);
-    const y2       = cy + r * Math.sin(angle);
-    const large    = slice > Math.PI ? 1 : 0;
-    return { ...seg, d:`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`, pct: Math.round((seg.value/total)*100) };
-  });
-
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} style={{ flexShrink:0 }}>
-        {paths.map((p, i) => (
-          <path key={i} d={p.d} fill="none" stroke={p.color} strokeWidth={sw}
-            strokeLinecap="butt" />
-        ))}
-        <text x={cx} y={cy+2} textAnchor="middle" fontSize={size*0.14}
-          fontWeight="700" fill={C.textColor}>{total}</text>
-        <text x={cx} y={cy+size*0.13} textAnchor="middle" fontSize={size*0.08}
-          fill={C.mutedColor}>total</text>
-      </svg>
-      <div style={{ flex:1 }}>
-        {paths.map((p, i) => (
-          <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
-            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-              <div style={{ width:8, height:8, borderRadius:"50%", background:p.color, flexShrink:0 }} />
-              <span style={{ fontSize:12 }}>{p.label}</span>
-            </div>
-            <span style={{ fontSize:12, fontWeight:700, color:p.color }}>{p.value} <span style={{ color:C.mutedColor, fontWeight:400 }}>({p.pct}%)</span></span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 const monthLabel = (d) => d.toLocaleDateString("en-GB", { month:"long", year:"numeric" });
 const inSameMonth = (dateStr, ref) => {
@@ -89,6 +12,22 @@ const inSameMonth = (dateStr, ref) => {
   const d = new Date(dateStr);
   return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth();
 };
+
+// ── Simple labeled bar row (used for status split) ──────────────
+function StatBar({ label, value, total, color }) {
+  const pct = total ? Math.round((value / total) * 100) : 0;
+  return (
+    <div style={{ marginBottom:12 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+        <span style={{ fontSize:13, fontWeight:600 }}>{label}</span>
+        <span style={{ fontSize:13, fontWeight:700, color }}>{value} <span style={{ color:C.mutedColor, fontWeight:400 }}>({pct}%)</span></span>
+      </div>
+      <div style={{ height:6, borderRadius:3, background:C.surfaceHigh }}>
+        <div style={{ height:"100%", borderRadius:3, width:`${pct}%`, background:color, transition:"width .4s" }}/>
+      </div>
+    </div>
+  );
+}
 
 // ── Branch card — expandable, lists every VM under it with their rating ──
 function BranchCard({ branch, rank, defaultOpen = false }) {
@@ -165,16 +104,6 @@ export function AnalyticsDashboard({ tasks, submissions, company, regions = [] }
       ? Math.round(scored.reduce((a, s) => a + s.score, 0) / scored.length)
       : 0;
 
-    // Submissions per day — real data, last 7 calendar days
-    const today = new Date();
-    const byDay = Array.from({ length:7 }).map((_, i) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() - (6 - i));
-      const dateStr = d.toISOString().slice(0, 10);
-      const value = submissions.filter(s => (s.created_at ?? "").slice(0, 10) === dateStr).length;
-      return { label: d.toLocaleDateString("en-GB", { weekday:"short" }), value };
-    });
-
     // Branch → VM nested breakdown, scoped to the selected month
     const branchMap = {};
     monthSubs.forEach(s => {
@@ -238,23 +167,7 @@ export function AnalyticsDashboard({ tasks, submissions, company, regions = [] }
       }))
       .sort((a, b) => a.region === "Unassigned" ? 1 : b.region === "Unassigned" ? -1 : a.region.localeCompare(b.region));
 
-    // Category breakdown
-    const catMap = {};
-    monthSubs.forEach(s => {
-      const name = s.category?.name ?? "Other";
-      catMap[name] = (catMap[name] ?? 0) + 1;
-    });
-    const catData = Object.entries(catMap).map(([label, value]) => ({ label, value }));
-
-    // Score distribution
-    const scoreDist = [
-      { label:"90-100", value: scored.filter(s => s.score >= 90).length, color:"#4ade80" },
-      { label:"70-89",  value: scored.filter(s => s.score >= 70 && s.score < 90).length, color:C.accentColor },
-      { label:"50-69",  value: scored.filter(s => s.score >= 50 && s.score < 70).length, color:"#d4a82a" },
-      { label:"<50",    value: scored.filter(s => s.score < 50).length, color:"#f87171" },
-    ];
-
-    return { monthSubs, approved, pending, revision, avgScore, byDay, branchList, bestBranch, regionList, catData, scoreDist };
+    return { monthSubs, approved, pending, revision, avgScore, branchList, bestBranch, regionList };
   }, [submissions, refDate, regions]);
 
   const monthTasks = tasks.filter(t => inSameMonth(t.created_at, refDate));
@@ -292,13 +205,6 @@ export function AnalyticsDashboard({ tasks, submissions, company, regions = [] }
               <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>
                 {stats.bestBranch.vms[0] ? `Top VM: ${stats.bestBranch.vms[0].name}` : ""}
               </div>
-              {stats.branchList[1] && stats.branchList[1].avgScore === stats.bestBranch.avgScore && (
-                <div style={{ ...S.muted, fontSize:11, marginTop:4 }}>
-                  Tied with {stats.branchList[1].name} on score — won on
-                  {stats.branchList[1].approvalRate === stats.bestBranch.approvalRate
-                    ? " submission volume" : " approval rate"}.
-                </div>
-              )}
             </div>
             <div style={{ textAlign:"right" }}>
               <div style={{ fontSize:26, fontWeight:700, color:C.accentColor }}>
@@ -330,30 +236,16 @@ export function AnalyticsDashboard({ tasks, submissions, company, regions = [] }
         ))}
       </div>
 
-      {/* Submissions per day — always last 7 real days regardless of month filter */}
-      <div style={S.card} className="fu3">
-        <div style={S.h3}>Submissions — Last 7 Days</div>
-        <BarChart data={stats.byDay} color={C.accentColor} height={80} />
-      </div>
-
-      {/* Status donut + Score distribution */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:14 }}>
-        <div style={{ ...S.card, marginBottom:0 }}>
-          <div style={S.h3}>Status Split</div>
-          <DonutChart size={100} segments={[
-            { label:"Approved", value:stats.approved.length, color:"#4ade80" },
-            { label:"Pending",  value:stats.pending.length,  color:"#d4a82a" },
-            { label:"Revision", value:stats.revision.length, color:"#f87171" },
-          ]} />
-        </div>
-        <div style={{ ...S.card, marginBottom:0 }}>
-          <div style={S.h3}>Score Distribution</div>
-          <DonutChart size={100} segments={stats.scoreDist} />
-        </div>
+      {/* Submission status — simple bars, no chart */}
+      <div style={{ ...S.card }} className="fu3">
+        <div style={S.h3}>Submission Status</div>
+        <StatBar label="✓ Approved" value={stats.approved.length} total={stats.monthSubs.length} color="#4ade80"/>
+        <StatBar label="⏳ Pending"  value={stats.pending.length}  total={stats.monthSubs.length} color="#d4a82a"/>
+        <StatBar label="↩ Revision" value={stats.revision.length} total={stats.monthSubs.length} color="#f87171"/>
       </div>
 
       {/* Branch performance — grouped by region (VM Manager) when regions exist, expandable to VM ratings */}
-      <div style={{ ...S.h3, marginBottom:10 }}>Branch Performance</div>
+      <div style={{ ...S.h3, marginTop:16, marginBottom:10 }}>Branch Performance</div>
       {stats.branchList.length === 0 && (
         <div style={{ ...S.muted, textAlign:"center", padding:20 }}>No data for {monthLabel(refDate)}.</div>
       )}
