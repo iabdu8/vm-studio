@@ -64,19 +64,6 @@ export function MgrOverview({
   const doneT    = filteredTasks.filter(t => t.is_done ?? t.done).length;
   const pct      = filteredTasks.length ? Math.round((doneT / filteredTasks.length) * 100) : 0;
 
-  // ── Branch performance from submissions ──
-  const branchMap = {};
-  filteredSubmissions.forEach(s => {
-    const name = s.branch?.name ?? s.branch ?? "Unknown";
-    if (!branchMap[name]) branchMap[name] = { approved: 0, total: 0 };
-    if (s.status === "approved") branchMap[name].approved++;
-    branchMap[name].total++;
-  });
-  const branchPerf = Object.entries(branchMap)
-    .map(([branch, b]) => ({ branch, score: b.total ? Math.round((b.approved / b.total) * 100) : 0 }))
-    .sort((a, b) => b.score - a.score);
-
-
   const savePromotion = async () => {
     if (!pName.trim() || !pFrom || !pTo) return;
     setPSaving(true);
@@ -250,29 +237,6 @@ export function MgrOverview({
             <div style={{ ...S.dFont, fontSize: 28, fontWeight: 700, color: k.c, lineHeight: 1 }}>{k.n}</div>
             <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>{k.l}</div>
             <div style={{ ...S.muted, fontSize: 11 }}>{k.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ════ BRANCH PERFORMANCE ════ */}
-      <div style={S.card}>
-        <div style={S.h3}>Branch Performance · Approval Rate</div>
-        {branchPerf.length === 0 && <div style={S.muted}>No submissions yet.</div>}
-        {branchPerf.map((b, i) => (
-          <div key={b.branch} style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 12, fontWeight: 600 }}>
-                {i === 0 ? "🥇 " : i === 1 ? "🥈 " : i === 2 ? "🥉 " : ""}{b.branch}
-              </span>
-              <span style={{ fontSize: 12, fontWeight: 700,
-                color: b.score >= 80 ? C.accentColor : b.score >= 60 ? C.textColor : C.mutedColor }}>
-                {b.score}%
-              </span>
-            </div>
-            <div style={{ height: 4, borderRadius: 2, background: C.surfaceHigh }}>
-              <div style={{ height: "100%", borderRadius: 2, width: `${b.score}%`, transition: "width .5s",
-                background: b.score >= 80 ? C.accentColor : b.score >= 60 ? "#4ade80" : "#d4a82a" }} />
-            </div>
           </div>
         ))}
       </div>

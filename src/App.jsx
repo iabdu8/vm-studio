@@ -10,7 +10,7 @@ import {
 import {
   getPromotions, createPromotion, deletePromotion,
   getCampaignProgress, initCampaignBranches, setCampaignBranchStatus,
-  notifyBranchController, notifyUser, notifyBranch,
+  notifyBranchController, notifyUser,
   getCampaignAcknowledgement, acknowledgeCampaign,
   uploadCampaignBranchFile, reviewCampaignBranchFile,
 } from "./services/enterprise.service.js";
@@ -18,7 +18,6 @@ import { supabase }             from "./lib/supabase.js";
 import { useOfflineSync }       from "./hooks/useOfflineSync.js";
 import { exportWeeklyReport }   from "./lib/pdfExport.js";
 import { subscribeToPush }      from "./lib/notifications.js";
-import { compressImage }        from "./lib/imageCompression.js";
 import { StyleTag }             from "./components/shared/Atoms.jsx";
 import { Logo }                 from "./components/shared/Logo.jsx";
 import { TopBar }               from "./components/shared/TopBar.jsx";
@@ -290,24 +289,7 @@ function AuthenticatedApp() {
     } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to add item."); }
   };
 
-  const handleAddFloorWalk = async ({ note, photos }) => {
-    try {
-      const { data: fw } = await supabase.from("floor_walks").insert({ company_id:company.id, added_by:profile.id, note, manager:profile.full_name, date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }) }).select().single();
-      if (fw && photos.length > 0) {
-        for (const p of photos) {
-          const compressed = await compressImage(p.file ?? p, "floorWalk");
-          const safeName = (compressed?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
-          const path = `${company.id}/floorwalk/${fw.id}-${Date.now()}-${safeName}`;
-          await supabase.storage.from("vm-photos").upload(path, compressed);
-          const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
-          await supabase.from("floor_walk_photos").insert({ floor_walk_id:fw.id, url, comment:p.comment??"" });
-        }
-      }
-      loadFloorWalks(company.id);
-      addLog("Added floor walk", note?.slice(0,40) ?? "");
-      if (profile.branch_id) notifyBranch(company.id, profile.branch_id, "visit_created", "New Floor Walk 🚶", "Manager published a new floor walk");
-    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to publish floor walk."); }
-  };
+  const handleFloorWalkChanged = () => { loadFloorWalks(company.id); addLog("Published floor walk", ""); };
 
   const handleSaveCampaign = async ({ name, date_from, date_to }) => {
     try {
@@ -408,7 +390,7 @@ function AuthenticatedApp() {
             {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} branches={activeBranches} managerBranches={managerBranches} />}
             {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
             {amPage==="campaign" && <AreaManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} profile={profile} guidelines={guidelines} company={company} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onReviewBranchFile={handleReviewCampaignBranchFile} />}
-            {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
+            {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onFloorWalkChanged={handleFloorWalkChanged} />}
             {amPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
@@ -430,7 +412,7 @@ function AuthenticatedApp() {
             {mgrPage==="training"   && <Training company={company} profile={profile} />}
             {mgrPage==="campaign"   && <CampaignGuidesPage company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} campaign={campaign} onSaveCampaign={handleSaveCampaign} campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={handleAcknowledgeCampaign} onReviewBranchFile={handleReviewCampaignBranchFile} profile={profile} />}
             {mgrPage==="reports"    && <MgrReports tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
-            {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} canCreateFloorWalk={false} />}
+            {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onFloorWalkChanged={handleFloorWalkChanged} canCreateFloorWalk={false} />}
             {mgrPage==="chat"       && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
             {mgrPage==="superadmin" && isSuperAdmin && <SuperAdminPanel />}
           </div>

@@ -1,5 +1,5 @@
 import { compressImage } from "../../lib/imageCompression.js";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { notifyBranch } from "../../services/enterprise.service.js";
@@ -7,121 +7,119 @@ import { ReportView } from "../shared/ReportView.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
 
 const STATUS_META = {
-  draft:     { label:"Draft",     color:"#6b6880" },
-  submitted: { label:"Submitted", color:"#d4a82a" },
+  draft:     { label:"In Progress", color:"#d4a82a" },
+  submitted: { label:"Submitted", color:"#4ade80" },
   reviewed:  { label:"Reviewed",  color:"#818cf8" },
   closed:    { label:"Closed",    color:"#4ade80" },
 };
 
-// ── Floor Walk Form ───────────────────────────────────────────
-function FloorWalkForm({ onAdd, onCancel }) {
-  const [note,    setNote]    = useState("");
-  const [photos,  setPhotos]  = useState([]);
-  const [saving,  setSaving]  = useState(false);
-  const camRef = useRef();
-
-  const handleFiles = (e) => {
-    const files = Array.from(e.target.files);
-    setPhotos(p => [...p, ...files.map(f => ({ file:f, url:URL.createObjectURL(f), comment:"" }))]);
-    e.target.value = "";
-  };
-
-  const submit = async () => {
-    setSaving(true);
-    await onAdd({ note, photos });
-    onCancel();
-    setSaving(false);
-  };
-
-  return (
-    <div style={S.card}>
-      <div style={S.h3}>Floor Walk Details</div>
-      <div style={S.lbl}>Notes / Instructions</div>
-      <textarea style={{ ...S.inp, minHeight:72, resize:"vertical" }}
-        placeholder="Floor walk instructions..." value={note} onChange={e => setNote(e.target.value)}/>
-      <div style={{ display:"flex", gap:8, marginBottom:14 }}>
-        <button className="btnG" style={{ ...S.btnG, flex:1 }}
-          onClick={() => { camRef.current.setAttribute("capture","environment"); camRef.current.click(); }}>
-          📷 Take Photo
-        </button>
-        <button className="btnG" style={{ ...S.btnG, flex:1 }}
-          onClick={() => { camRef.current.removeAttribute("capture"); camRef.current.click(); }}>
-          🖼️ Upload
-        </button>
-        <input ref={camRef} type="file" accept="image/*" multiple
-          style={{ display:"none" }} onChange={handleFiles}/>
-      </div>
-      {photos.map((p, i) => (
-        <div key={i} style={{ marginBottom:10, border:`1px solid ${C.accentColor}18`, borderRadius:10, overflow:"hidden" }}>
-          <img loading="lazy" src={p.url} alt="" style={{ width:"100%", maxHeight:160, objectFit:"cover", display:"block" }}/>
-          <div style={{ padding:"8px 12px", background:C.surfaceHigh }}>
-            <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Comment</div>
-            <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:"var(--clr-surface)" }}
-              placeholder="Comment on this photo…" value={p.comment}
-              onChange={e => setPhotos(prev => prev.map((ph,idx) => idx===i ? {...ph,comment:e.target.value} : ph))}/>
-          </div>
-        </div>
-      ))}
-      <div style={{ display:"flex", gap:8 }}>
-        <button className="btnP" style={{ ...S.btnP, flex:1 }} onClick={submit} disabled={saving}>
-          {saving ? "Publishing..." : "Publish Floor Walk →"}
-        </button>
-        <button className="btnG" style={S.btnG} onClick={onCancel}>Cancel</button>
-      </div>
-    </div>
-  );
-}
-
 // ── Main Component ────────────────────────────────────────────
-export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit, floorWalks = [], onAddFloorWalk, canCreateFloorWalk = true }) {
+// A visit/floor walk stays open ("draft") while more photos get added
+// over time — it's one report until you tap Finish, not one report per photo.
+export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit,
+  floorWalks = [], onFloorWalkChanged, canCreateFloorWalk = true }) {
   const [activeTab,    setActiveTab]    = useState("visits");
   const [showForm,     setShowForm]     = useState(false);
+  const [activeReport, setActiveReport] = useState(null);
+  const [openFwId,     setOpenFwId]     = useState(null);
+
+  // ── Visit draft ──
+  const [draftVisit,   setDraftVisit]   = useState(null); // store_visits row + findings
   const [branchId,     setBranchId]     = useState(branches[0]?.id ?? "");
   const [visitDate,    setVisitDate]    = useState(new Date().toISOString().slice(0,10));
   const [notes,        setNotes]        = useState("");
-  const [photos,       setPhotos]       = useState([]);
-  const [saving,       setSaving]       = useState(false);
-  const [activeReport, setActiveReport] = useState(null);
-  const [openFwId,     setOpenFwId]     = useState(null);
+  const [uploading,    setUploading]    = useState(false);
+  const [finishing,    setFinishing]    = useState(false);
   const cameraRef = useRef();
 
-  const handleFiles = (e) => {
-    const files = Array.from(e.target.files);
-    setPhotos(p => [...p, ...files.map(f => ({ file:f, url:URL.createObjectURL(f), comment:"" }))]);
-    e.target.value = "";
+  // ── Floor walk draft ──
+  const [draftFw,      setDraftFw]      = useState(null);
+  const [fwNote,        setFwNote]       = useState("");
+  const [fwUploading,   setFwUploading]  = useState(false);
+  const [fwFinishing,   setFwFinishing]  = useState(false);
+  const fwCameraRef = useRef();
+
+  useEffect(() => {
+    if (!company?.id || !profile?.id) return;
+    supabase.from("store_visits")
+      .select("*, findings:visit_findings(*)")
+      .eq("company_id", company.id).eq("visitor_id", profile.id).eq("status", "draft")
+      .order("created_at", { ascending:false }).limit(1).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setDraftVisit(data);
+          setBranchId(data.branch_id ?? branches[0]?.id ?? "");
+          setVisitDate(data.visit_date ?? new Date().toISOString().slice(0,10));
+          setNotes(data.notes ?? "");
+        }
+      });
+    supabase.from("floor_walks")
+      .select("*, photos:floor_walk_photos(*)")
+      .eq("company_id", company.id).eq("added_by", profile.id).eq("status", "draft")
+      .order("created_at", { ascending:false }).limit(1).maybeSingle()
+      .then(({ data }) => { if (data) { setDraftFw(data); setFwNote(data.note ?? ""); } });
+  }, [company?.id, profile?.id]);
+
+  // ── Visit: ensure a draft row exists, create one on first use ──
+  const ensureVisit = async () => {
+    if (draftVisit) return draftVisit;
+    const { data } = await supabase
+      .from("store_visits")
+      .insert({ company_id:company.id, branch_id:branchId, visitor_id:profile.id,
+        visit_date:visitDate, notes, status:"draft" })
+      .select("*, findings:visit_findings(*)").single();
+    setDraftVisit(data);
+    return data;
   };
 
-  const updatePhotoComment = (i, val) =>
-    setPhotos(p => p.map((ph, idx) => idx===i ? { ...ph, comment:val } : ph));
-  const removePhoto  = (i) => setPhotos(p => p.filter((_, idx) => idx !== i));
-
-  const saveVisit = async () => {
-    if (!branchId) return;
-    setSaving(true);
+  const handleFiles = async (e) => {
+    const files = Array.from(e.target.files);
+    e.target.value = "";
+    if (!files.length) return;
+    setUploading(true);
     try {
-      const { data: visit } = await supabase
-        .from("store_visits")
-        .insert({ company_id:company.id, branch_id:branchId, visitor_id:profile.id,
-          visit_date:visitDate, notes, status:"submitted" })
-        .select().single();
-
-      if (visit) {
-        for (const p of photos) {
-          const compressed = await compressImage(p.file, "visit");
-          const safeName = (compressed?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
-          const path = `${company.id}/visits/${visit.id}-${Date.now()}-${safeName}`;
-          await supabase.storage.from("vm-photos").upload(path, compressed);
-          const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
-          await supabase.from("visit_findings")
-            .insert({ visit_id:visit.id, finding:"Photo", image_url:url, recommendation:p.comment||"" });
-        }
-        notifyBranch(company.id, branchId, "visit_created", "Store Visit Report 🚶",
-          "A visit report was submitted for your branch");
+      const visit = await ensureVisit();
+      for (const file of files) {
+        const compressed = await compressImage(file, "visit");
+        const safeName = (compressed?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${company.id}/visits/${visit.id}-${Date.now()}-${safeName}`;
+        await supabase.storage.from("vm-photos").upload(path, compressed);
+        const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
+        const { data: finding } = await supabase.from("visit_findings")
+          .insert({ visit_id:visit.id, finding:"Photo", image_url:url, recommendation:"" })
+          .select().single();
+        setDraftVisit(v => ({ ...v, findings: [...(v.findings ?? []), finding] }));
       }
+    } finally { setUploading(false); }
+  };
+
+  const updateVisitPhotoComment = async (findingId, val) => {
+    setDraftVisit(v => ({ ...v, findings: v.findings.map(f => f.id===findingId ? {...f, recommendation:val} : f) }));
+    await supabase.from("visit_findings").update({ recommendation: val }).eq("id", findingId);
+  };
+
+  const removeVisitPhoto = async (findingId) => {
+    await supabase.from("visit_findings").delete().eq("id", findingId);
+    setDraftVisit(v => ({ ...v, findings: v.findings.filter(f => f.id !== findingId) }));
+  };
+
+  const saveVisitField = async (field, value) => {
+    if (!draftVisit) return;
+    await supabase.from("store_visits").update({ [field]: value }).eq("id", draftVisit.id);
+    setDraftVisit(v => ({ ...v, [field]: value }));
+  };
+
+  const finishVisit = async () => {
+    const visit = await ensureVisit();
+    setFinishing(true);
+    try {
+      await supabase.from("store_visits").update({ notes, status:"submitted" }).eq("id", visit.id);
+      notifyBranch(company.id, visit.branch_id, "visit_created", "Store Visit Report 🚶",
+        "A visit report was submitted for your branch");
       onVisitCreated?.();
-      setShowForm(false);
-      setNotes(""); setPhotos([]);
-    } finally { setSaving(false); }
+      setDraftVisit(null);
+      setNotes(""); setShowForm(false);
+    } finally { setFinishing(false); }
   };
 
   const openReport = (v) => {
@@ -136,6 +134,59 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       photos: (v.findings ?? []).filter(f => f.finding === "Photo" && f.image_url),
       findings: (v.findings ?? []).filter(f => f.finding !== "Photo"),
     });
+  };
+
+  // ── Floor walk: ensure a draft row exists ──
+  const ensureFloorWalk = async () => {
+    if (draftFw) return draftFw;
+    const { data } = await supabase.from("floor_walks")
+      .insert({ company_id:company.id, added_by:profile.id, note:fwNote, manager:profile.full_name,
+        date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }), status:"draft" })
+      .select("*, photos:floor_walk_photos(*)").single();
+    setDraftFw(data);
+    return data;
+  };
+
+  const handleFwFiles = async (e) => {
+    const files = Array.from(e.target.files);
+    e.target.value = "";
+    if (!files.length) return;
+    setFwUploading(true);
+    try {
+      const fw = await ensureFloorWalk();
+      for (const file of files) {
+        const compressed = await compressImage(file, "floorWalk");
+        const safeName = (compressed?.name ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${company.id}/floorwalk/${fw.id}-${Date.now()}-${safeName}`;
+        await supabase.storage.from("vm-photos").upload(path, compressed);
+        const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
+        const { data: photo } = await supabase.from("floor_walk_photos")
+          .insert({ floor_walk_id:fw.id, url, comment:"" }).select().single();
+        setDraftFw(f => ({ ...f, photos: [...(f.photos ?? []), photo] }));
+      }
+    } finally { setFwUploading(false); }
+  };
+
+  const updateFwPhotoComment = async (photoId, val) => {
+    setDraftFw(f => ({ ...f, photos: f.photos.map(p => p.id===photoId ? {...p, comment:val} : p) }));
+    await supabase.from("floor_walk_photos").update({ comment: val }).eq("id", photoId);
+  };
+
+  const removeFwPhoto = async (photoId) => {
+    await supabase.from("floor_walk_photos").delete().eq("id", photoId);
+    setDraftFw(f => ({ ...f, photos: f.photos.filter(p => p.id !== photoId) }));
+  };
+
+  const finishFloorWalk = async () => {
+    const fw = await ensureFloorWalk();
+    setFwFinishing(true);
+    try {
+      await supabase.from("floor_walks").update({ note:fwNote, status:"submitted" }).eq("id", fw.id);
+      onFloorWalkChanged?.();
+      if (profile.branch_id) notifyBranch(company.id, profile.branch_id, "visit_created", "New Floor Walk 🚶", "Manager published a new floor walk");
+      setDraftFw(null);
+      setFwNote(""); setShowForm(false);
+    } finally { setFwFinishing(false); }
   };
 
   return (
@@ -161,57 +212,67 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
         <>
           <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
             onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Cancel" : "＋ New Visit Report"}
+            {showForm ? "Cancel" : draftVisit ? "▶ Continue Visit Report" : "＋ New Visit Report"}
           </button>
 
           {showForm && (
             <div style={S.card}>
               <div style={S.h3}>Visit Details</div>
+              {draftVisit && (
+                <div style={{ fontSize:11, color:"#d4a82a", marginBottom:10 }}>
+                  🟡 In progress — keep adding photos, then tap Finish when done.
+                </div>
+              )}
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                 <div>
                   <div style={S.lbl}>Branch</div>
-                  <select style={S.sel} value={branchId} onChange={e => setBranchId(e.target.value)}>
+                  <select style={S.sel} value={branchId}
+                    onChange={e => { setBranchId(e.target.value); if (draftVisit) saveVisitField("branch_id", e.target.value); }}>
                     {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <div style={S.lbl}>Visit Date</div>
-                  <input style={S.inp} type="date" value={visitDate} onChange={e => setVisitDate(e.target.value)}/>
+                  <input style={S.inp} type="date" value={visitDate}
+                    onChange={e => { setVisitDate(e.target.value); if (draftVisit) saveVisitField("visit_date", e.target.value); }}/>
                 </div>
               </div>
               <div style={S.lbl}>General Notes</div>
               <textarea style={{ ...S.inp, minHeight:72, resize:"vertical" }}
-                placeholder="General observations…" value={notes} onChange={e => setNotes(e.target.value)}/>
+                placeholder="General observations…" value={notes}
+                onChange={e => setNotes(e.target.value)}
+                onBlur={e => draftVisit && saveVisitField("notes", e.target.value)}/>
               <div style={{ display:"flex", gap:8, marginBottom:14 }}>
-                <button className="btnG" style={{ ...S.btnG, flex:1 }}
+                <button className="btnG" style={{ ...S.btnG, flex:1 }} disabled={uploading}
                   onClick={() => { cameraRef.current.setAttribute("capture","environment"); cameraRef.current.click(); }}>
                   📷 Take Photo
                 </button>
-                <button className="btnG" style={{ ...S.btnG, flex:1 }}
+                <button className="btnG" style={{ ...S.btnG, flex:1 }} disabled={uploading}
                   onClick={() => { cameraRef.current.removeAttribute("capture"); cameraRef.current.click(); }}>
                   🖼️ Upload Photo
                 </button>
                 <input ref={cameraRef} type="file" accept="image/*" multiple style={{ display:"none" }} onChange={handleFiles}/>
               </div>
-              {photos.map((p, i) => (
-                <div key={i} style={{ marginBottom:12, border:`1px solid ${C.accentColor}18`, borderRadius:12, overflow:"hidden" }}>
+              {uploading && <div style={{ ...S.muted, fontSize:12, marginBottom:10 }}>Uploading…</div>}
+              {(draftVisit?.findings ?? []).filter(f => f.finding === "Photo").map(p => (
+                <div key={p.id} style={{ marginBottom:12, border:`1px solid ${C.accentColor}18`, borderRadius:12, overflow:"hidden" }}>
                   <div style={{ position:"relative" }}>
-                    <img loading="lazy" src={p.url} alt="" style={{ width:"100%", maxHeight:180, objectFit:"cover", display:"block" }}/>
-                    <button onClick={() => removePhoto(i)} style={{ position:"absolute", top:8, right:8,
+                    <img loading="lazy" src={p.image_url} alt="" style={{ width:"100%", maxHeight:180, objectFit:"cover", display:"block" }}/>
+                    <button onClick={() => removeVisitPhoto(p.id)} style={{ position:"absolute", top:8, right:8,
                       background:"#000a", border:"none", color:"#fff", borderRadius:"50%",
                       width:26, height:26, cursor:"pointer", fontSize:13 }}>✕</button>
                   </div>
                   <div style={{ padding:"8px 12px", background:C.surfaceHigh }}>
                     <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Comment</div>
                     <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:"var(--clr-surface)" }}
-                      placeholder="Comment on this photo…" value={p.comment}
-                      onChange={e => updatePhotoComment(i, e.target.value)}/>
+                      placeholder="Comment on this photo…" defaultValue={p.recommendation ?? ""}
+                      onBlur={e => updateVisitPhotoComment(p.id, e.target.value)}/>
                   </div>
                 </div>
               ))}
               <button className="btnP" style={{ ...S.btnP, width:"100%" }}
-                onClick={saveVisit} disabled={saving}>
-                {saving ? "Saving…" : "Submit Visit Report →"}
+                onClick={finishVisit} disabled={finishing || uploading}>
+                {finishing ? "Finishing…" : "✓ Finish Report →"}
               </button>
             </div>
           )}
@@ -267,15 +328,61 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
             </div>
           )}
 
-          {canCreateFloorWalk && !showForm && (
+          {canCreateFloorWalk && (
             <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
-              onClick={() => setShowForm(true)}>
-              ＋ New Floor Walk
+              onClick={() => setShowForm(!showForm)}>
+              {showForm ? "Cancel" : draftFw ? "▶ Continue Floor Walk" : "＋ New Floor Walk"}
             </button>
           )}
 
-          {canCreateFloorWalk && showForm && onAddFloorWalk && (
-            <FloorWalkForm onAdd={onAddFloorWalk} onCancel={() => setShowForm(false)} />
+          {canCreateFloorWalk && showForm && (
+            <div style={S.card}>
+              <div style={S.h3}>Floor Walk Details</div>
+              {draftFw && (
+                <div style={{ fontSize:11, color:"#d4a82a", marginBottom:10 }}>
+                  🟡 In progress — keep adding photos, then tap Finish when done.
+                </div>
+              )}
+              <div style={S.lbl}>Notes / Instructions</div>
+              <textarea style={{ ...S.inp, minHeight:72, resize:"vertical" }}
+                placeholder="Floor walk instructions..." value={fwNote}
+                onChange={e => setFwNote(e.target.value)}
+                onBlur={e => draftFw && supabase.from("floor_walks").update({ note:e.target.value }).eq("id", draftFw.id)}/>
+              <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+                <button className="btnG" style={{ ...S.btnG, flex:1 }} disabled={fwUploading}
+                  onClick={() => { fwCameraRef.current.setAttribute("capture","environment"); fwCameraRef.current.click(); }}>
+                  📷 Take Photo
+                </button>
+                <button className="btnG" style={{ ...S.btnG, flex:1 }} disabled={fwUploading}
+                  onClick={() => { fwCameraRef.current.removeAttribute("capture"); fwCameraRef.current.click(); }}>
+                  🖼️ Upload
+                </button>
+                <input ref={fwCameraRef} type="file" accept="image/*" multiple
+                  style={{ display:"none" }} onChange={handleFwFiles}/>
+              </div>
+              {fwUploading && <div style={{ ...S.muted, fontSize:12, marginBottom:10 }}>Uploading…</div>}
+              {(draftFw?.photos ?? []).map(p => (
+                <div key={p.id} style={{ marginBottom:10, border:`1px solid ${C.accentColor}18`, borderRadius:10, overflow:"hidden" }}>
+                  <div style={{ position:"relative" }}>
+                    <img loading="lazy" src={p.url} alt="" style={{ width:"100%", maxHeight:160, objectFit:"cover", display:"block" }}/>
+                    <button onClick={() => removeFwPhoto(p.id)} style={{ position:"absolute", top:8, right:8,
+                      background:"#000a", border:"none", color:"#fff", borderRadius:"50%",
+                      width:26, height:26, cursor:"pointer", fontSize:13 }}>✕</button>
+                  </div>
+                  <div style={{ padding:"8px 12px", background:C.surfaceHigh }}>
+                    <div style={{ fontSize:10, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginBottom:4 }}>Comment</div>
+                    <input style={{ ...S.inp, marginTop:0, marginBottom:0, background:"var(--clr-surface)" }}
+                      placeholder="Comment on this photo…" defaultValue={p.comment ?? ""}
+                      onBlur={e => updateFwPhotoComment(p.id, e.target.value)}/>
+                  </div>
+                </div>
+              ))}
+              <div style={{ display:"flex", gap:8 }}>
+                <button className="btnP" style={{ ...S.btnP, flex:1 }} onClick={finishFloorWalk} disabled={fwFinishing || fwUploading}>
+                  {fwFinishing ? "Finishing…" : "✓ Finish Floor Walk →"}
+                </button>
+              </div>
+            </div>
           )}
 
           {floorWalks.length === 0 && !showForm && (
