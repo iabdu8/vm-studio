@@ -1,13 +1,14 @@
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
+import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 
 // ============================================================
 //  STORE MANAGER SHELL
 //  يشوف فرعه فقط — يعطي ملاحظات — يتابع التنفيذ
 // ============================================================
 
-export function StoreManagerHome({ profile, tasks, submissions, campaign, promotions, floorWalks, demoHolds }) {
+export function StoreManagerHome({ profile, tasks, submissions, campaign, promotions, floorWalks, demoHolds, company }) {
   const branch = profile?.branch?.name ?? "My Branch";
 
   const pending   = submissions.filter(s => s.status === "pending").length;
@@ -23,6 +24,8 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         {branch} · {todayStr()}
       </div>
+
+      <BestBranchOfMonth company={company} />
 
       {/* Campaign banner — see the Campaign tab to view the file / comment */}
       {campaign?.name && (

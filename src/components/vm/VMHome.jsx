@@ -1,8 +1,9 @@
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
+import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 
-export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, campaign, promotions = [] }) {
+export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, campaign, promotions = [], company }) {
   const name     = user?.full_name ?? user?.name ?? "";
   const branch   = user?.branch?.name ?? user?.branch ?? "";
   const myTasks  = tasks.filter(t => t.assigned_to === "all" || t.assigned_to === user?.id);
@@ -28,6 +29,8 @@ export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, cam
           {branch} · {todayStr()}
         </div>
       </div>
+
+      <BestBranchOfMonth company={company} />
 
       {/* Campaign */}
       {campaign?.name && (

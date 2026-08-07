@@ -11,7 +11,7 @@ const one = (x) => Array.isArray(x) ? x[0] : x;
 
 // Bounded to the most recent rows — keeps the query fast as branches/history
 // grow, without needing pagination UI anywhere that consumes this list.
-const RECENT_ROWS_LIMIT = 2000;
+const RECENT_ROWS_LIMIT = 500;
 
 export async function getTasks(company_id) {
   const { data, error } = await supabase

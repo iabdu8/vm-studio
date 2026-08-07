@@ -6,13 +6,14 @@ import { CampaignPanel } from "./CampaignPanel.jsx";
 import { CampaignFileReview } from "../shared/CampaignFileReview.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 import { Training } from "./Training.jsx";
+import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
 //  يشوف فروعه المعيّنة له فقط — يتابع الكامبين — يعلّق (بدون اعتماد)
 // ============================================================
 
-export function AreaManagerOverview({ profile, tasks, submissions, branches, managerBranches = [] }) {
+export function AreaManagerOverview({ profile, tasks, submissions, branches, managerBranches = [], company }) {
   const [branchFilter, setBranchFilter] = useState("all");
 
   // فقط الفروع المعيّنة له من السوبر ادمن
@@ -44,6 +45,8 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         {myBranches.length} branch(es) · {todayStr()}
       </div>
+
+      <BestBranchOfMonth company={company} />
 
       {/* Branch selector — scroll through each of his branches */}
       {myBranches.length > 0 && (

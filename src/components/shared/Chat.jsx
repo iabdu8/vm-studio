@@ -14,33 +14,49 @@ function ChatRoom({ user, room, companyId, onSend }) {
   const [lightbox, setLightbox] = useState(null); // { photos, index }
   const bottomRef = useRef();
   const fileRef = useRef();
+  const senderCache = useRef({});   // profile lookup, avoids a query per incoming message
+  const seenIds = useRef(new Set()); // dedupe optimistic send vs. realtime echo
+
+  const addMessage = (msg) => {
+    if (seenIds.current.has(msg.id)) return;
+    seenIds.current.add(msg.id);
+    setMessages(p => [...p, msg]);
+  };
+
+  useEffect(() => {
+    if (!companyId) return;
+    supabase.from("profiles").select("id, full_name, role").eq("company_id", companyId)
+      .then(({ data }) => {
+        const map = {};
+        (data ?? []).forEach(p => { map[p.id] = p; });
+        senderCache.current = map;
+      });
+  }, [companyId]);
 
   useEffect(() => {
     if (!companyId || !room) return;
     setLoading(true);
+    seenIds.current = new Set();
     supabase.from("chat_messages")
       .select("*, sender:profiles(full_name, role)")
       .eq("company_id", companyId)
       .eq("room", room)
       .order("created_at")
       .limit(60)
-      .then(({ data }) => { setMessages(data ?? []); setLoading(false); });
+      .then(({ data }) => {
+        (data ?? []).forEach(m => seenIds.current.add(m.id));
+        setMessages(data ?? []);
+        setLoading(false);
+      });
 
     const sub = supabase.channel(`chat-${companyId}-${room}`)
       .on("postgres_changes", {
         event:"INSERT", schema:"public", table:"chat_messages",
         filter:`company_id=eq.${companyId}`,
       }, payload => {
-        if (payload.new.room === room) {
-          // fetch sender info
-          supabase.from("chat_messages")
-            .select("*, sender:profiles(full_name, role)")
-            .eq("id", payload.new.id)
-            .single()
-            .then(({ data }) => {
-              if (data) setMessages(p => [...p, data]);
-            });
-        }
+        if (payload.new.room !== room) return;
+        // Sender is already cached from the room-member fetch above — no extra round trip.
+        addMessage({ ...payload.new, sender: senderCache.current[payload.new.sender_id] });
       })
       .subscribe();
 
@@ -55,7 +71,8 @@ function ChatRoom({ user, room, companyId, onSend }) {
     if (!text.trim()) return;
     const msg = text.trim();
     setText("");
-    await onSend(room, msg);
+    const sent = await onSend(room, msg);
+    if (sent) addMessage(sent); // show instantly, don't wait on the realtime round trip
   };
 
   const pickFile = () => fileRef.current?.click();
@@ -69,7 +86,8 @@ function ChatRoom({ user, room, companyId, onSend }) {
       const attachment = await uploadChatAttachment(companyId, room, file);
       const caption = text.trim() || (attachment.type === "image" ? "📷 Photo" : `📎 ${attachment.name}`);
       setText("");
-      await onSend(room, caption, attachment);
+      const sent = await onSend(room, caption, attachment);
+      if (sent) addMessage(sent);
     } finally { setUploading(false); }
   };
 
