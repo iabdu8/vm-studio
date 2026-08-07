@@ -2,7 +2,6 @@ import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
-import { TasksTable } from "../shared/TasksTable.jsx";
 
 export function MgrOverview({
   tasks, submissions, log, company,
@@ -171,14 +170,6 @@ export function MgrOverview({
             <div style={{ ...S.muted, fontSize: 11 }}>{k.sub}</div>
           </div>
         ))}
-      </div>
-
-      {/* ════ TASKS ════ */}
-      <div style={{ ...S.h3, marginBottom:10 }}>
-        Tasks{branchFilter !== "all" ? ` — ${branches.find(b => b.id === branchFilter)?.name ?? ""}` : ""}
-      </div>
-      <div style={{ marginBottom:16 }}>
-        <TasksTable tasks={filteredTasks} branches={branches} showBranchColumn={branchFilter === "all"} />
       </div>
 
       {/* ════ BRANCH PERFORMANCE ════ */}

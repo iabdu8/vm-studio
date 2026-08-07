@@ -32,12 +32,19 @@ export function Training({ company, profile, readOnly = false }) {
   const [confirm,   setConfirm]   = useState(null);
 
   // Form
-  const [title,    setTitle]    = useState("");
-  const [trainer,  setTrainer]  = useState(profile?.full_name ?? "");
-  const [date,     setDate]     = useState(new Date().toISOString().slice(0,10));
-  const [location, setLocation] = useState("");
-  const [notes,    setNotes]    = useState("");
-  const [picked,   setPicked]   = useState([]);
+  const [title,        setTitle]        = useState("");
+  const [trainingType, setTrainingType] = useState("");
+  const [trainer,      setTrainer]      = useState(profile?.full_name ?? "");
+  const [date,         setDate]         = useState(new Date().toISOString().slice(0,10));
+  const [endDate,      setEndDate]      = useState("");
+  const [region,       setRegion]       = useState("");
+  const [location,     setLocation]     = useState("");
+  const [notes,        setNotes]        = useState("");
+  const [picked,       setPicked]       = useState([]);
+
+  // Edit (existing training)
+  const [editing,   setEditing]   = useState(false);
+  const [eSaving,   setESaving]   = useState(false);
 
   useEffect(() => {
     if (!company?.id) return;
@@ -72,19 +79,40 @@ export function Training({ company, profile, readOnly = false }) {
     try {
       const { data: tr } = await supabase
         .from("trainings")
-        .insert({ company_id:company.id, title, trainer, date, location, notes, created_by:profile.id })
+        .insert({ company_id:company.id, title, training_type:trainingType||null, trainer,
+          date, end_date:endDate||null, region:region||null, location, notes, created_by:profile.id })
         .select().single();
       if (tr && picked.length > 0) {
         await supabase.from("training_attendees").insert(
           picked.map(uid => ({ training_id:tr.id, user_id:uid, status:"pending" }))
         );
       }
-      setTitle(""); setTrainer(profile?.full_name ?? "");
-      setDate(new Date().toISOString().slice(0,10));
+      setTitle(""); setTrainingType(""); setTrainer(profile?.full_name ?? "");
+      setDate(new Date().toISOString().slice(0,10)); setEndDate(""); setRegion("");
       setLocation(""); setNotes(""); setPicked([]);
       setShowForm(false);
       loadAll();
     } finally { setSaving(false); }
+  };
+
+  const startEdit = () => {
+    setTitle(selected.title); setTrainingType(selected.training_type ?? "");
+    setTrainer(selected.trainer); setDate(selected.date); setEndDate(selected.end_date ?? "");
+    setRegion(selected.region ?? ""); setLocation(selected.location ?? ""); setNotes(selected.notes ?? "");
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!title.trim() || !trainer.trim() || !date) return;
+    setESaving(true);
+    try {
+      const updates = { title, training_type:trainingType||null, trainer,
+        date, end_date:endDate||null, region:region||null, location, notes };
+      await supabase.from("trainings").update(updates).eq("id", selected.id);
+      setSelected(prev => ({ ...prev, ...updates }));
+      setTrainings(prev => prev.map(t => t.id === selected.id ? { ...t, ...updates } : t));
+      setEditing(false);
+    } finally { setESaving(false); }
   };
 
   const togglePick = (id) =>
@@ -136,12 +164,66 @@ export function Training({ company, profile, readOnly = false }) {
       <div>
         {confirm && <ConfirmModal {...confirm} onCancel={() => setConfirm(null)}/>}
         <button className="btnG" style={{ ...S.btnG, marginBottom:16, fontSize:12 }}
-          onClick={() => setSelected(null)}>← Back</button>
+          onClick={() => { setSelected(null); setEditing(false); }}>← Back</button>
 
+        {editing ? (
+          <div style={S.card}>
+            <div style={S.h3}>Edit Training</div>
+            <div style={S.lbl}>Training Title *</div>
+            <input style={S.inp} value={title} onChange={e => setTitle(e.target.value)}/>
+            <div style={S.lbl}>Training Type</div>
+            <input style={S.inp} placeholder="e.g. Onboarding, Visual Standards, Product Knowledge"
+              value={trainingType} onChange={e => setTrainingType(e.target.value)}/>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <div>
+                <div style={S.lbl}>Trainer *</div>
+                <input style={S.inp} value={trainer} onChange={e => setTrainer(e.target.value)}/>
+              </div>
+              <div>
+                <div style={S.lbl}>Region</div>
+                <input style={S.inp} placeholder="e.g. West" value={region} onChange={e => setRegion(e.target.value)}/>
+              </div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <div>
+                <div style={S.lbl}>Starts *</div>
+                <input style={S.inp} type="date" value={date} onChange={e => setDate(e.target.value)}/>
+              </div>
+              <div>
+                <div style={S.lbl}>Ends</div>
+                <input style={S.inp} type="date" value={endDate} onChange={e => setEndDate(e.target.value)}/>
+              </div>
+            </div>
+            <div style={S.lbl}>Location</div>
+            <input style={S.inp} value={location} onChange={e => setLocation(e.target.value)}/>
+            <div style={S.lbl}>Notes</div>
+            <textarea style={{ ...S.inp, minHeight:60, resize:"vertical" }}
+              value={notes} onChange={e => setNotes(e.target.value)}/>
+            <div style={{ display:"flex", gap:8 }}>
+              <button className="btnP" style={{ ...S.btnP, flex:1 }} onClick={saveEdit} disabled={eSaving || !title.trim()}>
+                {eSaving ? "Saving…" : "Save Changes →"}
+              </button>
+              <button className="btnG" style={S.btnG} onClick={() => setEditing(false)}>Cancel</button>
+            </div>
+          </div>
+        ) : (
         <div style={S.card}>
-          <div style={{ fontWeight:700, fontSize:18, marginBottom:4 }}>{selected.title}</div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
+            <div style={{ fontWeight:700, fontSize:18 }}>{selected.title}</div>
+            {!readOnly && (
+              <button className="btnG" style={{ ...S.btnG, fontSize:12, padding:"6px 12px", flexShrink:0 }}
+                onClick={startEdit}>✎ Edit</button>
+            )}
+          </div>
+          {selected.training_type && (
+            <div style={{ display:"inline-block", fontSize:11, fontWeight:700, color:C.accentColor,
+              background:C.accentColor+"18", padding:"3px 10px", borderRadius:12, marginBottom:8 }}>
+              {selected.training_type}
+            </div>
+          )}
           <div style={{ ...S.muted, fontSize:12, marginBottom:12 }}>
-            👨‍🏫 {selected.trainer} · 📅 {selected.date}
+            👨‍🏫 {selected.trainer} · 📅 {selected.date}{selected.end_date ? ` → ${selected.end_date}` : ""}
+            {selected.region && ` · 🗺️ ${selected.region}`}
             {selected.location && ` · 📍 ${selected.location}`}
           </div>
           {selected.notes && (
@@ -162,6 +244,7 @@ export function Training({ company, profile, readOnly = false }) {
             ))}
           </div>
         </div>
+        )}
 
         <div style={S.h3}>Attendees ({att.length})</div>
         {att.length === 0 && (
@@ -253,6 +336,9 @@ export function Training({ company, profile, readOnly = false }) {
           <div style={S.lbl}>Training Title *</div>
           <input style={S.inp} placeholder="e.g. VM Display Standards Q3"
             value={title} onChange={e => setTitle(e.target.value)}/>
+          <div style={S.lbl}>Training Type</div>
+          <input style={S.inp} placeholder="e.g. Onboarding, Visual Standards, Product Knowledge"
+            value={trainingType} onChange={e => setTrainingType(e.target.value)}/>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <div>
               <div style={S.lbl}>Trainer *</div>
@@ -260,9 +346,21 @@ export function Training({ company, profile, readOnly = false }) {
                 value={trainer} onChange={e => setTrainer(e.target.value)}/>
             </div>
             <div>
-              <div style={S.lbl}>Date *</div>
+              <div style={S.lbl}>Region</div>
+              <input style={S.inp} placeholder="e.g. West"
+                value={region} onChange={e => setRegion(e.target.value)}/>
+            </div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+            <div>
+              <div style={S.lbl}>Starts *</div>
               <input style={S.inp} type="date"
                 value={date} onChange={e => setDate(e.target.value)}/>
+            </div>
+            <div>
+              <div style={S.lbl}>Ends</div>
+              <input style={S.inp} type="date"
+                value={endDate} onChange={e => setEndDate(e.target.value)}/>
             </div>
           </div>
           <div style={S.lbl}>Location</div>
@@ -317,9 +415,16 @@ export function Training({ company, profile, readOnly = false }) {
           <div key={t.id} style={{ ...S.card, cursor:"pointer" }} onClick={() => setSelected(t)}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
               <div>
-                <div style={{ fontWeight:700, fontSize:14 }}>{t.title}</div>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <div style={{ fontWeight:700, fontSize:14 }}>{t.title}</div>
+                  {t.training_type && (
+                    <span style={{ fontSize:10, fontWeight:700, color:C.accentColor,
+                      background:C.accentColor+"18", padding:"2px 8px", borderRadius:10 }}>{t.training_type}</span>
+                  )}
+                </div>
                 <div style={{ ...S.muted, fontSize:12, marginTop:3 }}>
-                  👨‍🏫 {t.trainer} · 📅 {t.date}
+                  👨‍🏫 {t.trainer} · 📅 {t.date}{t.end_date ? ` → ${t.end_date}` : ""}
+                  {t.region && ` · 🗺️ ${t.region}`}
                   {t.location && ` · 📍 ${t.location}`}
                 </div>
               </div>

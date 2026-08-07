@@ -20,9 +20,25 @@ export function TasksWithPhotos({ tasks, submissions = [], branches = [], showBr
     return da < db ? -1 : da > db ? 1 : 0;
   });
 
-  const latestSubFor = (taskId) => submissions
-    .filter(s => s.task_id === taskId && s.photos?.length)
-    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))[0];
+  // Prefer an exact task_id match; fall back to the same branch+category+VM
+  // when the submission predates task-linking (task_id wasn't always set).
+  const latestSubFor = (task) => {
+    const withPhotos = submissions.filter(s => s.photos?.length);
+    const exact = withPhotos.filter(s => s.task_id === task.id);
+    const pool = exact.length ? exact : withPhotos.filter(s =>
+      !s.task_id &&
+      s.branch_id === task.branch_id &&
+      s.category_id === task.category_id &&
+      (task.assigned_to === "all" || s.submitted_by === task.assigned_to)
+    );
+    return pool.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))[0];
+  };
+
+  // Before always before After, oldest-to-newest within each group.
+  const orderPhotos = (photos) => [...photos].sort((a, b) => {
+    if (a.photo_type !== b.photo_type) return a.photo_type === "before" ? -1 : 1;
+    return (a.created_at ?? "").localeCompare(b.created_at ?? "");
+  });
 
   const headers = ["Task", ...(showBranchColumn ? ["Branch"] : []), "Priority", "Due", "Controller", "Status", "Photos"];
 
@@ -52,8 +68,8 @@ export function TasksWithPhotos({ tasks, submissions = [], branches = [], showBr
               {sorted.map((t, i) => {
                 const rowBg = i % 2 === 0 ? "transparent" : C.surfaceHigh;
                 const cellStyle = { padding:"14px 16px", borderBottom:BORDER_SOFT, borderRight:BORDER_SOFT, background:rowBg };
-                const sub = latestSubFor(t.id);
-                const photos = (sub?.photos ?? []).map(p => ({
+                const sub = latestSubFor(t);
+                const photos = orderPhotos(sub?.photos ?? []).map(p => ({
                   ...p, label: p.photo_type === "before" ? "Before" : "After",
                 }));
                 return (
