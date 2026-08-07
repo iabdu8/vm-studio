@@ -145,8 +145,17 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
 }
 
 // View + comment only — no approve/reject power for VM Manager
-export function AreaManagerRequests({ submissions, profile }) {
+export function AreaManagerRequests({ submissions, profile, branches = [], managerBranches = [] }) {
   const [openId, setOpenId] = useState(null);
+
+  // "My region" = whichever region(s) my own assigned branches belong to.
+  // I can view every branch in that region (including ones added later that
+  // aren't assigned to me), but only comment on my own assigned branches.
+  const myRegions = [...new Set(
+    branches.filter(b => managerBranches.includes(b.id)).map(b => b.region).filter(Boolean)
+  )];
+  const regionBranchIds = branches.filter(b => myRegions.includes(b.region)).map(b => b.id);
+  const visible = submissions.filter(s => regionBranchIds.includes(s.branch_id));
 
   return (
     <div>
@@ -154,14 +163,16 @@ export function AreaManagerRequests({ submissions, profile }) {
         Branch <span style={S.accent}>Submissions</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        View-only — leave feedback via comments
+        View-only across your region — comments only on your own branches
       </div>
 
-      {submissions.length === 0 && (
+      {visible.length === 0 && (
         <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No submissions yet.</div>
       )}
 
-      {submissions.map(s => (
+      {visible.map(s => {
+        const isMine = managerBranches.includes(s.branch_id);
+        return (
         <div key={s.id} style={S.card}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
             <div>
@@ -190,16 +201,23 @@ export function AreaManagerRequests({ submissions, profile }) {
             </div>
           )}
 
-          {s.task_id && (
-            <button onClick={() => setOpenId(openId === s.id ? null : s.id)}
-              style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                fontSize:11, fontWeight:600, padding:0 }}>
-              {openId === s.id ? "Hide comments" : "💬 Comments"}
-            </button>
+          {isMine ? (
+            <>
+              {s.task_id && (
+                <button onClick={() => setOpenId(openId === s.id ? null : s.id)}
+                  style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                    fontSize:11, fontWeight:600, padding:0 }}>
+                  {openId === s.id ? "Hide comments" : "💬 Comments"}
+                </button>
+              )}
+              {openId === s.id && s.task_id && <CommentThread taskId={s.task_id} profile={profile} />}
+            </>
+          ) : (
+            <div style={{ fontSize:11, color:C.mutedColor }}>👁️ View only — not your branch</div>
           )}
-          {openId === s.id && s.task_id && <CommentThread taskId={s.task_id} profile={profile} />}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

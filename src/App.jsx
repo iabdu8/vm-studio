@@ -407,7 +407,7 @@ function AuthenticatedApp() {
           <TopBar user={profile} onLogout={() => signOut()} />
           <div key={amPage} className="page-transition" style={S.main}>
             {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions} branches={activeBranches} managerBranches={managerBranches} />}
-            {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} />}
+            {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} branches={activeBranches} managerBranches={managerBranches} />}
             {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
             {amPage==="campaign" && <AreaManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} profile={profile} guidelines={guidelines} company={company} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onReviewBranchFile={handleReviewCampaignBranchFile} />}
             {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
