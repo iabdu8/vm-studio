@@ -350,3 +350,23 @@ export async function addCampaignComment(campaign_id, author_id, body) {
   if (error) throw error;
   return data;
 }
+
+export async function getFloorWalkComments(floor_walk_id) {
+  const { data, error } = await supabase
+    .from("floor_walk_comments")
+    .select("*, author:author_id(full_name, role, avatar_initials)")
+    .eq("floor_walk_id", floor_walk_id)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function addFloorWalkComment(floor_walk_id, author_id, body) {
+  const { data, error } = await supabase
+    .from("floor_walk_comments")
+    .insert({ floor_walk_id, author_id, body })
+    .select("*, author:author_id(full_name, role, avatar_initials)")
+    .single();
+  if (error) throw error;
+  return data;
+}

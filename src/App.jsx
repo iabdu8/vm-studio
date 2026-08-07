@@ -433,7 +433,7 @@ function AuthenticatedApp() {
             {mgrPage==="training"   && <Training company={company} profile={profile} />}
             {mgrPage==="campaign"   && <CampaignGuidesPage company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} campaign={campaign} onSaveCampaign={handleSaveCampaign} campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={handleAcknowledgeCampaign} onReviewBranchFile={handleReviewCampaignBranchFile} profile={profile} />}
             {mgrPage==="reports"    && <MgrReports tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
-            {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}
+            {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} canCreateFloorWalk={false} />}
             {mgrPage==="analytics"  && <AnalyticsDashboard tasks={tasks} submissions={submissions} company={company} regions={regionAssignments} />}
             {mgrPage==="chat"       && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
             {mgrPage==="superadmin" && isSuperAdmin && <SuperAdminPanel />}

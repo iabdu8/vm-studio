@@ -4,6 +4,7 @@ import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { notifyBranch } from "../../services/enterprise.service.js";
 import { ReportView } from "../shared/ReportView.jsx";
+import { CommentThread } from "../shared/CommentThread.jsx";
 
 const STATUS_META = {
   draft:     { label:"Draft",     color:"#6b6880" },
@@ -72,7 +73,7 @@ function FloorWalkForm({ onAdd, onCancel }) {
 }
 
 // ── Main Component ────────────────────────────────────────────
-export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit, floorWalks = [], onAddFloorWalk }) {
+export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit, floorWalks = [], onAddFloorWalk, canCreateFloorWalk = true }) {
   const [activeTab,    setActiveTab]    = useState("visits");
   const [showForm,     setShowForm]     = useState(false);
   const [branchId,     setBranchId]     = useState(branches[0]?.id ?? "");
@@ -81,6 +82,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
   const [photos,       setPhotos]       = useState([]);
   const [saving,       setSaving]       = useState(false);
   const [activeReport, setActiveReport] = useState(null);
+  const [openFwId,     setOpenFwId]     = useState(null);
   const cameraRef = useRef();
 
   const handleFiles = (e) => {
@@ -259,14 +261,20 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       {/* ── FLOOR WALK TAB ── */}
       {activeTab === "floor" && (
         <div>
-          {!showForm && (
+          {!canCreateFloorWalk && (
+            <div style={{ ...S.muted, fontSize:12, marginBottom:16 }}>
+              View-only — floor walks are published by the VM Manager. Leave feedback via comments.
+            </div>
+          )}
+
+          {canCreateFloorWalk && !showForm && (
             <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
               onClick={() => setShowForm(true)}>
               ＋ New Floor Walk
             </button>
           )}
 
-          {showForm && onAddFloorWalk && (
+          {canCreateFloorWalk && showForm && onAddFloorWalk && (
             <FloorWalkForm onAdd={onAddFloorWalk} onCancel={() => setShowForm(false)} />
           )}
 
@@ -278,17 +286,18 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           )}
 
           {floorWalks.map((fw, i) => (
-            <div key={i} style={{ ...S.card, cursor:"pointer" }} onClick={() => setActiveReport({
-              type:"Floor Walk Report",
-              title:`Floor Walk — ${fw.manager ?? ""}`,
-              branch: branches.find(b => b.id === fw.branch_id)?.name ?? branches[0]?.name ?? "",
-              date: fw.date ?? "",
-              by: fw.manager ?? "—",
-              notes: fw.note,
-              photos: (fw.photos ?? []).map(p => ({ image_url: p.url ?? p, recommendation: p.comment ?? "" })),
-              findings: [],
-            })}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+            <div key={fw.id ?? i} style={S.card}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", cursor:"pointer" }}
+                onClick={() => setActiveReport({
+                  type:"Floor Walk Report",
+                  title:`Floor Walk — ${fw.manager ?? ""}`,
+                  branch: branches.find(b => b.id === fw.branch_id)?.name ?? branches[0]?.name ?? "",
+                  date: fw.date ?? "",
+                  by: fw.manager ?? "—",
+                  notes: fw.note,
+                  photos: (fw.photos ?? []).map(p => ({ image_url: p.url ?? p, recommendation: p.comment ?? "" })),
+                  findings: [],
+                })}>
                 <div>
                   <div style={{ fontWeight:700, fontSize:14 }}>📋 Floor Walk</div>
                   <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>By {fw.manager} · {fw.date ?? ""}</div>
@@ -298,6 +307,16 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                 </div>
                 <span style={{ fontSize:11, color:C.accentColor }}>Tap to view →</span>
               </div>
+              {fw.id && (
+                <>
+                  <button onClick={() => setOpenFwId(openFwId === fw.id ? null : fw.id)}
+                    style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                      fontSize:11, fontWeight:600, padding:0, marginTop:10 }}>
+                    {openFwId === fw.id ? "Hide comments" : "💬 Comments"}
+                  </button>
+                  {openFwId === fw.id && <CommentThread floorWalkId={fw.id} profile={profile} />}
+                </>
+              )}
             </div>
           ))}
         </div>

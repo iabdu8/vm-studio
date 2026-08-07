@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { S, C } from "../../styles/theme.js";
+import { printHTML } from "../../lib/printReport.js";
 
 // ============================================================
 //  ANALYTICS DASHBOARD — kept deliberately simple: plain numbers
@@ -167,27 +168,97 @@ export function AnalyticsDashboard({ tasks, submissions, company, regions = [] }
       }))
       .sort((a, b) => a.region === "Unassigned" ? 1 : b.region === "Unassigned" ? -1 : a.region.localeCompare(b.region));
 
-    return { monthSubs, approved, pending, revision, avgScore, branchList, bestBranch, regionList };
+    const approvalRate = monthSubs.length ? Math.round((approved.length / monthSubs.length) * 100) : 0;
+
+    return { monthSubs, approved, pending, revision, avgScore, approvalRate, branchList, bestBranch, regionList };
   }, [submissions, refDate, regions]);
 
   const monthTasks = tasks.filter(t => inSameMonth(t.created_at, refDate));
   const doneT = monthTasks.filter(t => t.is_done ?? t.done).length;
   const pct   = monthTasks.length ? Math.round((doneT / monthTasks.length) * 100) : 0;
 
+  const handlePrint = () => {
+    const accent = "#4F46E5";
+    const rows = stats.regionList.length
+      ? stats.regionList.flatMap(r => r.branches.map(b => ({ ...b, region: r.region })))
+      : stats.branchList.map(b => ({ ...b, region: "—" }));
+    const rowsHtml = rows.map((b, i) => `
+      <tr style="background:${i%2===0?"#fff":"#f9f9f9"}">
+        <td style="padding:9px 12px;border-bottom:1px solid #eee;font-weight:600">${b.name}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid #eee;color:#6b6880">${b.region}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center">${b.total}</td>
+        <td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center">${b.approvalRate}%</td>
+        <td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:700;color:${accent}">${b.avgScore ?? "—"}</td>
+      </tr>`).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+    <style>
+      body { font-family:'DM Sans',sans-serif; color:#1a1a2e; padding:32px; background:#fff; }
+      .header { display:flex; justify-content:space-between; padding-bottom:20px; border-bottom:3px solid ${accent}; margin-bottom:24px; }
+      .logo-text { font-size:24px; font-weight:700; color:${accent}; }
+      table { width:100%; border-collapse:collapse; margin-top:8px; }
+      th { background:${accent}; color:#fff; padding:9px 12px; text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; }
+      .kpis { display:flex; gap:16px; margin-bottom:24px; }
+      .kpi { flex:1; text-align:center; padding:14px 8px; background:#f9f9f9; border-radius:8px; }
+      .kpi .n { font-size:22px; font-weight:700; color:${accent}; }
+      .kpi .l { font-size:10px; color:#9ca3af; text-transform:uppercase; margin-top:4px; }
+      .section-title { font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+        color:#6b6880; margin:24px 0 10px; padding-bottom:6px; border-bottom:1px solid #e5e7eb; }
+      .footer { margin-top:32px; padding-top:16px; border-top:1px solid #e5e7eb;
+        display:flex; justify-content:space-between; font-size:11px; color:#9ca3af; }
+      @media print { body { padding:20px; } }
+    </style></head><body>
+    <div class="header">
+      <div><div class="logo-text">Vismo</div><div style="font-size:13px;color:#6b6880;margin-top:4px">${company?.name ?? ""}</div></div>
+      <div style="text-align:right"><div style="font-size:11px;font-weight:700;color:${accent};letter-spacing:2px">ANALYTICS REPORT</div>
+      <div style="font-size:12px;color:#6b6880;margin-top:4px">${monthLabel(refDate)}</div></div>
+    </div>
+    ${stats.bestBranch ? `<div style="padding:14px 18px;background:${accent}11;border:1px solid ${accent}33;border-radius:10px;margin-bottom:24px">
+      <div style="font-size:10px;font-weight:700;color:${accent};text-transform:uppercase;letter-spacing:1px">🏆 Best Branch — ${monthLabel(refDate)}</div>
+      <div style="font-size:18px;font-weight:700;margin-top:2px">${stats.bestBranch.name}</div>
+    </div>` : ""}
+    <div class="kpis">
+      <div class="kpi"><div class="n">${stats.monthSubs.length}</div><div class="l">Submissions</div></div>
+      <div class="kpi"><div class="n">${stats.approved.length}</div><div class="l">Approved</div></div>
+      <div class="kpi"><div class="n">${stats.approvalRate}%</div><div class="l">Approval Rate</div></div>
+      <div class="kpi"><div class="n">${stats.avgScore}</div><div class="l">Avg Score</div></div>
+      <div class="kpi"><div class="n">${pct}%</div><div class="l">Task Done</div></div>
+    </div>
+    <div class="section-title">Submission Status</div>
+    <table><thead><tr><th>Status</th><th style="text-align:center">Count</th><th style="text-align:center">%</th></tr></thead>
+    <tbody>
+      <tr style="background:#fff"><td style="padding:9px 12px;border-bottom:1px solid #eee">✓ Approved</td><td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center">${stats.approved.length}</td><td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center">${stats.monthSubs.length?Math.round(stats.approved.length/stats.monthSubs.length*100):0}%</td></tr>
+      <tr style="background:#f9f9f9"><td style="padding:9px 12px;border-bottom:1px solid #eee">⏳ Pending</td><td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center">${stats.pending.length}</td><td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center">${stats.monthSubs.length?Math.round(stats.pending.length/stats.monthSubs.length*100):0}%</td></tr>
+      <tr style="background:#fff"><td style="padding:9px 12px;border-bottom:1px solid #eee">↩ Revision</td><td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center">${stats.revision.length}</td><td style="padding:9px 12px;border-bottom:1px solid #eee;text-align:center">${stats.monthSubs.length?Math.round(stats.revision.length/stats.monthSubs.length*100):0}%</td></tr>
+    </tbody></table>
+    <div class="section-title">Branch Performance</div>
+    <table><thead><tr><th>Branch</th><th>Region</th><th style="text-align:center">Submissions</th><th style="text-align:center">Approval Rate</th><th style="text-align:center">Avg Score</th></tr></thead>
+    <tbody>${rowsHtml}</tbody></table>
+    <div class="footer"><span>Vismo · Visual Merchandising Operations</span><span>${company?.name ?? ""} · ${monthLabel(refDate)}</span></div>
+    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
+    </body></html>`;
+    printHTML(html);
+  };
+
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
         Analytics <span style={S.accent}>Dashboard</span>
       </div>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }} className="fu">
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }} className="fu">
         <div style={{ ...S.muted, fontSize:12 }}>{company?.name ?? "Company"}</div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <button onClick={() => setMonthOffset(m => m - 1)}
-            style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:16, padding:"0 4px" }}>‹</button>
-          <span style={{ fontSize:12, fontWeight:700, minWidth:110, textAlign:"center" }}>{monthLabel(refDate)}</span>
-          <button onClick={() => setMonthOffset(m => Math.min(0, m + 1))} disabled={monthOffset === 0}
-            style={{ background:"none", border:"none", color: monthOffset===0 ? C.mutedColor : C.accentColor,
-              cursor: monthOffset===0 ? "default" : "pointer", fontSize:16, padding:"0 4px" }}>›</button>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <button onClick={() => setMonthOffset(m => m - 1)}
+              style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:16, padding:"0 4px" }}>‹</button>
+            <span style={{ fontSize:12, fontWeight:700, minWidth:110, textAlign:"center" }}>{monthLabel(refDate)}</span>
+            <button onClick={() => setMonthOffset(m => Math.min(0, m + 1))} disabled={monthOffset === 0}
+              style={{ background:"none", border:"none", color: monthOffset===0 ? C.mutedColor : C.accentColor,
+                cursor: monthOffset===0 ? "default" : "pointer", fontSize:16, padding:"0 4px" }}>›</button>
+          </div>
+          <button className="btnP" style={{ ...S.btnP, fontSize:12, padding:"7px 14px" }} onClick={handlePrint}>
+            🖨️ Print
+          </button>
         </div>
       </div>
 
@@ -222,12 +293,22 @@ export function AnalyticsDashboard({ tasks, submissions, company, regions = [] }
       )}
 
       {/* Top KPIs */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:14 }} className="fu2">
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:8 }} className="fu2">
         {[
-          { n:stats.monthSubs.length, l:"Submissions",  c:C.accentColor },
-          { n:stats.approved.length, l:"Approved",  c:"#4ade80" },
-          { n:`${stats.avgScore}`,   l:"Avg Score", c:"#818cf8" },
-          { n:`${pct}%`,            l:"Task Done",  c:"#d4a82a" },
+          { n:stats.monthSubs.length, l:"Submissions",   c:C.accentColor },
+          { n:stats.approved.length,  l:"Approved",      c:"#4ade80" },
+          { n:`${stats.approvalRate}%`, l:"Approval Rate", c:"#4ade80" },
+        ].map(k => (
+          <div key={k.l} style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"14px 8px" }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:700, color:k.c, lineHeight:1 }}>{k.n}</div>
+            <div style={{ fontSize:10, fontWeight:600, color:C.mutedColor, marginTop:3, textTransform:"uppercase", letterSpacing:.5 }}>{k.l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:8, marginBottom:14 }} className="fu2">
+        {[
+          { n:`${stats.avgScore}`, l:"Avg Score", c:"#818cf8" },
+          { n:`${pct}%`,           l:"Task Done", c:"#d4a82a" },
         ].map(k => (
           <div key={k.l} style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"14px 8px" }}>
             <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:700, color:k.c, lineHeight:1 }}>{k.n}</div>
