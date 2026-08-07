@@ -36,6 +36,7 @@ import { VMVisits }             from "./components/vm/VMVisits.jsx";
 import { MgrOverview }          from "./components/manager/MgrOverview.jsx";
 import { MgrRequests }          from "./components/manager/MgrRequests.jsx";
 import { MgrAssign }            from "./components/manager/MgrAssign.jsx";
+import { Training }             from "./components/manager/Training.jsx";
 import { CampaignGuidesPage }   from "./components/manager/CampaignGuidesPage.jsx";
 import { MgrReports }           from "./components/manager/MgrReports.jsx";
 import { AnalyticsDashboard }   from "./components/manager/Analytics.jsx";
@@ -428,7 +429,8 @@ function AuthenticatedApp() {
           <TopBar user={profile} onLogout={() => signOut()} isSuperAdmin={isSuperAdmin} onSuperAdmin={() => setMgrPage("superadmin")} />
           <div key={mgrPage} className="page-transition" style={S.main}>
             {mgrPage==="overview"   && <MgrOverview tasks={tasks} submissions={submissions} log={log} company={company} branches={activeBranches} campaign={campaign} promotions={promotions} onCreatePromotion={handleCreatePromotion} onDeletePromotion={handleDeletePromotion} profile={profile} />}
-            {mgrPage==="assign"     && <MgrAssign tasks={tasks} categories={categories} branches={activeBranches} company={company} profile={profile} />}
+            {mgrPage==="assign"     && <MgrAssign tasks={tasks} submissions={submissions} categories={categories} branches={activeBranches} company={company} profile={profile} />}
+            {mgrPage==="training"   && <Training company={company} profile={profile} />}
             {mgrPage==="campaign"   && <CampaignGuidesPage company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} campaign={campaign} onSaveCampaign={handleSaveCampaign} campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={handleAcknowledgeCampaign} onReviewBranchFile={handleReviewCampaignBranchFile} profile={profile} />}
             {mgrPage==="reports"    && <MgrReports tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
             {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onAddFloorWalk={handleAddFloorWalk} />}

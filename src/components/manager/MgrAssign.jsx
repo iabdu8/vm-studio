@@ -1,11 +1,11 @@
-import { Training } from "./Training.jsx";
 import { useState } from "react";
 import { S } from "../../styles/theme.js";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
+import { TasksWithPhotos } from "../shared/TasksWithPhotos.jsx";
 
-export function MgrAssign({ categories, branches, profile, company }) {
+export function MgrAssign({ tasks, submissions, categories, branches, profile, company }) {
 
-  const [tab, setTab] = useState("plan");
+  const [tab, setTab] = useState("tasks");
 
   const managerBranch = profile?.branch_id
     ? branches.find(b => b.id === profile.branch_id) : null;
@@ -13,22 +13,24 @@ export function MgrAssign({ categories, branches, profile, company }) {
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Plan <span style={S.accent}>&amp; Assign</span>
+        Task <span style={S.accent}>&amp; Plan</span>
       </div>
       {managerBranch && <div style={{ ...S.muted, fontSize:12, marginBottom:14 }}>📍 {managerBranch.name}</div>}
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
-        {[["plan","📅 Weekly Plan"],["training","🎓 Training"]].map(([k,l]) => (
+        {[["tasks","📋 Tasks"],["plan","📅 Weekly Plan"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
 
+      {/* Tasks (with submitted before/after photos) */}
+      {tab === "tasks" && (
+        <TasksWithPhotos tasks={tasks ?? []} submissions={submissions ?? []} branches={branches} showBranchColumn />
+      )}
+
       {/* Weekly Plan */}
       {tab === "plan" && <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile} readOnly/>}
-
-      {/* Training */}
-      {tab === "training" && <Training company={company} profile={profile} readOnly/>}
     </div>
   );
 }
