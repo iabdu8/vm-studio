@@ -400,11 +400,12 @@ function AuthenticatedApp() {
             {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} branches={activeBranches} managerBranches={managerBranches} />}
             {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
             {amPage==="campaign" && <AreaManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} profile={profile} guidelines={guidelines} company={company} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onReviewBranchFile={handleReviewCampaignBranchFile} />}
+            {amPage==="training" && <Training company={company} profile={profile} />}
             {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onFloorWalkChanged={handleFloorWalkChanged} />}
             {amPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["plan",CalendarIcon,"Plan"],["campaign",GuidesIcon,"Campaign"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
+            {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["plan",CalendarIcon,"Plan"],["campaign",GuidesIcon,"Campaign"],["training",AnalyticsIcon,"Training"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
                 <Icon size={22} /><span>{lbl}</span>
               </button>

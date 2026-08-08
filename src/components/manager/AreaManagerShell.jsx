@@ -5,7 +5,6 @@ import { CommentThread } from "../shared/CommentThread.jsx";
 import { CampaignPanel } from "./CampaignPanel.jsx";
 import { CampaignFileReview } from "../shared/CampaignFileReview.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
-import { Training } from "./Training.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
@@ -290,9 +289,6 @@ export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches
       <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>Guidelines</div>
       <GuidelinesManager company={company} guidelines={guidelines}
         onUploadGuideline={onUploadGuideline} onDeleteGuideline={onDeleteGuideline} />
-
-      <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>🎓 Training</div>
-      <Training company={company} profile={profile} readOnly />
     </div>
   );
 }
