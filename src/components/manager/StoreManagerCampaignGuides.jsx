@@ -1,33 +1,20 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { CampaignPanel } from "./CampaignPanel.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
-import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
+import { GuidelinesGrid } from "../shared/Guidelines.jsx";
 import { FilePreview } from "../shared/FilePreview.jsx";
 
-// VM Controller: uploads the campaign file for their own branch, comments,
-// and publishes guidelines — no edit/acknowledge power (Head VM's job).
-export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], profile, company, guidelines,
-  onUploadGuideline, onDeleteGuideline, onUploadBranchFile }) {
-  const [uploading, setUploading] = useState(false);
-  const [preview,   setPreview]   = useState(false);
-  const ref = useRef();
+// VM Controller: view-only, same as VM — no campaign file upload, no
+// guideline publishing (Head VM's job). Can still comment.
+export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], profile, guidelines }) {
+  const [preview, setPreview] = useState(false);
 
   const myRow = campaignProgress.find(b => b.branch_id === profile?.branch_id);
   const fileUrl = myRow?.file_path
     ? supabase.storage.from("vm-guidelines").getPublicUrl(myRow.file_path).data.publicUrl
     : null;
-
-  const pick = () => ref.current?.click();
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !campaign?.id) return;
-    setUploading(true);
-    try { await onUploadBranchFile(profile.branch_id, file); }
-    finally { setUploading(false); }
-  };
 
   return (
     <div>
@@ -35,7 +22,7 @@ export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], pr
         Campaign <span style={S.accent}>&amp; Guides</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        Upload the campaign file for your branch · publish guidelines
+        Review the current campaign and guidelines
       </div>
 
       {campaign?.name ? (
@@ -61,10 +48,6 @@ export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], pr
             ) : (
               <div style={{ ...S.muted, fontSize:12 }}>No file attached yet.</div>
             )}
-            <button className="btnG" style={{ ...S.btnG, fontSize:12, marginTop:8 }} onClick={pick} disabled={uploading}>
-              {uploading ? "Uploading…" : fileUrl ? "🔄 Replace File" : "＋ Upload PDF / PPT"}
-            </button>
-            <input ref={ref} type="file" accept=".pdf,.ppt,.pptx" style={{ display:"none" }} onChange={handleFile} />
           </div>
 
           {preview && fileUrl && (
@@ -80,8 +63,7 @@ export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], pr
       )}
 
       <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>Guidelines</div>
-      <GuidelinesManager company={company} guidelines={guidelines}
-        onUploadGuideline={onUploadGuideline} onDeleteGuideline={onDeleteGuideline} />
+      <GuidelinesGrid guidelines={guidelines} />
     </div>
   );
 }
