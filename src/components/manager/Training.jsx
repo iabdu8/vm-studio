@@ -250,11 +250,16 @@ export function Training({ company, profile, readOnly = false }) {
         {att.length === 0 && (
           <div style={{ ...S.muted, textAlign:"center", padding:20 }}>No attendees added.</div>
         )}
-        {att.map(a => (
+        {att.map(a => {
+          const isMe = a.user_id === profile?.id;
+          const canEditStatus = !readOnly || isMe;
+          return (
           <div key={a.id} style={{ ...S.card, marginBottom:10 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <div style={{ fontWeight:600, fontSize:14 }}>{a.user?.full_name ?? "—"}</div>
-              {readOnly ? (
+              <div style={{ fontWeight:600, fontSize:14 }}>
+                {a.user?.full_name ?? "—"}{isMe && <span style={{ color:C.accentColor, fontWeight:400 }}> (you)</span>}
+              </div>
+              {!canEditStatus ? (
                 <span style={{ padding:"4px 10px", borderRadius:8, fontSize:11, fontWeight:600,
                   background: a.status==="present" ? "#4ade80" : a.status==="absent" ? "#f87171" : C.surfaceHigh,
                   color: a.status==="present" || a.status==="absent" ? "#0a0a0f" : C.mutedColor }}>
@@ -313,7 +318,8 @@ export function Training({ company, profile, readOnly = false }) {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
