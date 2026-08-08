@@ -27,7 +27,7 @@ import { Chat }                 from "./components/shared/Chat.jsx";
 import { VMGuidelines }         from "./components/shared/Guidelines.jsx";
 import { StatusBar }            from "./components/shared/StatusBar.jsx";
 import { ToastContainer, toast } from "./components/shared/Toast.jsx";
-import { HomeIcon, RequestsIcon, ChatIcon, OverviewIcon, VisitsIcon, AssignIcon, AnalyticsIcon, CalendarIcon, GuidesIcon } from "./components/shared/Icons.jsx";
+import { HomeIcon, RequestsIcon, ChatIcon, OverviewIcon, VisitsIcon, AssignIcon, AnalyticsIcon, CalendarIcon, GuidesIcon, TasksIcon } from "./components/shared/Icons.jsx";
 import { VMHome }               from "./components/vm/VMHome.jsx";
 import { VMTasks }              from "./components/vm/VMTasks.jsx";
 import { WeeklyPlan }           from "./components/manager/WeeklyPlan.jsx";
@@ -42,6 +42,7 @@ import { StoreVisits }          from "./components/manager/StoreVisits.jsx";
 import { StoreManagerHome }     from "./components/manager/StoreManagerShell.jsx";
 import { StoreManagerAssign }   from "./components/manager/StoreManagerAssign.jsx";
 import { StoreManagerCampaignGuides } from "./components/manager/StoreManagerCampaignGuides.jsx";
+import { VMDemoHold } from "./components/vm/VMDemoHold.jsx";
 import { AreaManagerOverview, AreaManagerRequests, AreaManagerCampaignGuides } from "./components/manager/AreaManagerShell.jsx";
 import { SuperAdminPanel }      from "./components/superadmin/SuperAdminPanel.jsx";
 import { S, C }                 from "./styles/theme.js";
@@ -379,11 +380,12 @@ function AuthenticatedApp() {
             {smPage==="assign"   && <StoreManagerAssign categories={categories} branches={activeBranches} profile={profile} company={company} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
             {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} guidelines={guidelines} />}
+            {smPage==="demo"     && <VMDemoHold demoHolds={demoHolds.filter(d => d.branch_id === profile.branch_id)} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}
             {smPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["home",HomeIcon,"Home"],["assign",AssignIcon,"Tasks"],["requests",RequestsIcon,"Approvals"],["campaign",GuidesIcon,"Campaign"],["reports",AnalyticsIcon,"Reports"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
+            {[["home",HomeIcon,"Home"],["assign",AssignIcon,"Tasks"],["requests",RequestsIcon,"Approvals"],["campaign",GuidesIcon,"Campaign"],["demo",TasksIcon,"Demo Hold"],["reports",AnalyticsIcon,"Reports"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(smPage===k)} onClick={() => setSmPage(k)}>
                 <Icon size={22} /><span>{lbl}</span>
               </button>
