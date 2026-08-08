@@ -282,7 +282,11 @@ function AuthenticatedApp() {
     } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to update submission."); }
   };
 
-  const handleDeleteSubmission = (id) => showConfirm("Delete this submission permanently?", async () => { await supabase.from("submissions").delete().eq("id", id); setSubmissions(p => p.filter(x => x.id !== id)); setConfirm(null); });
+  const handleDeleteSubmission = (id) => showConfirm("Delete this submission permanently?", async () => {
+    try { await supabase.from("submissions").delete().eq("id", id); setSubmissions(p => p.filter(x => x.id !== id)); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete submission."); }
+    finally { setConfirm(null); }
+  });
 
 
   const handleUploadGuideline = async (title, category, file) => {
@@ -290,7 +294,11 @@ function AuthenticatedApp() {
     catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to upload guideline."); }
   };
 
-  const handleDeleteGuideline = (id) => showConfirm("Delete this guideline?", async () => { await deleteGuideline(id); setGuidelines(p => p.filter(x => x.id !== id)); addLog("Deleted guideline", id); setConfirm(null); });
+  const handleDeleteGuideline = (id) => showConfirm("Delete this guideline?", async () => {
+    try { await deleteGuideline(id); setGuidelines(p => p.filter(x => x.id !== id)); addLog("Deleted guideline", id); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete guideline."); }
+    finally { setConfirm(null); }
+  });
 
   const handleAddDemoHold = async ({ item_code, note }) => {
     try {
@@ -338,9 +346,20 @@ function AuthenticatedApp() {
     try { await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds); getPromotions(company.id).then(setPromotions); addLog("Created promotion", payload.name); }
     catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to create promotion."); }
   };
-  const handleDeletePromotion = async (id) => { await deletePromotion(id); setPromotions(p => p.filter(x => x.id !== id)); };
-  const handleDeleteVisit = (id) => showConfirm("Delete this visit report?", async () => { await supabase.from("store_visits").delete().eq("id", id); setVisits(p => p.filter(x => x.id !== id)); setConfirm(null); });
-  const handleDeleteDemoHold = (id) => showConfirm("Remove this item from hold?", async () => { await supabase.from("demo_holds").delete().eq("id", id); setDemoHolds(p => p.filter(x => x.id !== id)); setConfirm(null); });
+  const handleDeletePromotion = async (id) => {
+    try { await deletePromotion(id); setPromotions(p => p.filter(x => x.id !== id)); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete promotion."); }
+  };
+  const handleDeleteVisit = (id) => showConfirm("Delete this visit report?", async () => {
+    try { await supabase.from("store_visits").delete().eq("id", id); setVisits(p => p.filter(x => x.id !== id)); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete visit report."); }
+    finally { setConfirm(null); }
+  });
+  const handleDeleteDemoHold = (id) => showConfirm("Remove this item from hold?", async () => {
+    try { await supabase.from("demo_holds").delete().eq("id", id); setDemoHolds(p => p.filter(x => x.id !== id)); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to remove item."); }
+    finally { setConfirm(null); }
+  });
   const handleExportPDF = () => exportWeeklyReport({ company, tasks, submissions, branches:activeBranches, weekLabel: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" }) });
   const handleExportBranchPDF = () => exportWeeklyReport({
     company,
@@ -377,7 +396,7 @@ function AuthenticatedApp() {
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} />
           <div key={smPage} className="page-transition" style={S.main}>
-            {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} demoHolds={demoHolds} company={company} />}
+            {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} company={company} />}
             {smPage==="assign"   && <StoreManagerAssign categories={categories} branches={activeBranches} profile={profile} company={company} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
             {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} guidelines={guidelines} />}

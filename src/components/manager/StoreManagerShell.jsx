@@ -9,7 +9,7 @@ import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 //  يشوف فرعه فقط — يعطي ملاحظات — يتابع التنفيذ
 // ============================================================
 
-export function StoreManagerHome({ profile, tasks, submissions, campaign, promotions, floorWalks, demoHolds, company }) {
+export function StoreManagerHome({ profile, tasks, submissions, campaign, promotions, floorWalks, company }) {
   const branch = profile?.branch?.name ?? "My Branch";
 
   const pending   = submissions.filter(s => s.status === "pending").length;
@@ -78,19 +78,6 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
         </div>
       )}
 
-      {/* Demo Holds */}
-      {demoHolds?.length > 0 && (
-        <div style={S.card}>
-          <div style={S.h3}>Demo Holds ({demoHolds.length})</div>
-          {demoHolds.slice(0,5).map((d, i) => (
-            <div key={i} style={{ display:"flex", justifyContent:"space-between",
-              padding:"7px 0", borderBottom:`1px solid ${C.accentColor}0a`, fontSize:13 }}>
-              <span style={{ fontWeight:700, color:C.accentColor }}>{d.item_code}</span>
-              <span style={{ ...S.muted, fontSize:11 }}>{d.note}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
