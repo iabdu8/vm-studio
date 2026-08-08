@@ -146,6 +146,11 @@ export async function sendMessage(company_id, sender_id, room, body, attachment 
   return data;
 }
 
+export async function deleteMessage(id) {
+  const { error } = await supabase.from("chat_messages").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // Images go through vm-photos (compressed to WebP first); other files
 // (PDF, etc.) go through vm-guidelines, same buckets already used elsewhere.
 export async function uploadChatAttachment(company_id, room, file) {

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { Avatar } from "./Atoms.jsx";
 import { supabase } from "../../lib/supabase.js";
-import { uploadChatAttachment } from "../../services/data.service.js";
+import { uploadChatAttachment, deleteMessage } from "../../services/data.service.js";
 import { PhotoLightbox } from "./PhotoLightbox.jsx";
 
 // ── Single chat room ──────────────────────────────────────────
@@ -21,6 +21,17 @@ function ChatRoom({ user, room, companyId, onSend }) {
     if (seenIds.current.has(msg.id)) return;
     seenIds.current.add(msg.id);
     setMessages(p => [...p, msg]);
+  };
+
+  const removeMessage = (id) => {
+    seenIds.current.delete(id);
+    setMessages(p => p.filter(m => m.id !== id));
+  };
+
+  const handleDelete = async (id) => {
+    removeMessage(id); // optimistic
+    try { await deleteMessage(id); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); }
   };
 
   useEffect(() => {
@@ -58,6 +69,10 @@ function ChatRoom({ user, room, companyId, onSend }) {
         // Sender is already cached from the room-member fetch above — no extra round trip.
         addMessage({ ...payload.new, sender: senderCache.current[payload.new.sender_id] });
       })
+      .on("postgres_changes", {
+        event:"DELETE", schema:"public", table:"chat_messages",
+        filter:`company_id=eq.${companyId}`,
+      }, payload => removeMessage(payload.old.id))
       .subscribe();
 
     return () => sub.unsubscribe();
@@ -130,8 +145,18 @@ function ChatRoom({ user, room, companyId, onSend }) {
               {!(m.attachment_type === "image" && (m.body === "📷 Photo")) && (
                 <div style={S.bubble(mine)}>{m.body}</div>
               )}
-              <div style={{ fontSize:10, color:C.mutedColor, textAlign: mine ? "right" : "left", marginTop:2 }}>
-                {m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : ""}
+              <div style={{ display:"flex", gap:6, justifyContent: mine ? "flex-end" : "flex-start",
+                alignItems:"center", marginTop:2 }}>
+                <div style={{ fontSize:10, color:C.mutedColor }}>
+                  {m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : ""}
+                </div>
+                {mine && (
+                  <button onClick={() => handleDelete(m.id)} title="Delete message"
+                    style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer",
+                      fontSize:10, padding:0, lineHeight:1 }}>
+                    🗑️
+                  </button>
+                )}
               </div>
             </div>
           );
