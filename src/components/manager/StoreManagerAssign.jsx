@@ -29,7 +29,7 @@ export function StoreManagerAssign({ categories, branches, profile, company, onT
         <WeeklyPlan company={company} categories={categories} branches={[myBranch]} profile={profile} onTasksChanged={onTasksChanged} />
       )}
 
-      {tab === "training" && <Training company={company} profile={profile} readOnly/>}
+      {tab === "training" && <Training company={company} profile={profile} branches={branches} readOnly/>}
     </div>
   );
 }

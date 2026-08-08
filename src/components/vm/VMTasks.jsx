@@ -320,7 +320,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
       )}
 
       {/* ── TRAINING (view only) ── */}
-      {tab === "training" && <Training company={company} profile={profile} readOnly />}
+      {tab === "training" && <Training company={company} profile={profile} branches={branches} readOnly />}
 
       {lightbox && (
         <PhotoLightbox

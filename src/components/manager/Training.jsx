@@ -22,7 +22,7 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
   );
 }
 
-export function Training({ company, profile, readOnly = false }) {
+export function Training({ company, profile, branches = [], readOnly = false }) {
   const [trainings, setTrainings] = useState([]);
   const [staff,     setStaff]     = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -37,7 +37,7 @@ export function Training({ company, profile, readOnly = false }) {
   const [trainer,      setTrainer]      = useState(profile?.full_name ?? "");
   const [date,         setDate]         = useState(new Date().toISOString().slice(0,10));
   const [endDate,      setEndDate]      = useState("");
-  const [region,       setRegion]       = useState("");
+  const [branchIds,    setBranchIds]    = useState([]); // empty = All Branches
   const [location,     setLocation]     = useState("");
   const [notes,        setNotes]        = useState("");
   const [picked,       setPicked]       = useState([]);
@@ -80,7 +80,7 @@ export function Training({ company, profile, readOnly = false }) {
       const { data: tr } = await supabase
         .from("trainings")
         .insert({ company_id:company.id, title, training_type:trainingType||null, trainer,
-          date, end_date:endDate||null, region:region||null, location, notes, created_by:profile.id })
+          date, end_date:endDate||null, branch_ids:branchIds.length ? branchIds : null, location, notes, created_by:profile.id })
         .select().single();
       if (tr && picked.length > 0) {
         await supabase.from("training_attendees").insert(
@@ -88,7 +88,7 @@ export function Training({ company, profile, readOnly = false }) {
         );
       }
       setTitle(""); setTrainingType(""); setTrainer(profile?.full_name ?? "");
-      setDate(new Date().toISOString().slice(0,10)); setEndDate(""); setRegion("");
+      setDate(new Date().toISOString().slice(0,10)); setEndDate(""); setBranchIds([]);
       setLocation(""); setNotes(""); setPicked([]);
       setShowForm(false);
       loadAll();
@@ -98,7 +98,7 @@ export function Training({ company, profile, readOnly = false }) {
   const startEdit = () => {
     setTitle(selected.title); setTrainingType(selected.training_type ?? "");
     setTrainer(selected.trainer); setDate(selected.date); setEndDate(selected.end_date ?? "");
-    setRegion(selected.region ?? ""); setLocation(selected.location ?? ""); setNotes(selected.notes ?? "");
+    setBranchIds(selected.branch_ids ?? []); setLocation(selected.location ?? ""); setNotes(selected.notes ?? "");
     setEditing(true);
   };
 
@@ -107,7 +107,7 @@ export function Training({ company, profile, readOnly = false }) {
     setESaving(true);
     try {
       const updates = { title, training_type:trainingType||null, trainer,
-        date, end_date:endDate||null, region:region||null, location, notes };
+        date, end_date:endDate||null, branch_ids:branchIds.length ? branchIds : null, location, notes };
       await supabase.from("trainings").update(updates).eq("id", selected.id);
       setSelected(prev => ({ ...prev, ...updates }));
       setTrainings(prev => prev.map(t => t.id === selected.id ? { ...t, ...updates } : t));
@@ -117,6 +117,15 @@ export function Training({ company, profile, readOnly = false }) {
 
   const togglePick = (id) =>
     setPicked(p => p.includes(id) ? p.filter(x => x!==id) : [...p, id]);
+
+  const toggleBranch = (id) =>
+    setBranchIds(p => p.includes(id) ? p.filter(x => x!==id) : [...p, id]);
+
+  const branchLabel = (ids) => {
+    if (!ids?.length) return "All Branches";
+    const names = ids.map(id => branches.find(b => b.id === id)?.name).filter(Boolean);
+    return names.length ? names.join(", ") : "All Branches";
+  };
 
   const updateAttendee = async (attendeeId, field, value) => {
     // Validate score
@@ -174,16 +183,8 @@ export function Training({ company, profile, readOnly = false }) {
             <div style={S.lbl}>Training Type</div>
             <input style={S.inp} placeholder="e.g. Onboarding, Visual Standards, Product Knowledge"
               value={trainingType} onChange={e => setTrainingType(e.target.value)}/>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-              <div>
-                <div style={S.lbl}>Trainer *</div>
-                <input style={S.inp} value={trainer} onChange={e => setTrainer(e.target.value)}/>
-              </div>
-              <div>
-                <div style={S.lbl}>Region</div>
-                <input style={S.inp} placeholder="e.g. West" value={region} onChange={e => setRegion(e.target.value)}/>
-              </div>
-            </div>
+            <div style={S.lbl}>Trainer *</div>
+            <input style={S.inp} value={trainer} onChange={e => setTrainer(e.target.value)}/>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
               <div>
                 <div style={S.lbl}>Starts *</div>
@@ -193,6 +194,25 @@ export function Training({ company, profile, readOnly = false }) {
                 <div style={S.lbl}>Ends</div>
                 <input style={S.inp} type="date" value={endDate} onChange={e => setEndDate(e.target.value)}/>
               </div>
+            </div>
+            <div style={S.lbl}>Branches</div>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>
+              <button className="pill-btn" onClick={() => setBranchIds([])}
+                style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                  background: branchIds.length===0 ? C.accentColor+"28" : "transparent",
+                  color: branchIds.length===0 ? C.accentColor : C.mutedColor,
+                  border:`1px solid ${branchIds.length===0 ? C.accentColor+"55" : C.mutedColor+"22"}` }}>
+                {branchIds.length===0 ? "✓ All Branches" : "All Branches"}
+              </button>
+              {branches.map(b => (
+                <button key={b.id} className="pill-btn" onClick={() => toggleBranch(b.id)}
+                  style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                    background: branchIds.includes(b.id) ? C.accentColor+"28" : "transparent",
+                    color: branchIds.includes(b.id) ? C.accentColor : C.mutedColor,
+                    border:`1px solid ${branchIds.includes(b.id) ? C.accentColor+"55" : C.mutedColor+"22"}` }}>
+                  {branchIds.includes(b.id) ? "✓ " : ""}{b.name}
+                </button>
+              ))}
             </div>
             <div style={S.lbl}>Location</div>
             <input style={S.inp} value={location} onChange={e => setLocation(e.target.value)}/>
@@ -223,7 +243,7 @@ export function Training({ company, profile, readOnly = false }) {
           )}
           <div style={{ ...S.muted, fontSize:12, marginBottom:12 }}>
             👨‍🏫 {selected.trainer} · 📅 {selected.date}{selected.end_date ? ` → ${selected.end_date}` : ""}
-            {selected.region && ` · 🗺️ ${selected.region}`}
+            {` · 🗺️ ${branchLabel(selected.branch_ids)}`}
             {selected.location && ` · 📍 ${selected.location}`}
           </div>
           {selected.notes && (
@@ -345,18 +365,9 @@ export function Training({ company, profile, readOnly = false }) {
           <div style={S.lbl}>Training Type</div>
           <input style={S.inp} placeholder="e.g. Onboarding, Visual Standards, Product Knowledge"
             value={trainingType} onChange={e => setTrainingType(e.target.value)}/>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            <div>
-              <div style={S.lbl}>Trainer *</div>
-              <input style={S.inp} placeholder="Trainer name"
-                value={trainer} onChange={e => setTrainer(e.target.value)}/>
-            </div>
-            <div>
-              <div style={S.lbl}>Region</div>
-              <input style={S.inp} placeholder="e.g. West"
-                value={region} onChange={e => setRegion(e.target.value)}/>
-            </div>
-          </div>
+          <div style={S.lbl}>Trainer *</div>
+          <input style={S.inp} placeholder="Trainer name"
+            value={trainer} onChange={e => setTrainer(e.target.value)}/>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <div>
               <div style={S.lbl}>Starts *</div>
@@ -368,6 +379,25 @@ export function Training({ company, profile, readOnly = false }) {
               <input style={S.inp} type="date"
                 value={endDate} onChange={e => setEndDate(e.target.value)}/>
             </div>
+          </div>
+          <div style={S.lbl}>Branches</div>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>
+            <button className="pill-btn" onClick={() => setBranchIds([])}
+              style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                background: branchIds.length===0 ? C.accentColor+"28" : "transparent",
+                color: branchIds.length===0 ? C.accentColor : C.mutedColor,
+                border:`1px solid ${branchIds.length===0 ? C.accentColor+"55" : C.mutedColor+"22"}` }}>
+              {branchIds.length===0 ? "✓ All Branches" : "All Branches"}
+            </button>
+            {branches.map(b => (
+              <button key={b.id} className="pill-btn" onClick={() => toggleBranch(b.id)}
+                style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                  background: branchIds.includes(b.id) ? C.accentColor+"28" : "transparent",
+                  color: branchIds.includes(b.id) ? C.accentColor : C.mutedColor,
+                  border:`1px solid ${branchIds.includes(b.id) ? C.accentColor+"55" : C.mutedColor+"22"}` }}>
+                {branchIds.includes(b.id) ? "✓ " : ""}{b.name}
+              </button>
+            ))}
           </div>
           <div style={S.lbl}>Location</div>
           <input style={S.inp} placeholder="e.g. Sultan Mall Training Room"
@@ -430,7 +460,7 @@ export function Training({ company, profile, readOnly = false }) {
                 </div>
                 <div style={{ ...S.muted, fontSize:12, marginTop:3 }}>
                   👨‍🏫 {t.trainer} · 📅 {t.date}{t.end_date ? ` → ${t.end_date}` : ""}
-                  {t.region && ` · 🗺️ ${t.region}`}
+                  {` · 🗺️ ${branchLabel(t.branch_ids)}`}
                   {t.location && ` · 📍 ${t.location}`}
                 </div>
               </div>

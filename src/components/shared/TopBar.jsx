@@ -5,11 +5,13 @@ import { S, C } from "../../styles/theme.js";
 import { useApp } from "../../context/AppContext.jsx";
 import { supabase } from "../../lib/supabase.js";
 import { NotificationBell, NotificationPanel } from "./NotificationCenter.jsx";
+import { ProfileModal } from "./ProfileModal.jsx";
 
 export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
-  const { company, managerBranches, branches } = useApp();
+  const { company, managerBranches, branches, refresh } = useApp();
   const { mode, toggle } = useTheme();
   const [showNotifs, setShowNotifs] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const name     = user?.full_name ?? user?.name ?? "";
@@ -78,7 +80,12 @@ export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
             }}>🛡️</button>
           )}
 
-          <div style={S.avatar(30)}>{initials}</div>
+          <div onClick={() => setShowProfile(true)} title="My Profile"
+            style={{ ...S.avatar(30), cursor:"pointer", overflow:"hidden", padding:0 }}>
+            {user?.avatar_url
+              ? <img src={user.avatar_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", borderRadius:"50%" }}/>
+              : initials}
+          </div>
 
           <div>
             <div style={{ fontSize:12, fontWeight:600, lineHeight:1.2 }}>{name}</div>
@@ -108,6 +115,15 @@ export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
             onClose={() => setShowNotifs(false)}
           />
         </>
+      )}
+
+      {showProfile && (
+        <ProfileModal
+          user={user}
+          company={company}
+          onClose={() => setShowProfile(false)}
+          onUpdated={refresh}
+        />
       )}
     </>
   );

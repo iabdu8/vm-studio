@@ -165,6 +165,18 @@ export async function uploadChatAttachment(company_id, room, file) {
   return { url, type: isImage ? "image" : "file", name: file.name };
 }
 
+export async function uploadAvatar(company_id, user_id, file) {
+  const uploadFile = await compressImage(file, "avatar");
+  const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${company_id}/avatars/${user_id}-${safeName}`;
+  const { error } = await supabase.storage.from("vm-photos").upload(path, uploadFile);
+  if (error) throw error;
+  const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
+  const { error: updErr } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", user_id);
+  if (updErr) throw updErr;
+  return url;
+}
+
 export function subscribeToChat(company_id, room, onMessage) {
   return supabase
     .channel(`chat-${company_id}-${room}`)

@@ -22,6 +22,7 @@ export const PRESETS = {
   floorWalk:   { maxWidth:1000, maxHeight:1000, quality:0.75 },
   chat:        { maxWidth:800,  maxHeight:800,  quality:0.65 },
   thumbnail:   { maxWidth:400,  maxHeight:400,  quality:0.70 },
+  avatar:      { maxWidth:300,  maxHeight:300,  quality:0.80 },
   default:     { maxWidth:1200, maxHeight:1200, quality:0.78 },
 };
 
