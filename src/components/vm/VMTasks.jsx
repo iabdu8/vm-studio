@@ -11,7 +11,7 @@ const BORDER      = `1px solid color-mix(in srgb, var(--clr-text) 16%, transpare
 const BORDER_SOFT = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
 
 export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit, onTaskToggle,
-  submissions = [], demoHolds = [], onAddDemoHold, onDeleteDemoHold, company, profile }) {
+  submissions = [], company, profile }) {
 
   const [tab,      setTab]      = useState("my");
   const [openTaskId, setOpenTaskId] = useState(null);
@@ -25,13 +25,6 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
   const [sent,     setSent]     = useState(false);
   const [saving,   setSaving]   = useState(false);
   const [submitTaskId, setSubmitTaskId] = useState(null);
-
-  // Demo Hold state
-  const [itemCode,  setItemCode]  = useState("");
-  const [location,  setLocation]  = useState("");
-  const [demoNote,  setDemoNote]  = useState("");
-  const [demoSaved, setDemoSaved] = useState(false);
-  const [demoSaving,setDemoSaving]= useState(false);
 
   const activeCat    = categories.find(c => c.id === catId);
   const activeSubs   = activeCat?.subcategories ?? [];
@@ -82,62 +75,6 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
     } finally { setSaving(false); }
   };
 
-  const handleAddDemo = async () => {
-    if (!itemCode.trim()) return;
-    setDemoSaving(true);
-    await onAddDemoHold({
-      item_code: itemCode.trim(),
-      note: [location.trim(), demoNote.trim()].filter(Boolean).join(" · "),
-    });
-    setItemCode(""); setLocation(""); setDemoNote("");
-    setDemoSaved(true); setTimeout(() => setDemoSaved(false), 2000);
-    setDemoSaving(false);
-  };
-
-  const printDemoReport = () => {
-    const branch    = profile?.branch?.name ?? "";
-    const staffName = profile?.full_name ?? "";
-    const date      = new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
-    const time      = new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-    const accent    = "#4F46E5";
-    const rows = demoHolds.map((d, i) => `
-      <tr style="background:${i%2===0?"#fff":"#f9f9f9"}">
-        <td style="padding:10px 14px;border-bottom:1px solid #eee;font-weight:600">${i+1}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid #eee;font-weight:700;color:${accent}">${d.item_code}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid #eee">${d.note ?? "—"}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid #eee;color:#888;font-size:12px">${d.time ?? ""}</td>
-      </tr>`).join("");
-
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-    <style>
-      body { font-family:'DM Sans',sans-serif; color:#1a1a2e; padding:32px; background:#fff; }
-      .header { display:flex; justify-content:space-between; padding-bottom:20px; border-bottom:3px solid ${accent}; margin-bottom:28px; }
-      .logo-text { font-size:24px; font-weight:700; color:${accent}; }
-      table { width:100%; border-collapse:collapse; }
-      th { background:${accent}; color:#fff; padding:10px 14px; text-align:left; font-size:11px; font-weight:700; }
-      .footer { margin-top:32px; padding-top:16px; border-top:1px solid #e5e7eb; display:flex; justify-content:space-between; font-size:11px; color:#9ca3af; }
-      @media print { body { padding:20px; } }
-    </style></head><body>
-    <div class="header">
-      <div><div class="logo-text">Vismo</div><div style="font-size:13px;color:#6b6880;margin-top:4px">${company?.name ?? ""}</div></div>
-      <div style="text-align:right"><div style="font-size:11px;font-weight:700;color:${accent};letter-spacing:2px">DEMO HOLD REPORT</div>
-      <div style="font-size:12px;color:#6b6880;margin-top:4px">${date} · ${time}</div></div>
-    </div>
-    <div style="display:flex;gap:32px;margin-bottom:24px">
-      <div><div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Branch</div><div style="font-size:14px;font-weight:600">${branch || "—"}</div></div>
-      <div><div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Prepared by</div><div style="font-size:14px;font-weight:600">${staffName}</div></div>
-      <div><div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Total Items</div><div style="font-size:14px;font-weight:600">${demoHolds.length}</div></div>
-    </div>
-    <table><thead><tr><th style="width:40px">#</th><th>Item / SKU</th><th>Location · Notes</th><th style="width:80px">Time</th></tr></thead>
-    <tbody>${rows}</tbody></table>
-    <div class="footer"><span>Vismo · Visual Merchandising</span><span>${company?.name ?? ""} · ${branch}</span></div>
-    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script>
-    </body></html>`;
-
-    const win = window.open("", "_blank", "width=900,height=700");
-    win.document.write(html); win.document.close();
-  };
-
   if (categories.length === 0) return (
     <div style={{ ...S.muted, textAlign:"center", padding:40 }}>
       No categories set up yet. Ask your manager to add categories.
@@ -153,7 +90,7 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
-        {[["my","📋 My Tasks"],["submit","📤 Submit Work"],["demo","🏷️ Demo Hold"],["training","🎓 Training"]].map(([k,l]) => (
+        {[["my","📋 My Tasks"],["submit","📤 Submit Work"],["training","🎓 Training"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -379,68 +316,6 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
               {saving ? "Submitting…" : "Submit Implementation →"}
             </button>
           </div>
-        </div>
-      )}
-
-      {/* ── DEMO HOLD ── */}
-      {tab === "demo" && (
-        <div>
-          <div style={S.card}>
-            <div style={S.h3}>Add Item</div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-              <div>
-                <div style={S.lbl}>Item / SKU Code *</div>
-                <input style={S.inp} placeholder="e.g. 123456"
-                  value={itemCode} onChange={e => setItemCode(e.target.value)}
-                  onKeyDown={e => e.key==="Enter" && handleAddDemo()}/>
-              </div>
-              <div>
-                <div style={S.lbl}>Location</div>
-                <input style={S.inp} placeholder="e.g. Window Display A"
-                  value={location} onChange={e => setLocation(e.target.value)}/>
-              </div>
-            </div>
-            <div style={S.lbl}>Notes (optional)</div>
-            <input style={S.inp} placeholder="e.g. Mannequin outfit"
-              value={demoNote} onChange={e => setDemoNote(e.target.value)}
-              onKeyDown={e => e.key==="Enter" && handleAddDemo()}/>
-            {demoSaved && <div style={{ color:"#4ade80", fontSize:12, marginBottom:8 }}>✓ Added!</div>}
-            <button className="btnP" style={{ ...S.btnP, width:"100%" }}
-              onClick={handleAddDemo} disabled={demoSaving}>
-              {demoSaving ? "Adding…" : "＋ Add to Hold"}
-            </button>
-          </div>
-
-          {demoHolds.length > 0 && (
-            <div style={S.card}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-                <div style={S.h3}>On Hold ({demoHolds.length} items)</div>
-                <button className="btnP" style={{ ...S.btnP, fontSize:12, padding:"7px 14px" }}
-                  onClick={printDemoReport}>🖨️ Print</button>
-              </div>
-              {demoHolds.map((d, i) => (
-                <div key={d.id ?? i} style={{ display:"flex", alignItems:"center", gap:12,
-                  padding:"10px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                  <div style={{ fontSize:16, fontWeight:700, color:C.accentColor,
-                    width:24, flexShrink:0, textAlign:"center" }}>{i+1}</div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:700 }}>{d.item_code}</div>
-                    {d.note && <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>{d.note}</div>}
-                  </div>
-                  <div style={{ ...S.muted, fontSize:11, flexShrink:0 }}>{d.time ?? ""}</div>
-                  {onDeleteDemoHold && (
-                    <button onClick={() => onDeleteDemoHold(d.id)}
-                      style={{ background:"none", border:"none", color:C.mutedColor,
-                        cursor:"pointer", fontSize:14 }}>✕</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {demoHolds.length === 0 && (
-            <div style={{ ...S.muted, textAlign:"center", padding:30 }}>No items on hold yet.</div>
-          )}
         </div>
       )}
 

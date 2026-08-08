@@ -4,7 +4,7 @@ import { PromotionCard } from "../shared/PromotionCard.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 
-export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, campaign, promotions = [], company }) {
+export function VMHome({ user, tasks, submissions, campaign, promotions = [], company }) {
   const name     = user?.full_name ?? user?.name ?? "";
   const branch   = user?.branch?.name ?? user?.branch ?? "";
   const myTasks  = tasks.filter(t => t.assigned_to === "all" || t.assigned_to === user?.id);
@@ -93,14 +93,10 @@ export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, cam
       </div>
 
       {/* Wall of Fame */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-        {["Employee of the Month", "Store of the Month"].map(t => (
-          <div key={t} style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"22px 14px" }}>
-            <div style={{ fontSize:26, marginBottom:6 }}>🏆</div>
-            <div style={S.h3}>{t}</div>
-            <div style={{ ...S.dFont, fontSize:18, color:C.accentColor, fontWeight:600 }}>—</div>
-          </div>
-        ))}
+      <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"22px 14px" }}>
+        <div style={{ fontSize:26, marginBottom:6 }}>🏆</div>
+        <div style={S.h3}>Store of the Month</div>
+        <div style={{ ...S.dFont, fontSize:18, color:C.accentColor, fontWeight:600 }}>—</div>
       </div>
     </div>
   );
