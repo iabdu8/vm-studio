@@ -7,6 +7,7 @@ import { CampaignFileReview } from "../shared/CampaignFileReview.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 import { Training } from "./Training.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
+import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
@@ -149,7 +150,9 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
 
 // View + comment only — no approve/reject power for VM Manager
 export function AreaManagerRequests({ submissions, profile, branches = [], managerBranches = [] }) {
-  const [openId, setOpenId] = useState(null);
+  const [openId,   setOpenId]   = useState(null);
+  const [filter,   setFilter]   = useState("pending");
+  const [lightbox, setLightbox] = useState(null); // { photos, index }
 
   // "My region" = whichever region(s) my own assigned branches belong to.
   // I can view every branch in that region (including ones added later that
@@ -158,10 +161,16 @@ export function AreaManagerRequests({ submissions, profile, branches = [], manag
     branches.filter(b => managerBranches.includes(b.id)).map(b => b.region).filter(Boolean)
   )];
   const regionBranchIds = branches.filter(b => myRegions.includes(b.region)).map(b => b.id);
-  const visible = submissions.filter(s => regionBranchIds.includes(s.branch_id));
+  const inRegion = submissions.filter(s => regionBranchIds.includes(s.branch_id));
+  const visible = (filter === "all" ? inRegion : inRegion.filter(s => s.status === filter))
+    .slice().sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
 
   return (
     <div>
+      {lightbox && (
+        <PhotoLightbox photos={lightbox.photos} index={lightbox.index}
+          onClose={() => setLightbox(null)} onIndexChange={i => setLightbox(p => ({ ...p, index:i }))}/>
+      )}
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
         Branch <span style={S.accent}>Submissions</span>
       </div>
@@ -169,12 +178,19 @@ export function AreaManagerRequests({ submissions, profile, branches = [], manag
         View-only across your region — comments only on your own branches
       </div>
 
+      <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto" }}>
+        {[["pending","⏳ Pending"],["approved","✓ Approved"],["revision","↩ Revision"],["all","All"]].map(([k,l]) => (
+          <button key={k} className="tab-btn" style={S.tab(filter===k)} onClick={()=>setFilter(k)}>{l}</button>
+        ))}
+      </div>
+
       {visible.length === 0 && (
-        <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No submissions yet.</div>
+        <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No submissions in this category.</div>
       )}
 
       {visible.map(s => {
         const isMine = managerBranches.includes(s.branch_id);
+        const allPhotos = (s.photos ?? []).map(p => ({ ...p, url: p.url ?? p, label: p.photo_type === "before" ? "Before" : "After" }));
         return (
         <div key={s.id} style={S.card}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
@@ -183,24 +199,36 @@ export function AreaManagerRequests({ submissions, profile, branches = [], manag
               <div style={{ ...S.muted, fontSize:12 }}>
                 {s.branch?.name ?? "—"} · {s.category?.icon} {s.category?.name} · {s.subcategory?.name}
               </div>
+              <div style={{ ...S.muted, fontSize:11, marginTop:2 }}>
+                {s.created_at?.slice(0,10) ?? "—"}
+              </div>
             </div>
             <span style={S.chip(s.status)}>{s.status}</span>
           </div>
 
-          {s.photos?.length > 0 && (
+          {allPhotos.length > 0 && (
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
-              {[["Before", s.photos.filter(p=>p.photo_type==="before")],
-                ["After",  s.photos.filter(p=>p.photo_type==="after")]].map(([lbl, imgs]) => (
+              {[["Before", allPhotos.filter(p=>p.photo_type==="before")],
+                ["After",  allPhotos.filter(p=>p.photo_type==="after")]].map(([lbl, imgs]) => (
                 <div key={lbl}>
                   <div style={S.h3}>{lbl}</div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                     {imgs.map((p, i) => (
                       <img key={i} loading="lazy" src={p.url} alt=""
-                        style={{ width:56, height:56, objectFit:"cover", borderRadius:6 }}/>
+                        onClick={() => setLightbox({ photos: allPhotos, index: allPhotos.indexOf(p) })}
+                        style={{ width:56, height:56, objectFit:"cover", borderRadius:6, cursor:"pointer",
+                          border:`1px solid ${C.accentColor}22` }}/>
                     ))}
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {s.note && (
+            <div style={{ fontSize:13, opacity:.85, marginBottom:10,
+              padding:"10px 12px", background:C.surfaceHigh, borderRadius:8, lineHeight:1.5 }}>
+              {s.note}
             </div>
           )}
 
