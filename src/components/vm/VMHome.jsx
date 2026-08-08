@@ -2,6 +2,7 @@ import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
+import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 
 export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, campaign, promotions = [], company }) {
   const name     = user?.full_name ?? user?.name ?? "";
@@ -32,25 +33,7 @@ export function VMHome({ user, tasks, submissions, demoHolds, onAddDemoHold, cam
 
       <BestBranchOfMonth company={company} />
 
-      {/* Campaign */}
-      {campaign?.name && (
-        <div style={{ ...S.card, border:`1px solid ${C.accentColor}33`, marginBottom:16 }} className="fu2">
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <div>
-              <div style={S.h3}>Current Campaign</div>
-              <div style={{ ...S.dFont, fontSize:20, fontWeight:700, color:C.accentColor }}>
-                {campaign.name}
-              </div>
-              {(campaign.date_from || campaign.date_to) && (
-                <div style={{ ...S.muted, fontSize:12, marginTop:3 }}>
-                  {campaign.date_from} {campaign.date_from && campaign.date_to ? "→" : ""} {campaign.date_to}
-                </div>
-              )}
-            </div>
-            <div style={{ fontSize:28, opacity:.3 }}>◈</div>
-          </div>
-        </div>
-      )}
+      <CampaignBanner campaign={campaign} />
 
       {/* Promotions */}
       {promotions.length > 0 && (

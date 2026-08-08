@@ -2,6 +2,7 @@ import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
+import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 
 // ============================================================
 //  STORE MANAGER SHELL
@@ -27,20 +28,7 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
 
       <BestBranchOfMonth company={company} />
 
-      {/* Campaign banner — see the Campaign tab to view the file / comment */}
-      {campaign?.name && (
-        <div style={{ ...S.card, border:`1px solid ${C.accentColor}33`, marginBottom:14 }}>
-          <div style={S.h3}>Current Campaign</div>
-          <div style={{ ...S.dFont, fontSize:20, fontWeight:700, color:C.accentColor }}>
-            {campaign.name}
-          </div>
-          {(campaign.date_from || campaign.date_to) && (
-            <div style={{ ...S.muted, fontSize:12, marginTop:4 }}>
-              {campaign.date_from} → {campaign.date_to}
-            </div>
-          )}
-        </div>
-      )}
+      <CampaignBanner campaign={campaign} />
 
       {/* Promotions */}
       {promotions?.length > 0 && (

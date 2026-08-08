@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
+import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 import { getBestBranchesOfMonth, setBestBranchOfMonth } from "../../services/enterprise.service.js";
 
 // One editable "Best Branch" card scoped to a single region.
@@ -172,6 +173,8 @@ export function MgrOverview({
           {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
       </div>
+
+      <CampaignBanner campaign={campaign} />
 
       {/* ════ CURRENT PROMOTIONS ════ */}
       <div style={{ ...S.card, marginBottom: 16 }}>

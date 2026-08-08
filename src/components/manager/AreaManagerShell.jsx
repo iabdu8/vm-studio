@@ -7,6 +7,7 @@ import { CampaignFileReview } from "../shared/CampaignFileReview.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 import { Training } from "./Training.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
+import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
 
 // ============================================================
@@ -14,7 +15,7 @@ import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
 //  يشوف فروعه المعيّنة له فقط — يتابع الكامبين — يعلّق (بدون اعتماد)
 // ============================================================
 
-export function AreaManagerOverview({ profile, tasks, submissions, branches, managerBranches = [], company }) {
+export function AreaManagerOverview({ profile, tasks, submissions, branches, managerBranches = [], company, campaign }) {
   const [branchFilter, setBranchFilter] = useState("all");
 
   // فقط الفروع المعيّنة له من السوبر ادمن
@@ -48,6 +49,7 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
       </div>
 
       <BestBranchOfMonth company={company} />
+      <CampaignBanner campaign={campaign} />
 
       {/* Branch selector — scroll through each of his branches */}
       {myBranches.length > 0 && (

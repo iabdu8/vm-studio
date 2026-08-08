@@ -396,7 +396,7 @@ function AuthenticatedApp() {
         <div style={S.app}><StyleTag />
           <TopBar user={profile} onLogout={() => signOut()} />
           <div key={amPage} className="page-transition" style={S.main}>
-            {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions} branches={activeBranches} managerBranches={managerBranches} company={company} />}
+            {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions} branches={activeBranches} managerBranches={managerBranches} company={company} campaign={campaign} />}
             {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} branches={activeBranches} managerBranches={managerBranches} />}
             {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
             {amPage==="campaign" && <AreaManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} profile={profile} guidelines={guidelines} company={company} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onReviewBranchFile={handleReviewCampaignBranchFile} />}
