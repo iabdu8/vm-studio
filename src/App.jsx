@@ -403,6 +403,7 @@ function AuthenticatedApp() {
           <div key={vmPage} className="page-transition" style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} company={company} />}
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} setTasks={setTasks} submissions={submissions} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks)).catch(e => { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to update task. Please try again."); })} />}
+            {vmPage==="plan"       && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => b.id === profile.branch_id)} profile={profile} readOnly statusEditable lockedStaffId={profile.id} />}
             {vmPage==="demo"       && <VMDemoHold demoHolds={demoHolds.filter(d => d.branch_id === profile.branch_id)} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
             {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} branchId={profile.branch_id} campaign={campaign} campaignProgress={campaignProgress} />}
