@@ -3,6 +3,7 @@ import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { notifyUser } from "../../services/enterprise.service.js";
 import { toast } from "../shared/Toast.jsx";
+import { CommentThread } from "../shared/CommentThread.jsx";
 
 // ============================================================
 //  WEEKLY STORE PLAN — Table View
@@ -64,12 +65,13 @@ const one = (x) => Array.isArray(x) ? x[0] : x;
 // used to render each branch as its own organized, collapsible section for
 // Head VM / VM Manager. Collapsed by default and only fetches its data once
 // expanded, so this stays cheap even with 30+ branches.
-function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates }) {
+function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates, profile }) {
   const [expanded, setExpanded] = useState(false);
   const [staff,    setStaff]    = useState([]);
   const [items,    setItems]    = useState([]);
   const [loading,  setLoading]  = useState(false);
   const [loaded,   setLoaded]   = useState(false);
+  const [openItemId, setOpenItemId] = useState(null);
 
   useEffect(() => {
     if (!expanded || !company?.id || !branchId) return;
@@ -114,7 +116,8 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
         <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>No staff at this branch.</div>
       ) : (
         <div style={{ ...S.card, padding:0, overflow:"hidden", border:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` }}>
-          <table style={{ width:"100%", tableLayout:"fixed", borderCollapse:"collapse", fontSize:11 }}>
+          <div style={{ overflowX:"auto" }}>
+          <table style={{ width:"100%", minWidth:640, tableLayout:"fixed", borderCollapse:"collapse", fontSize:11 }}>
             <colgroup>
               <col style={{ width:"15%" }} />
               {weekDates.map(d => <col key={d.index} />)}
@@ -158,11 +161,14 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
                                 const [title] = (item.title ?? "").split("\n");
                                 const isDayOff = title.trim().toLowerCase() === "day off";
                                 return (
-                                  <div key={item.id} style={{
+                                  <div key={item.id}
+                                    onClick={() => !isDayOff && item.task_id && setOpenItemId(p => p === item.id ? null : item.id)}
+                                    style={{
                                     padding:"2px 4px", borderRadius:5,
-                                    background: isDayOff ? C.mutedColor+"18" : meta.bg,
+                                    background: openItemId === item.id ? meta.bg.replace("18","33") : isDayOff ? C.mutedColor+"18" : meta.bg,
                                     borderLeft: isDayOff ? `3px solid ${C.mutedColor}` : `3px solid ${prio}`,
                                     lineHeight:1.25, wordBreak:"break-word",
+                                    cursor: !isDayOff && item.task_id ? "pointer" : "default",
                                   }}>
                                     {!isDayOff && item.category?.name && (
                                       <div style={{ fontSize:8, fontWeight:800, color:"#818cf8", letterSpacing:.2, textTransform:"uppercase" }}>
@@ -190,8 +196,18 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates })
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
+      {openItemId && (() => {
+        const openItem = items.find(i => i.id === openItemId);
+        return openItem?.task_id ? (
+          <div style={{ marginTop:10 }}>
+            <div style={{ ...S.muted, fontSize:11, marginBottom:4 }}>💬 Comments — {openItem.title?.split("\n")[0]}</div>
+            <CommentThread taskId={openItem.task_id} profile={profile} />
+          </div>
+        ) : null;
+      })()}
     </div>
   );
 }
@@ -512,7 +528,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       {combinedView ? (
         <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
           {branches.map(b => (
-            <BranchWeekGrid key={b.id} company={company} branchId={b.id} branchName={b.name} weekStart={weekStart} weekDates={weekDates} />
+            <BranchWeekGrid key={b.id} company={company} branchId={b.id} branchName={b.name} weekStart={weekStart} weekDates={weekDates} profile={profile} />
           ))}
         </div>
       ) : loading ? (

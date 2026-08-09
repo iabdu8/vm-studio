@@ -121,6 +121,17 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
   const toggleBranch = (id) =>
     setBranchIds(p => p.includes(id) ? p.filter(x => x!==id) : [...p, id]);
 
+  const regions = [...new Set(branches.map(b => b.region).filter(Boolean))].sort();
+  const branchesInRegion = (r) => branches.filter(b => b.region === r).map(b => b.id);
+  const isRegionPicked = (r) => {
+    const ids = branchesInRegion(r);
+    return ids.length > 0 && ids.every(id => branchIds.includes(id));
+  };
+  const pickRegion = (r) => {
+    const ids = branchesInRegion(r);
+    setBranchIds(isRegionPicked(r) ? p => p.filter(id => !ids.includes(id)) : p => [...new Set([...p, ...ids])]);
+  };
+
   const branchLabel = (ids) => {
     if (!ids?.length) return "All Branches";
     const names = ids.map(id => branches.find(b => b.id === id)?.name).filter(Boolean);
@@ -204,6 +215,15 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
                   border:`1px solid ${branchIds.length===0 ? C.accentColor+"55" : C.mutedColor+"22"}` }}>
                 {branchIds.length===0 ? "✓ All Branches" : "All Branches"}
               </button>
+              {regions.map(r => (
+                <button key={r} className="pill-btn" onClick={() => pickRegion(r)}
+                  style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                    background: isRegionPicked(r) ? "#818cf828" : "transparent",
+                    color: isRegionPicked(r) ? "#818cf8" : C.mutedColor,
+                    border:`1px solid ${isRegionPicked(r) ? "#818cf855" : C.mutedColor+"22"}` }}>
+                  {isRegionPicked(r) ? "✓ " : ""}🗺️ {r}
+                </button>
+              ))}
               {branches.map(b => (
                 <button key={b.id} className="pill-btn" onClick={() => toggleBranch(b.id)}
                   style={{ padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
