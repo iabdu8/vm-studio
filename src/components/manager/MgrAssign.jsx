@@ -2,6 +2,7 @@ import { useState } from "react";
 import { S } from "../../styles/theme.js";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
 import { DailyTasksFeed } from "../shared/DailyTasksFeed.jsx";
+import { MgrRequests } from "./MgrRequests.jsx";
 
 export function MgrAssign({ tasks, submissions, categories, branches, profile, company }) {
 
@@ -19,7 +20,7 @@ export function MgrAssign({ tasks, submissions, categories, branches, profile, c
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
-        {[["tasks","📋 Tasks"],["plan","📅 Weekly Plan"]].map(([k,l]) => (
+        {[["tasks","📋 Tasks"],["requests","📥 Requests"],["plan","📅 Weekly Plan"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
@@ -27,6 +28,11 @@ export function MgrAssign({ tasks, submissions, categories, branches, profile, c
       {/* Tasks — day by day, under the VM who did them, with photos + comments */}
       {tab === "tasks" && (
         <DailyTasksFeed tasks={tasks ?? []} submissions={submissions ?? []} branches={branches} profile={profile} />
+      )}
+
+      {/* Requests — view + comment only, approval stays with the VM Controller */}
+      {tab === "requests" && (
+        <MgrRequests submissions={submissions ?? []} profile={profile} readOnly />
       )}
 
       {/* Weekly Plan */}

@@ -4,6 +4,11 @@ import { PromotionCard } from "../shared/PromotionCard.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 
+const greeting = () => {
+  const h = new Date().getHours();
+  return h < 12 ? "GOOD MORNING" : h < 18 ? "GOOD AFTERNOON" : "GOOD EVENING";
+};
+
 export function VMHome({ user, tasks, submissions, campaign, promotions = [], company }) {
   const name     = user?.full_name ?? user?.name ?? "";
   const branch   = user?.branch?.name ?? user?.branch ?? "";
@@ -22,7 +27,7 @@ export function VMHome({ user, tasks, submissions, campaign, promotions = [], co
         marginBottom:16, position:"relative", overflow:"hidden" }} className="fu">
         <div style={{ position:"absolute", right:-10, top:-10, fontSize:80, opacity:.07,
           fontFamily:"'Cormorant Garamond',serif", fontWeight:700 }}>VM</div>
-        <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, color:"#0a0a0f", opacity:.7 }}>GOOD MORNING</div>
+        <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, color:"#0a0a0f", opacity:.7 }}>{greeting()}</div>
         <div style={{ ...S.dFont, fontSize:24, fontWeight:700, color:"#0a0a0f", lineHeight:1.1, marginTop:2 }}>
           {name.split(" ")[0]}
         </div>

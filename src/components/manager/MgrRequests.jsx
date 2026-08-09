@@ -4,7 +4,7 @@ import { CommentThread } from "../shared/CommentThread.jsx";
 import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
 import { flagSubmissionPhotos } from "../../services/data.service.js";
 
-export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile }) {
+export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile, readOnly = false }) {
   const [filter,       setFilter]       = useState("pending");
   const [revisionId,   setRevisionId]   = useState(null);
   const [revisionNote, setRevisionNote] = useState("");
@@ -130,7 +130,7 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile
             )}
 
             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-              {s.status === "pending" && (
+              {!readOnly && s.status === "pending" && (
                 <>
                   <button className="btnP"
                     style={{ ...S.btnP, fontSize:12, padding:"8px 16px" }}

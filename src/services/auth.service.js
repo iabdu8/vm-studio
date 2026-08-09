@@ -40,25 +40,14 @@ export async function loadSession() {
   }
 
   // ── Regular user or super_admin with company ──
-  const { data: settings } = await supabase
-    .from("company_settings")
-    .select("*")
-    .eq("company_id", profile.company_id)
-    .single();
-
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("*, subcategories(*)")
-    .eq("company_id", profile.company_id)
-    .eq("is_active", true)
-    .order("sort_order");
-
-  const { data: branches } = await supabase
-    .from("branches")
-    .select("*")
-    .eq("company_id", profile.company_id)
-    .eq("is_active", true)
-    .order("sort_order");
+  // Independent queries — run in parallel instead of one after another.
+  const [{ data: settings }, { data: categories }, { data: branches }] = await Promise.all([
+    supabase.from("company_settings").select("*").eq("company_id", profile.company_id).single(),
+    supabase.from("categories").select("*, subcategories(*)")
+      .eq("company_id", profile.company_id).eq("is_active", true).order("sort_order"),
+    supabase.from("branches").select("*")
+      .eq("company_id", profile.company_id).eq("is_active", true).order("sort_order"),
+  ]);
 
   return {
     profile,

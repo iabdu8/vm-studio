@@ -312,10 +312,21 @@ function AuthenticatedApp() {
 
   const handleSaveCampaign = async ({ name, date_from, date_to }) => {
     try {
-      await supabase.from("campaigns").update({ is_active:false }).eq("company_id", company.id);
-      const { data } = await supabase.from("campaigns").insert({ company_id:company.id, name, date_from:date_from||null, date_to:date_to||null, is_active:true, created_by:profile.id }).select().single();
-      if (data) { setCampaign(data); setCampaignAck(null); await initCampaignBranches(data.id, activeBranches.map(b => b.id)); getCampaignProgress(data.id).then(setCampaignProgress); }
-      addLog("Updated campaign", name);
+      if (campaign?.id) {
+        // Editing the active campaign: update in place, keep progress/ack/files intact.
+        const { data } = await supabase.from("campaigns")
+          .update({ name, date_from: date_from || null, date_to: date_to || null })
+          .eq("id", campaign.id).select().single();
+        if (data) setCampaign(data);
+        addLog("Updated campaign", name);
+      } else {
+        // No active campaign: start a new one.
+        const { data } = await supabase.from("campaigns")
+          .insert({ company_id:company.id, name, date_from:date_from||null, date_to:date_to||null, is_active:true, created_by:profile.id })
+          .select().single();
+        if (data) { setCampaign(data); setCampaignAck(null); await initCampaignBranches(data.id, activeBranches.map(b => b.id)); getCampaignProgress(data.id).then(setCampaignProgress); }
+        addLog("Started campaign", name);
+      }
     } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to save campaign."); }
   };
 
