@@ -1,21 +1,14 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
 import { todayStr } from "../../utils.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
-import { CommentThread } from "../shared/CommentThread.jsx";
-import { TasksTable } from "../shared/TasksTable.jsx";
 import { Training } from "../manager/Training.jsx";
-import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
+import { WeeklyPlan } from "../manager/WeeklyPlan.jsx";
 
-const BORDER      = `1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)`;
-const BORDER_SOFT = `1px solid color-mix(in srgb, var(--clr-text) 9%, transparent)`;
+export function VMTasks({ user, categories, branches, tasks, onSubmit, onTaskToggle,
+  company, profile }) {
 
-export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit, onTaskToggle,
-  submissions = [], company, profile }) {
-
-  const [tab,      setTab]      = useState("my");
-  const [openTaskId, setOpenTaskId] = useState(null);
-  const [lightbox, setLightbox] = useState(null); // { photos, index }
+  const [tab,      setTab]      = useState("plan");
   const [catId,    setCatId]    = useState(categories[0]?.id ?? "");
   const [subId,    setSubId]    = useState(categories[0]?.subcategories?.[0]?.id ?? "");
   const [branchId, setBranchId] = useState(user?.branch_id ?? branches[0]?.id ?? "");
@@ -39,9 +32,6 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
     (!subId || t.subcategory_id === subId) &&
     (t.assigned_to === "all" || t.assigned_to === user?.id)
   );
-
-  const done  = myAllTasks.filter(t => t.is_done ?? t.done).length;
-  const total = myAllTasks.length;
 
   const changeCat = (id) => {
     setCatId(id);
@@ -84,156 +74,27 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        My <span style={S.accent}>Tasks</span>
+        My <span style={S.accent}>Plan</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>{todayStr()}</div>
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
-        {[["my","📋 My Tasks"],["submit","📤 Submit Work"],["training","🎓 Training"]].map(([k,l]) => (
+        {[["plan","📅 Plan"],["submit","📤 Submit Work"],["training","🎓 Training"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(tab===k)} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
-      {/* ── MY TASKS ── */}
-      {tab === "my" && (
-        <div>
-          {/* Progress */}
-          {myAllTasks.length > 0 && (
-            <div style={{ ...S.card, marginBottom:14 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                <div style={S.h3}>Overall Progress</div>
-                <span style={{ fontSize:13, fontWeight:700, color: done===total && total>0 ? "#4ade80" : C.accentColor }}>
-                  {total ? Math.round((done/total)*100) : 0}%
-                </span>
-              </div>
-              <div style={{ height:5, borderRadius:3, background:C.surfaceHigh }}>
-                <div style={{ height:"100%", borderRadius:3, transition:"width .4s",
-                  width: total ? `${Math.round((done/total)*100)}%` : "0%",
-                  background: done===total && total>0 ? "#4ade80" : C.accentColor }}/>
-              </div>
-              <div style={{ ...S.muted, fontSize:11, marginTop:6 }}>{done} of {total} tasks completed</div>
-            </div>
-          )}
-
-          {myAllTasks.length === 0 && (
-            <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>
-              <div style={{ fontSize:32, marginBottom:12 }}>✅</div>
-              <div style={{ ...S.muted }}>No tasks assigned to you yet.</div>
-            </div>
-          )}
-
-          {myAllTasks.length > 0 && (
-            <div style={{ ...S.card, padding:0, overflow:"hidden", border:BORDER }}>
-              <div style={{ overflowX:"auto" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", minWidth:680 }}>
-                  <thead>
-                    <tr>
-                      {["Task","Priority","Due","Controller","Status","Actions"].map((h, i, arr) => (
-                        <th key={h+i} style={{
-                          padding:"14px 16px", textAlign:"left", fontSize:13, fontWeight:800,
-                          color:C.accentColor, letterSpacing:.5, textTransform:"uppercase",
-                          background:C.surfaceHigh, borderBottom:BORDER,
-                          borderRight: i < arr.length-1 ? BORDER : "none",
-                          whiteSpace:"nowrap",
-                        }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...myAllTasks].sort((a, b) => {
-                      const da = a.due_date ?? a.created_at ?? "";
-                      const db = b.due_date ?? b.created_at ?? "";
-                      return da < db ? -1 : da > db ? 1 : 0;
-                    }).map((t, i) => {
-                      const rowBg = i % 2 === 0 ? "transparent" : C.surfaceHigh;
-                      const cellStyle = { padding:"14px 16px", borderBottom:BORDER_SOFT, borderRight:BORDER_SOFT, background:rowBg };
-                      const isDone = t.is_done ?? t.done ?? false;
-                      const revision = submissions.find(s =>
-                        s.status === "revision" && s.submitted_by === user?.id && s.note &&
-                        (s.task_id ? s.task_id === t.id : s.category_name === t.category?.name)
-                      );
-                      const mySubmissions = submissions
-                        .filter(s => s.task_id === t.id && s.submitted_by === user?.id && s.photos?.length)
-                        .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
-                      const myPhotos = (mySubmissions[0]?.photos ?? []).map(p => ({
-                        ...p, label: p.photo_type === "before" ? "Before" : "After",
-                      }));
-                      return (
-                        <>
-                          <tr key={t.id}>
-                            <td style={{ ...cellStyle, maxWidth:240 }}>
-                              <div style={{ fontSize:15, fontWeight:700,
-                                color:isDone?C.mutedColor:C.textColor,
-                                textDecoration:isDone?"line-through":"none" }}>
-                                {t.title ?? t.text}
-                              </div>
-                              {(t.category?.name || t.subcategory?.name) && (
-                                <div style={{ fontSize:12, color:C.accentColor, marginTop:3, fontWeight:600 }}>
-                                  {t.category?.name ?? "—"}{t.subcategory?.name ? ` · ${t.subcategory.name}` : ""}
-                                </div>
-                              )}
-                              {revision && (
-                                <div onClick={() => startSubmitFor(t)}
-                                  title="Tap to redo this task"
-                                  style={{ marginTop:6, padding:"6px 10px", borderRadius:8, cursor:"pointer",
-                                  background:"#f8717114", border:"1px solid #f8717133" }}>
-                                  <div style={{ fontSize:11, fontWeight:700, color:"#f87171" }}>↩ Revision Requested — tap to redo</div>
-                                  <div style={{ fontSize:12, marginTop:2, lineHeight:1.4 }}>{revision.note}</div>
-                                </div>
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              <span style={S.chip(t.priority)}>{t.priority}</span>
-                            </td>
-                            <td style={{ ...cellStyle, fontSize:14, color:C.mutedColor, fontWeight:600, whiteSpace:"nowrap" }}>
-                              {t.due_date
-                                ? new Date(t.due_date).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" })
-                                : t.due_label ?? t.dueDate ?? "—"}
-                            </td>
-                            <td style={{ ...cellStyle, fontSize:14, fontWeight:600, whiteSpace:"nowrap" }}>
-                              {t.controller?.full_name ?? "—"}
-                            </td>
-                            <td style={cellStyle}>
-                              <span style={S.chip(isDone?"approved":"pending")}>{isDone?"Done":"Open"}</span>
-                            </td>
-                            <td style={{ ...cellStyle, borderRight:"none", whiteSpace:"nowrap" }}>
-                              <button onClick={() => startSubmitFor(t)}
-                                style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                                  fontSize:15, padding:0, marginRight:14 }}>
-                                📤
-                              </button>
-                              {myPhotos.length > 0 && (
-                                <button onClick={() => setLightbox({ photos: myPhotos, index: 0 })}
-                                  title="View my submitted photos"
-                                  style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                                    fontSize:15, padding:0, marginRight:14 }}>
-                                  📷
-                                </button>
-                              )}
-                              <button onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
-                                style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                                  fontSize:15, padding:0 }}>
-                                💬
-                              </button>
-                            </td>
-                          </tr>
-                          {openTaskId === t.id && (
-                            <tr key={t.id+"-c"}>
-                              <td colSpan={6} style={{ padding:"0 16px 14px", background:rowBg, borderBottom:BORDER_SOFT }}>
-                                <CommentThread taskId={t.id} profile={profile} />
-                              </td>
-                            </tr>
-                          )}
-                        </>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* ── PLAN — own weekly plan; tap today's task to jump to Submit Work ── */}
+      {tab === "plan" && (
+        <WeeklyPlan company={company} categories={categories}
+          branches={branches.filter(b => b.id === user?.branch_id)} profile={profile}
+          readOnly statusEditable lockedStaffId={user?.id}
+          onItemClick={(item) => {
+            const task = tasks.find(t => t.id === item.task_id);
+            if (task) startSubmitFor(task);
+          }}
+        />
       )}
 
       {/* ── SUBMIT WORK ── */}
@@ -321,15 +182,6 @@ export function VMTasks({ user, categories, branches, tasks, setTasks, onSubmit,
 
       {/* ── TRAINING (view only) ── */}
       {tab === "training" && <Training company={company} profile={profile} branches={branches} readOnly />}
-
-      {lightbox && (
-        <PhotoLightbox
-          photos={lightbox.photos}
-          index={lightbox.index}
-          onClose={() => setLightbox(null)}
-          onIndexChange={i => setLightbox(p => ({ ...p, index:i }))}
-        />
-      )}
     </div>
   );
 }

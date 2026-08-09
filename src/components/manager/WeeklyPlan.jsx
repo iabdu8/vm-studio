@@ -212,7 +212,7 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates, p
   );
 }
 
-export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null, statusEditable = !readOnly, weekNav = !readOnly, onTasksChanged }) {
+export function WeeklyPlan({ company, categories, branches, profile, readOnly = false, lockedStaffId = null, statusEditable = !readOnly, weekNav = !readOnly, onTasksChanged, onItemClick }) {
   const [weekOffset,     setWeekOffset]     = useState(0);
   const [activePlan,     setActivePlan]     = useState(null);
   const [items,          setItems]          = useState([]);
@@ -233,6 +233,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
 
   const weekStart = getWeekStart(weekOffset);
   const weekDates = getWeekDates(weekStart);
+  const todayIndex = weekOffset === 0 ? (new Date().getDay() + 1) % 7 : -1;
 
   useEffect(() => {
     if (!company || !selectedBranch) return;
@@ -574,6 +575,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                   return dayItems.map((item, i) => {
                     const meta = STATUS_META[item.status] ?? STATUS_META.pending;
                     const [title, ...noteLines] = (item.title ?? "").split("\n");
+                    const clickable = onItemClick && item.task_id && d.index === todayIndex;
                     return (
                       <tr key={item.id}>
                         {i === 0 && (
@@ -582,7 +584,8 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                             <td rowSpan={dayItems.length} style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, verticalAlign:"top", borderBottom:`1px solid ${C.accentColor}0a` }}>{d.dmy}</td>
                           </>
                         )}
-                        <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a`, maxWidth:260 }}>
+                        <td onClick={clickable ? () => onItemClick(item) : undefined}
+                          style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a`, maxWidth:260, cursor: clickable ? "pointer" : "default" }}>
                           {item.category?.name && (
                             <div style={{ fontSize:10, fontWeight:800, color:"#818cf8", letterSpacing:.3, textTransform:"uppercase", marginBottom:2 }}>
                               {item.category.name}
@@ -590,7 +593,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                           )}
                           <div style={{ fontSize:13, fontWeight:600, color: item.status==="done" ? C.mutedColor : C.textColor,
                             textDecoration: item.status==="done" ? "line-through" : "none" }}>
-                            {title}
+                            {title}{clickable && <span style={{ color:C.accentColor, fontWeight:700 }}> · 📤 Tap to submit</span>}
                           </div>
                         </td>
                         <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
