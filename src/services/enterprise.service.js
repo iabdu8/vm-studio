@@ -108,6 +108,15 @@ function logNotifyError(error) {
   if (error) process.env?.NODE_ENV !== "production" && console.error(error);
 }
 
+// Fire-and-forget: pushes a native notification to every subscribed device
+// for these users. Never throws — push is a best-effort enhancement on top
+// of the in-app notification, which is already saved regardless.
+function sendPush(user_ids, title, body) {
+  if (!user_ids?.length) return;
+  supabase.functions.invoke("send-push", { body: { user_ids, title, body } })
+    .catch(e => process.env?.NODE_ENV !== "production" && console.error(e));
+}
+
 export async function notifyAll(company_id, type, title, body) {
   const { data: users } = await supabase
     .from('profiles').select('id').eq('company_id', company_id);
@@ -116,6 +125,7 @@ export async function notifyAll(company_id, type, title, body) {
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
   logNotifyError(error);
+  sendPush(users.map(u => u.id), title, body);
 }
 
 export async function notifyManagers(company_id, type, title, body) {
@@ -128,6 +138,7 @@ export async function notifyManagers(company_id, type, title, body) {
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
   logNotifyError(error);
+  sendPush(users.map(u => u.id), title, body);
 }
 
 export async function notifyBranchController(company_id, branch_id, type, title, body) {
@@ -139,6 +150,7 @@ export async function notifyBranchController(company_id, branch_id, type, title,
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
   logNotifyError(error);
+  sendPush(users.map(u => u.id), title, body);
 }
 
 export async function notifyBranch(company_id, branch_id, type, title, body) {
@@ -150,6 +162,7 @@ export async function notifyBranch(company_id, branch_id, type, title, body) {
     users.map(u => ({ company_id, user_id: u.id, type, title, body }))
   );
   logNotifyError(error);
+  sendPush(users.map(u => u.id), title, body);
 }
 
 export async function notifyUser(company_id, user_id, type, title, body) {
@@ -157,6 +170,7 @@ export async function notifyUser(company_id, user_id, type, title, body) {
     company_id, user_id, type, title, body
   });
   logNotifyError(error);
+  sendPush([user_id], title, body);
 }
 
 // ── CAMPAIGN ACKNOWLEDGEMENTS (Head VM sign-off, never blocking) ──
