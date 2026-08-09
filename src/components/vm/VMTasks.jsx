@@ -109,52 +109,56 @@ export function VMTasks({ user, categories, branches, tasks, onSubmit, onTaskTog
                 style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:11 }}>✕ Clear</button>
             </div>
           )}
-          <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
-            {categories.map(c => (
-              <button key={c.id} className="tab-btn" style={S.tab(catId===c.id)} onClick={() => changeCat(c.id)}>
-                {c.name}
-              </button>
-            ))}
-          </div>
-
-          {activeSubs.length > 0 && (
-            <div style={S.card}>
-              <div style={S.h3}>Section</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-                {activeSubs.map(s => (
-                  <button key={s.id} className="pill-btn" onClick={() => setSubId(s.id)} style={{
-                    padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
-                    background:subId===s.id?C.accentColor+"28":"transparent",
-                    color:subId===s.id?C.accentColor:C.mutedColor,
-                    border:subId===s.id?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
-                  }}>{s.name}</button>
+          {!submitTaskId && (
+            <>
+              <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
+                {categories.map(c => (
+                  <button key={c.id} className="tab-btn" style={S.tab(catId===c.id)} onClick={() => changeCat(c.id)}>
+                    {c.name}
+                  </button>
                 ))}
               </div>
-            </div>
-          )}
 
-          {myTasks.length > 0 && (
-            <div style={S.card}>
-              <div style={S.h3}>Instructions for this section</div>
-              {myTasks.map(t => (
-                <div key={t.id} style={{ display:"flex", gap:10, alignItems:"flex-start", marginBottom:9 }}>
-                  <input type="checkbox" checked={t.is_done ?? t.done ?? false}
-                    style={{ marginTop:3, accentColor:C.accentColor }}
-                    onChange={() => onTaskToggle(t.id, !(t.is_done ?? t.done))}/>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:13,
-                      color:(t.is_done||t.done)?C.mutedColor:C.textColor,
-                      textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
-                      {t.title ?? t.text}
-                    </div>
-                    <div style={{ display:"flex", gap:6, marginTop:4 }}>
-                      <span style={S.chip(t.priority)}>{t.priority}</span>
-                      <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
-                    </div>
+              {activeSubs.length > 0 && (
+                <div style={S.card}>
+                  <div style={S.h3}>Section</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
+                    {activeSubs.map(s => (
+                      <button key={s.id} className="pill-btn" onClick={() => setSubId(s.id)} style={{
+                        padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600,
+                        background:subId===s.id?C.accentColor+"28":"transparent",
+                        color:subId===s.id?C.accentColor:C.mutedColor,
+                        border:subId===s.id?`1px solid ${C.accentColor}55`:`1px solid ${C.mutedColor}22`,
+                      }}>{s.name}</button>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {myTasks.length > 0 && (
+                <div style={S.card}>
+                  <div style={S.h3}>Instructions for this section</div>
+                  {myTasks.map(t => (
+                    <div key={t.id} style={{ display:"flex", gap:10, alignItems:"flex-start", marginBottom:9 }}>
+                      <input type="checkbox" checked={t.is_done ?? t.done ?? false}
+                        style={{ marginTop:3, accentColor:C.accentColor }}
+                        onChange={() => onTaskToggle(t.id, !(t.is_done ?? t.done))}/>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13,
+                          color:(t.is_done||t.done)?C.mutedColor:C.textColor,
+                          textDecoration:(t.is_done||t.done)?"line-through":"none" }}>
+                          {t.title ?? t.text}
+                        </div>
+                        <div style={{ display:"flex", gap:6, marginTop:4 }}>
+                          <span style={S.chip(t.priority)}>{t.priority}</span>
+                          <span style={{ ...S.muted, fontSize:11 }}>Due: {t.due_label ?? t.dueDate}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           <div style={S.card}>
