@@ -3,6 +3,7 @@ import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { CampaignBranchFiles } from "./CampaignBranchFiles.jsx";
 import { FilePreview } from "./FilePreview.jsx";
+import { CampaignPanel } from "../manager/CampaignPanel.jsx";
 
 // ── GUIDELINES GRID (Manager view) ────────────────────────────
 export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDelete }) {
@@ -168,6 +169,8 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
         <div style={{ ...S.muted, marginBottom:12, fontSize:12 }}>
           Review and acknowledge all guidelines
         </div>
+
+        {campaign?.name && <CampaignPanel campaign={campaign} campaignProgress={campaignProgress} />}
 
         {campaign?.name && (
           <div style={{ ...S.card, marginBottom:16 }}>
