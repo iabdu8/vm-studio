@@ -153,6 +153,19 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
       ? { ...t, attendees: update(t.attendees) } : t));
   };
 
+  const removeAttendee = (attendeeId) => {
+    setConfirm({
+      message: "Remove this attendee from the training?",
+      onConfirm: async () => {
+        await supabase.from("training_attendees").delete().eq("id", attendeeId);
+        const strip = (list) => list.filter(a => a.id !== attendeeId);
+        setSelected(prev => prev ? { ...prev, attendees: strip(prev.attendees) } : prev);
+        setTrainings(prev => prev.map(t => t.id === selected?.id ? { ...t, attendees: strip(t.attendees) } : t));
+        setConfirm(null);
+      }
+    });
+  };
+
   const deleteTraining = (id) => {
     setConfirm({
       message: "Delete this training and all attendance records?",
@@ -296,8 +309,16 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
           return (
           <div key={a.id} style={{ ...S.card, marginBottom:10 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <div style={{ fontWeight:600, fontSize:14 }}>
-                {a.user?.full_name ?? "—"}{isMe && <span style={{ color:C.accentColor, fontWeight:400 }}> (you)</span>}
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ fontWeight:600, fontSize:14 }}>
+                  {a.user?.full_name ?? "—"}{isMe && <span style={{ color:C.accentColor, fontWeight:400 }}> (you)</span>}
+                </div>
+                {!readOnly && (
+                  <button onClick={() => removeAttendee(a.id)} title="Remove attendee"
+                    style={{ background:"none", border:"none", color:"#f87171", cursor:"pointer", fontSize:13, padding:0 }}>
+                    🗑️
+                  </button>
+                )}
               </div>
               {!canEditStatus ? (
                 <span style={{ padding:"4px 10px", borderRadius:8, fontSize:11, fontWeight:600,

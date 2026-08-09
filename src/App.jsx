@@ -319,6 +319,15 @@ function AuthenticatedApp() {
     } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to save campaign."); }
   };
 
+  const handleDeleteCampaign = () => showConfirm("End the current campaign? Branches will no longer see it.", async () => {
+    try {
+      if (campaign?.id) await supabase.from("campaigns").update({ is_active:false }).eq("id", campaign.id);
+      setCampaign(null); setCampaignProgress([]); setCampaignAck(null);
+      addLog("Ended campaign", campaign?.name ?? "");
+    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to end campaign."); }
+    finally { setConfirm(null); }
+  });
+
   const handleAcknowledgeCampaign = async (campaign_id) => {
     try { setCampaignAck(await acknowledgeCampaign(campaign_id, profile.id)); }
     catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to acknowledge campaign."); }
@@ -443,7 +452,7 @@ function AuthenticatedApp() {
             {mgrPage==="overview"   && <MgrOverview tasks={tasks} submissions={submissions} log={log} company={company} branches={activeBranches} campaign={campaign} promotions={promotions} onCreatePromotion={handleCreatePromotion} onDeletePromotion={handleDeletePromotion} profile={profile} />}
             {mgrPage==="assign"     && <MgrAssign tasks={tasks} submissions={submissions} categories={categories} branches={activeBranches} company={company} profile={profile} />}
             {mgrPage==="training"   && <Training company={company} profile={profile} branches={activeBranches} />}
-            {mgrPage==="campaign"   && <CampaignGuidesPage company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} campaign={campaign} onSaveCampaign={handleSaveCampaign} campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={handleAcknowledgeCampaign} onReviewBranchFile={handleReviewCampaignBranchFile} profile={profile} />}
+            {mgrPage==="campaign"   && <CampaignGuidesPage company={company} guidelines={guidelines} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} campaign={campaign} onSaveCampaign={handleSaveCampaign} onDeleteCampaign={handleDeleteCampaign} campaignProgress={campaignProgress} onSetBranchStatus={handleSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={handleAcknowledgeCampaign} onReviewBranchFile={handleReviewCampaignBranchFile} profile={profile} />}
             {mgrPage==="reports"    && <MgrReports tasks={tasks} submissions={submissions} onExportPDF={handleExportPDF} />}
             {mgrPage==="visits"     && <StoreVisits company={company} branches={activeBranches} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onFloorWalkChanged={handleFloorWalkChanged} canCreateFloorWalk={false} />}
             {mgrPage==="chat"       && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}

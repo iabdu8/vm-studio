@@ -4,7 +4,7 @@ import { CampaignFileReview } from "../shared/CampaignFileReview.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 
 export function CampaignGuidesPage({ company, guidelines, onUploadGuideline, onDeleteGuideline,
-  campaign, onSaveCampaign, campaignProgress, onSetBranchStatus, campaignAck, onAcknowledgeCampaign, onReviewBranchFile }) {
+  campaign, onSaveCampaign, onDeleteCampaign, campaignProgress, onSetBranchStatus, campaignAck, onAcknowledgeCampaign, onReviewBranchFile }) {
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
@@ -14,7 +14,7 @@ export function CampaignGuidesPage({ company, guidelines, onUploadGuideline, onD
         Sign off on the active campaign · publish team guidelines
       </div>
 
-      <CampaignPanel campaign={campaign} onSaveCampaign={onSaveCampaign} campaignProgress={campaignProgress}
+      <CampaignPanel campaign={campaign} onSaveCampaign={onSaveCampaign} onDeleteCampaign={onDeleteCampaign} campaignProgress={campaignProgress}
         onSetBranchStatus={onSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={onAcknowledgeCampaign} />
 
       {campaign?.name && onReviewBranchFile && (

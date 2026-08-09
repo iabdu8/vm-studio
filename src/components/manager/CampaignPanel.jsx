@@ -26,7 +26,7 @@ function getTimeProgress(dateFrom, dateTo) {
   return Math.max(0, Math.min(100, Math.round(((today - from) / (to - from)) * 100)));
 }
 
-export function CampaignPanel({ campaign, onSaveCampaign, campaignProgress = [], onSetBranchStatus, campaignAck, onAcknowledgeCampaign, canUploadFile = false, uploaderId, onFileUploaded }) {
+export function CampaignPanel({ campaign, onSaveCampaign, onDeleteCampaign, campaignProgress = [], onSetBranchStatus, campaignAck, onAcknowledgeCampaign, canUploadFile = false, uploaderId, onFileUploaded }) {
   const [editing,  setEditing]  = useState(false);
   const [campName, setCampName] = useState("");
   const [campFrom, setCampFrom] = useState("");
@@ -135,15 +135,23 @@ export function CampaignPanel({ campaign, onSaveCampaign, campaignProgress = [],
           </div>
         </div>
         {onSaveCampaign && (
-          <button className="btnG" style={{ ...S.btnG, fontSize: 12, padding: "6px 12px", flexShrink: 0 }}
-            onClick={() => {
-              setEditing(!editing);
-              setCampName(c?.name ?? "");
-              setCampFrom(c?.date_from ?? "");
-              setCampTo(c?.date_to ?? "");
-            }}>
-            {editing ? "Cancel" : "Edit"}
-          </button>
+          <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+            <button className="btnG" style={{ ...S.btnG, fontSize: 12, padding: "6px 12px" }}
+              onClick={() => {
+                setEditing(!editing);
+                setCampName(c?.name ?? "");
+                setCampFrom(c?.date_from ?? "");
+                setCampTo(c?.date_to ?? "");
+              }}>
+              {editing ? "Cancel" : "Edit"}
+            </button>
+            {!editing && c?.name && onDeleteCampaign && (
+              <button onClick={onDeleteCampaign} title="End campaign"
+                style={{ background:"none", border:"none", color:"#f87171", cursor:"pointer", fontSize:16, padding:"4px" }}>
+                🗑️
+              </button>
+            )}
+          </div>
         )}
       </div>
 
