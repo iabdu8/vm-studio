@@ -182,6 +182,8 @@ export function AreaManagerRequests({ submissions, profile, branches = [], manag
         View-only across your region — comments only on your own branches
       </div>
 
+      <InfoBanner>You see every branch in your region, but 💬 comments only work on branches actually assigned to you. Approving or rejecting stays with the VM Controller.</InfoBanner>
+
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto" }}>
         {[["pending","⏳ Pending"],["approved","✓ Approved"],["revision","↩ Revision"],["all","All"]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(filter===k)} onClick={()=>setFilter(k)}>{l}</button>

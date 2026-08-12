@@ -5,6 +5,7 @@ import { CampaignPanel } from "./CampaignPanel.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { GuidelinesGrid } from "../shared/Guidelines.jsx";
 import { FilePreview } from "../shared/FilePreview.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 // VM Controller: view-only, same as VM — no campaign file upload, no
 // guideline publishing (Head VM's job). Can still comment.
@@ -24,6 +25,8 @@ export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], pr
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         Review the current campaign and guidelines
       </div>
+
+      <InfoBanner>Set by Head VM — view + comment only. Your branch's campaign file (if attached) is below, and guidelines are published company-wide.</InfoBanner>
 
       {campaign?.name ? (
         <>
