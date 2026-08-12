@@ -193,7 +193,7 @@ function AuthenticatedApp() {
   const [amPage,  setAmPage]  = useState("overview");
   const [showWelcome, setShowWelcome] = useState(false);
   useEffect(() => {
-    if (company?.slug !== "fashion-demo") return;
+    if (company?.slug !== "vismo-demo") return;
     if (localStorage.getItem(`vismo_welcome_seen_${profile?.id}`)) return;
     setShowWelcome(true);
   }, [company?.slug, profile?.id]);
