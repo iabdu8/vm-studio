@@ -36,6 +36,9 @@ export function RegisterPage({ onBack }) {
           const regionList = await lookupRegions(companyMatch.id);
           setRegions(regionList);
           setSelectedRegions([]); setBranches([]); setPickedBranchIds([]);
+        } else if (companyMatch.role === "manager") {
+          // Head VM is company-wide — no branch to pick
+          setBranches([]);
         } else {
           const branchData = await lookupActiveBranches(companyMatch.id);
           setBranches(branchData);
