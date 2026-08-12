@@ -224,9 +224,12 @@ export function Chat({ user, companyId, branches = [], onSend }) {
       </div>
 
       <InfoBanner>
-        {rooms.length > (isManager ? 2 : 1)
-          ? "Your branch room is just your team. Team is everyone in the company. Managers is private to Head VM/Manager/Controller roles."
-          : "Team is everyone in the company. You can delete your own messages anytime."}
+        {[
+          branchId && "Your branch room is just your team.",
+          "Team is everyone in the company.",
+          isManager && "Managers is private — Head VM, VM Manager, and VM Controller only, not visible to VMs.",
+          "You can delete your own messages anytime.",
+        ].filter(Boolean).join(" ")}
       </InfoBanner>
 
       {/* Room tabs */}
