@@ -3,6 +3,7 @@ import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 import { CampaignBanner } from "../shared/CampaignBanner.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -35,6 +36,8 @@ export function VMHome({ user, tasks, submissions, campaign, promotions = [], co
           {branch} · {todayStr()}
         </div>
       </div>
+
+      <InfoBanner>Your daily snapshot — tasks assigned to you, your submission score, and any active campaign or promotion. Head to the Tasks tab to actually work through your plan.</InfoBanner>
 
       <BestBranchOfMonth company={company} />
 

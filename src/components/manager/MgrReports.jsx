@@ -1,5 +1,6 @@
 import { S, C } from "../../styles/theme.js";
 import { Avatar } from "../shared/Atoms.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 export function MgrReports({ tasks, submissions, onExportPDF }) {
   const totalSubs = submissions.length;
@@ -39,6 +40,8 @@ export function MgrReports({ tasks, submissions, onExportPDF }) {
         Reports & <span style={S.accent}>Analytics</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>Weekly performance snapshot</div>
+
+      <InfoBanner>Auto-calculated from every approved/scored submission. Tap "Export Weekly Report PDF" at the bottom for a printable copy to share.</InfoBanner>
 
       {/* Summary KPIs */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:14 }} className="fu2">

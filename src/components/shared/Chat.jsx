@@ -4,6 +4,7 @@ import { Avatar } from "./Atoms.jsx";
 import { supabase } from "../../lib/supabase.js";
 import { uploadChatAttachment, deleteMessage } from "../../services/data.service.js";
 import { PhotoLightbox } from "./PhotoLightbox.jsx";
+import { InfoBanner } from "./InfoBanner.jsx";
 
 // ── Single chat room ──────────────────────────────────────────
 function ChatRoom({ user, room, companyId, onSend }) {
@@ -221,6 +222,12 @@ export function Chat({ user, companyId, branches = [], onSend }) {
       <div style={{ ...S.muted, marginBottom:14, fontSize:12 }}>
         Real-time messaging
       </div>
+
+      <InfoBanner>
+        {rooms.length > (isManager ? 2 : 1)
+          ? "Your branch room is just your team. Team is everyone in the company. Managers is private to Head VM/Manager/Controller roles."
+          : "Team is everyone in the company. You can delete your own messages anytime."}
+      </InfoBanner>
 
       {/* Room tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>

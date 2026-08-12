@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import { CampaignBranchFiles } from "./CampaignBranchFiles.jsx";
 import { FilePreview } from "./FilePreview.jsx";
 import { CampaignPanel } from "../manager/CampaignPanel.jsx";
+import { InfoBanner } from "./InfoBanner.jsx";
 
 // ── GUIDELINES GRID (Manager view) ────────────────────────────
 export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDelete }) {
@@ -169,6 +170,8 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
         <div style={{ ...S.muted, marginBottom:12, fontSize:12 }}>
           Review and acknowledge all guidelines
         </div>
+
+        <InfoBanner>Published by Head VM or VM Manager. Tap "I Have Reviewed This Guideline" so they can see who's read it.</InfoBanner>
 
         {campaign?.name && <CampaignPanel campaign={campaign} campaignProgress={campaignProgress} />}
 

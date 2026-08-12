@@ -3,6 +3,7 @@ import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 import { CampaignBanner } from "../shared/CampaignBanner.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 // ============================================================
 //  STORE MANAGER SHELL
@@ -25,6 +26,8 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         {branch} · {todayStr()}
       </div>
+
+      <InfoBanner>Your branch's daily snapshot — pending approvals, task completion, and any campaign or promotion. Use the Tasks tab to schedule work and Approvals to review submitted photos.</InfoBanner>
 
       <BestBranchOfMonth company={company} />
 

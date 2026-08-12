@@ -44,6 +44,7 @@ import { StoreManagerAssign }   from "./components/manager/StoreManagerAssign.js
 import { StoreManagerCampaignGuides } from "./components/manager/StoreManagerCampaignGuides.jsx";
 import { VMDemoHold } from "./components/vm/VMDemoHold.jsx";
 import { InfoBanner } from "./components/shared/InfoBanner.jsx";
+import { WelcomeModal } from "./components/shared/WelcomeModal.jsx";
 import { AreaManagerOverview, AreaManagerRequests, AreaManagerCampaignGuides } from "./components/manager/AreaManagerShell.jsx";
 import { SuperAdminPanel }      from "./components/superadmin/SuperAdminPanel.jsx";
 import { S, C }                 from "./styles/theme.js";
@@ -190,6 +191,16 @@ function AuthenticatedApp() {
   const [mgrPage, setMgrPage] = useState("overview");
   const [smPage,  setSmPage]  = useState("home");
   const [amPage,  setAmPage]  = useState("overview");
+  const [showWelcome, setShowWelcome] = useState(false);
+  useEffect(() => {
+    if (company?.slug !== "fashion-demo") return;
+    if (localStorage.getItem(`vismo_welcome_seen_${profile?.id}`)) return;
+    setShowWelcome(true);
+  }, [company?.slug, profile?.id]);
+  const dismissWelcome = () => {
+    localStorage.setItem(`vismo_welcome_seen_${profile?.id}`, "1");
+    setShowWelcome(false);
+  };
   const [tasks,        setTasks]        = useState([]);
   const [submissions,  setSubmissions]  = useState([]);
   const [guidelines,   setGuidelines]   = useState([]);
@@ -396,6 +407,7 @@ function AuthenticatedApp() {
   return (
     <>
       {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
+      {showWelcome && <WelcomeModal role={profile?.role} onClose={dismissWelcome} />}
 
       {isVM && (
         <div style={S.app}><StyleTag />
