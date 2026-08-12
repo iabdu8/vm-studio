@@ -4,6 +4,7 @@ import { todayStr } from "../../utils.js";
 import { PromotionCard } from "../shared/PromotionCard.jsx";
 import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 import { getBestBranchesOfMonth, setBestBranchOfMonth } from "../../services/enterprise.service.js";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 // One editable "Best Branch" card scoped to a single region.
 function BestBranchCard({ region, displayName, branchesInRegion, pick, onSave }) {
@@ -154,6 +155,8 @@ export function MgrOverview({
       <div style={{ ...S.muted, marginBottom: 10, fontSize: 12 }}>
         {todayStr()} · {company?.name ?? "All branches"}
       </div>
+
+      <InfoBanner>Company-wide view — every branch, every region. Set Best Branch of the Month per region, create promotions, and switch "Viewing Branch" below to drill into one branch's stats.</InfoBanner>
 
       {/* ════ BEST BRANCH OF THE MONTH — one per region ════ */}
       {!bbLoading && (

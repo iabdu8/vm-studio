@@ -4,6 +4,7 @@ import { todayStr } from "../../utils.js";
 import { ImageUploader } from "../shared/Atoms.jsx";
 import { Training } from "../manager/Training.jsx";
 import { WeeklyPlan } from "../manager/WeeklyPlan.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 export function VMTasks({ user, categories, branches, tasks, onSubmit, onTaskToggle,
   company, profile }) {
@@ -87,6 +88,8 @@ export function VMTasks({ user, categories, branches, tasks, onSubmit, onTaskTog
 
       {/* ── PLAN — own weekly plan; tap today's task to jump to Submit Work ── */}
       {tab === "plan" && (
+        <>
+        <InfoBanner>Your VM Controller schedules your tasks here for the week. Tap today's task to submit your before/after photos for it.</InfoBanner>
         <WeeklyPlan company={company} categories={categories}
           branches={branches.filter(b => b.id === user?.branch_id)} profile={profile}
           readOnly statusEditable lockedStaffId={user?.id}
@@ -95,11 +98,15 @@ export function VMTasks({ user, categories, branches, tasks, onSubmit, onTaskTog
             if (task) startSubmitFor(task);
           }}
         />
+        </>
       )}
 
       {/* ── SUBMIT WORK ── */}
       {tab === "submit" && (
         <div>
+          {!submitTaskId && (
+            <InfoBanner>Submitting a report here sends it to your VM Controller for review — they'll approve it or ask you to redo it.</InfoBanner>
+          )}
           {submitTaskId && (
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
               padding:"10px 14px", background:C.accentColor+"14", border:`1px solid ${C.accentColor}33`,

@@ -3,6 +3,7 @@ import { S, C } from "../../styles/theme.js";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
 import { flagSubmissionPhotos } from "../../services/data.service.js";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile, readOnly = false }) {
   const [filter,       setFilter]       = useState("pending");
@@ -40,6 +41,12 @@ export function MgrRequests({ submissions, onReview, onDeleteSubmission, profile
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         Review Before / After submissions from the floor
       </div>
+
+      <InfoBanner>
+        {readOnly
+          ? "View-only — you can comment, but approving or requesting a redo stays with the VM Controller."
+          : "Approve a submission to mark it done, or send it back for a redo with a note — the VM sees it instantly."}
+      </InfoBanner>
 
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto" }}>
         {[["pending","⏳ Pending"],["approved","✓ Approved"],["revision","↩ Revision"],["all","All"]].map(([k,l]) => (

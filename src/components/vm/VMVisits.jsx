@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { ReportView } from "../shared/ReportView.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 export function VMVisits({ profile, floorWalks = [] }) {
   const [visits,  setVisits]  = useState([]);
@@ -63,6 +64,8 @@ export function VMVisits({ profile, floorWalks = [] }) {
         Visits <span style={S.accent}>&amp; Floor Walks</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>{branchName}</div>
+
+      <InfoBanner>Read-only reports from your VM Manager (Store Visits) and Head VM (Floor Walks) — tap any card to see photos and notes.</InfoBanner>
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14 }}>

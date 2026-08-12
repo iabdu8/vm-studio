@@ -3,6 +3,7 @@ import { S } from "../../styles/theme.js";
 import { WeeklyPlan } from "./WeeklyPlan.jsx";
 import { DailyTasksFeed } from "../shared/DailyTasksFeed.jsx";
 import { MgrRequests } from "./MgrRequests.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 export function MgrAssign({ tasks, submissions, categories, branches, profile, company }) {
 
@@ -27,7 +28,10 @@ export function MgrAssign({ tasks, submissions, categories, branches, profile, c
 
       {/* Tasks — day by day, under the VM who did them, with photos + comments */}
       {tab === "tasks" && (
-        <DailyTasksFeed tasks={tasks ?? []} submissions={submissions ?? []} branches={branches} profile={profile} />
+        <>
+          <InfoBanner>Every task due today across all branches, grouped by the VM doing it. Tap 💬 to comment on any of them.</InfoBanner>
+          <DailyTasksFeed tasks={tasks ?? []} submissions={submissions ?? []} branches={branches} profile={profile} />
+        </>
       )}
 
       {/* Requests — view + comment only, approval stays with the VM Controller */}
@@ -36,7 +40,12 @@ export function MgrAssign({ tasks, submissions, categories, branches, profile, c
       )}
 
       {/* Weekly Plan */}
-      {tab === "plan" && <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile} readOnly/>}
+      {tab === "plan" && (
+        <>
+          <InfoBanner>Every branch's weekly plan, created by its VM Controller. Expand a branch, then tap a task to comment on it.</InfoBanner>
+          <WeeklyPlan company={company} categories={categories} branches={branches} profile={profile} readOnly/>
+        </>
+      )}
     </div>
   );
 }

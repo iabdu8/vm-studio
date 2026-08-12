@@ -8,6 +8,7 @@ import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
@@ -46,6 +47,8 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         {myBranches.length} branch(es) · {todayStr()}
       </div>
+
+      <InfoBanner>You see stats for the branches assigned to you only — Super Admin assigns which branches that is. This is view + comment, no approvals.</InfoBanner>
 
       <BestBranchOfMonth company={company} />
       <CampaignBanner campaign={campaign} />
@@ -267,6 +270,8 @@ export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         View the active campaign and team guidelines
       </div>
+
+      <InfoBanner>Campaign is view + comment only (Head VM manages it). Guidelines below you can publish yourself — every branch sees them instantly.</InfoBanner>
 
       {campaign?.name && (
         <>

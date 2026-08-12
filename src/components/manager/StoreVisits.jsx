@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase.js";
 import { notifyBranch } from "../../services/enterprise.service.js";
 import { ReportView } from "../shared/ReportView.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 const STATUS_META = {
   draft:     { label:"In Progress", color:"#d4a82a" },
@@ -199,6 +200,12 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         Document and follow up on branch visits
       </div>
+
+      <InfoBanner>
+        {canCreateFloorWalk
+          ? "Both are your own reports — Floor Walks get published to every branch for everyone to see and comment on; Store Visits stay in your own log."
+          : "Floor Walks here are published by the VM Manager to every branch — you can view and comment. Store Visits are the VM Manager's own on-the-ground log."}
+      </InfoBanner>
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14 }}>

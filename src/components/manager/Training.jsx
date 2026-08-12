@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
@@ -389,6 +390,12 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
   return (
     <div>
       {confirm && <ConfirmModal {...confirm} onCancel={() => setConfirm(null)}/>}
+
+      <InfoBanner>
+        {readOnly
+          ? "Scheduled by the Head VM or VM Manager. If you're an attendee, you can check yourself in/out once it's created."
+          : "Pick All Branches, a region, or specific branches, then add attendees — they can check themselves in/out, and you can score them after."}
+      </InfoBanner>
 
       {!readOnly && !showForm && (
         <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}

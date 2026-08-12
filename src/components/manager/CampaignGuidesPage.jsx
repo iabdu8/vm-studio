@@ -3,6 +3,7 @@ import { CampaignPanel } from "./CampaignPanel.jsx";
 import { CampaignFileReview } from "../shared/CampaignFileReview.jsx";
 import { GuidelinesManager } from "../shared/GuidelinesManager.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 export function CampaignGuidesPage({ company, guidelines, onUploadGuideline, onDeleteGuideline,
   campaign, onSaveCampaign, onDeleteCampaign, campaignProgress, onSetBranchStatus, campaignAck, onAcknowledgeCampaign, onReviewBranchFile, profile }) {
@@ -14,6 +15,8 @@ export function CampaignGuidesPage({ company, guidelines, onUploadGuideline, onD
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         Sign off on the active campaign · publish team guidelines
       </div>
+
+      <InfoBanner>Once you set a campaign here, it appears instantly on every role's home page across every branch. Guidelines below work the same way — publish once, everyone sees it.</InfoBanner>
 
       <CampaignPanel campaign={campaign} onSaveCampaign={onSaveCampaign} onDeleteCampaign={onDeleteCampaign} campaignProgress={campaignProgress}
         onSetBranchStatus={onSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={onAcknowledgeCampaign} />

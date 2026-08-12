@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { S, C } from "../../styles/theme.js";
+import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 // ============================================================
 //  DEMO HOLD — VM adds items, prints report when ready
@@ -136,6 +137,8 @@ export function VMDemoHold({ demoHolds, onAddDemoHold, onDeleteDemoHold, company
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         {profile?.branch?.name ?? ""} · Add items currently on display
       </div>
+
+      <InfoBanner>Log any item taken off the floor for a mannequin, window, or fitting-room display — so it's tracked instead of looking "missing" from stock. Print the list anytime for handover.</InfoBanner>
 
       {/* Add form */}
       <div style={S.card}>

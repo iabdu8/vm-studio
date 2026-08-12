@@ -43,6 +43,7 @@ import { StoreManagerHome }     from "./components/manager/StoreManagerShell.jsx
 import { StoreManagerAssign }   from "./components/manager/StoreManagerAssign.jsx";
 import { StoreManagerCampaignGuides } from "./components/manager/StoreManagerCampaignGuides.jsx";
 import { VMDemoHold } from "./components/vm/VMDemoHold.jsx";
+import { InfoBanner } from "./components/shared/InfoBanner.jsx";
 import { AreaManagerOverview, AreaManagerRequests, AreaManagerCampaignGuides } from "./components/manager/AreaManagerShell.jsx";
 import { SuperAdminPanel }      from "./components/superadmin/SuperAdminPanel.jsx";
 import { S, C }                 from "./styles/theme.js";
@@ -440,7 +441,12 @@ function AuthenticatedApp() {
           <div key={amPage} className="page-transition" style={S.main}>
             {amPage==="overview" && <AreaManagerOverview profile={profile} tasks={tasks} submissions={submissions} branches={activeBranches} managerBranches={managerBranches} company={company} campaign={campaign} />}
             {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} branches={activeBranches} managerBranches={managerBranches} />}
-            {amPage==="plan"     && <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />}
+            {amPage==="plan"     && (
+              <>
+                <InfoBanner>Weekly plans for your assigned branches, set by each branch's VM Controller. Tap a task to comment on it.</InfoBanner>
+                <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />
+              </>
+            )}
             {amPage==="campaign" && <AreaManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} profile={profile} guidelines={guidelines} company={company} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onReviewBranchFile={handleReviewCampaignBranchFile} />}
             {amPage==="training" && <Training company={company} profile={profile} branches={activeBranches} />}
             {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onFloorWalkChanged={handleFloorWalkChanged} />}
