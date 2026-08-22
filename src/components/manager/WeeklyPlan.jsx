@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import { notifyUser } from "../../services/enterprise.service.js";
 import { toast } from "../shared/Toast.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
+import { printWeeklyPlanChecklist } from "../../lib/checklistReports.js";
 
 // ============================================================
 //  WEEKLY STORE PLAN — Table View
@@ -519,6 +520,21 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
               <button className="btnP" style={S.btnP} onClick={() => openAdd(weekDates[0].index)} disabled={!selectedStaff}>
                 ＋ Add Task
               </button>
+              {todayIndex >= 0 && (
+                <button className="btnG" style={S.btnG} onClick={() => printWeeklyPlanChecklist({
+                  branchName: branches.find(b => b.id === selectedBranch)?.name ?? "Branch",
+                  dayLabel: weekDates[todayIndex].label,
+                  dayDate: weekDates[todayIndex].date,
+                  staffGroups: staff.map(s => ({
+                    name: s.full_name,
+                    items: items.filter(i => (i.assigned_staff_id === s.id || i.assigned_staff?.id === s.id) && i.day_of_week === todayIndex)
+                      .map(i => ({ title: (i.title ?? "").split("\n")[0], status: i.status })),
+                  })),
+                  company,
+                })}>
+                  🖨️ Print Today
+                </button>
+              )}
             </>
           )}
         </div>

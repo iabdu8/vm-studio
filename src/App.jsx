@@ -417,8 +417,8 @@ function AuthenticatedApp() {
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} company={company} />}
             {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks)).catch(e => { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to update task. Please try again."); })} />}
             {vmPage==="demo"       && <VMDemoHold demoHolds={demoHolds.filter(d => d.branch_id === profile.branch_id)} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
-            {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} />}
-            {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} branchId={profile.branch_id} campaign={campaign} campaignProgress={campaignProgress} />}
+            {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} company={company} />}
+            {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} branchId={profile.branch_id} campaign={campaign} campaignProgress={campaignProgress} company={company} />}
             {vmPage==="chat"       && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <VMNav page={vmPage} setPage={setVmPage} />
@@ -432,7 +432,7 @@ function AuthenticatedApp() {
             {smPage==="home"     && <StoreManagerHome profile={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} floorWalks={floorWalks} company={company} />}
             {smPage==="assign"   && <StoreManagerAssign categories={categories} branches={activeBranches} profile={profile} company={company} onTasksChanged={() => getTasks(company.id).then(setTasks)} />}
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
-            {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} guidelines={guidelines} />}
+            {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} guidelines={guidelines} company={company} />}
             {smPage==="demo"     && <VMDemoHold demoHolds={demoHolds.filter(d => d.branch_id === profile.branch_id)} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
             {smPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => b.id === profile.branch_id)} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onFloorWalkChanged={handleFloorWalkChanged} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}

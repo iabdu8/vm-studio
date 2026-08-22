@@ -277,7 +277,7 @@ export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches
 
       {campaign?.name && (
         <>
-          <CampaignPanel campaign={campaign} campaignProgress={myProgress} />
+          <CampaignPanel campaign={campaign} campaignProgress={myProgress} company={company} />
           {onReviewBranchFile && (
             <div style={S.card}>
               <div style={{ ...S.h3, marginBottom:6 }}>Campaign Files — Review</div>

@@ -18,7 +18,7 @@ export function CampaignGuidesPage({ company, guidelines, onUploadGuideline, onD
 
       <InfoBanner>Once you set a campaign here, it appears instantly on every role's home page across every branch. Guidelines below work the same way — publish once, everyone sees it.</InfoBanner>
 
-      <CampaignPanel campaign={campaign} onSaveCampaign={onSaveCampaign} onDeleteCampaign={onDeleteCampaign} campaignProgress={campaignProgress}
+      <CampaignPanel campaign={campaign} onSaveCampaign={onSaveCampaign} onDeleteCampaign={onDeleteCampaign} campaignProgress={campaignProgress} company={company}
         onSetBranchStatus={onSetBranchStatus} campaignAck={campaignAck} onAcknowledgeCampaign={onAcknowledgeCampaign} />
 
       {campaign?.name && onReviewBranchFile && (

@@ -3,8 +3,9 @@ import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { ReportView } from "../shared/ReportView.jsx";
 import { InfoBanner } from "../shared/InfoBanner.jsx";
+import { printFloorWalkChecklist } from "../../lib/checklistReports.js";
 
-export function VMVisits({ profile, floorWalks = [] }) {
+export function VMVisits({ profile, floorWalks = [], company }) {
   const [visits,  setVisits]  = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeReport, setActiveReport] = useState(null);
@@ -124,8 +125,9 @@ export function VMVisits({ profile, floorWalks = [] }) {
             </div>
           )}
           {floorWalks.map((fw, i) => (
-            <div key={i} style={{ ...S.card, cursor:"pointer" }} onClick={() => openFloorWalkReport(fw)}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+            <div key={i} style={S.card}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", cursor:"pointer" }}
+                onClick={() => openFloorWalkReport(fw)}>
                 <div>
                   <div style={{ fontWeight:700, fontSize:14 }}>📋 Floor Walk</div>
                   <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>
@@ -145,6 +147,11 @@ export function VMVisits({ profile, floorWalks = [] }) {
                 </div>
                 <span style={{ fontSize:11, color:C.accentColor }}>Tap to view →</span>
               </div>
+              <button onClick={() => printFloorWalkChecklist(fw, company)}
+                style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                  fontSize:11, fontWeight:600, padding:0, marginTop:10 }}>
+                🖨️ Print Checklist
+              </button>
             </div>
           ))}
         </>

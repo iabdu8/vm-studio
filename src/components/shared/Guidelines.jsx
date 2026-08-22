@@ -127,7 +127,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
 }
 
 // ── VM GUIDELINES ─────────────────────────────────────────────
-export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignProgress = [] }) {
+export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignProgress = [], company }) {
   const [acked,   setAcked]   = useState({});
   const [loading, setLoading] = useState({});
   const [preview, setPreview] = useState(null);
@@ -173,7 +173,7 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
 
         <InfoBanner>Published by Head VM or VM Manager. Tap "I Have Reviewed This Guideline" so they can see who's read it.</InfoBanner>
 
-        {campaign?.name && <CampaignPanel campaign={campaign} campaignProgress={campaignProgress} />}
+        {campaign?.name && <CampaignPanel campaign={campaign} campaignProgress={campaignProgress} company={company} />}
 
         {campaign?.name && (
           <div style={{ ...S.card, marginBottom:16 }}>

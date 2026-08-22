@@ -6,6 +6,7 @@ import { notifyBranch } from "../../services/enterprise.service.js";
 import { ReportView } from "../shared/ReportView.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { InfoBanner } from "../shared/InfoBanner.jsx";
+import { printFloorWalkChecklist } from "../../lib/checklistReports.js";
 
 const STATUS_META = {
   draft:     { label:"In Progress", color:"#d4a82a" },
@@ -423,11 +424,18 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
               </div>
               {fw.id && (
                 <>
-                  <button onClick={() => setOpenFwId(openFwId === fw.id ? null : fw.id)}
-                    style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                      fontSize:11, fontWeight:600, padding:0, marginTop:10 }}>
-                    {openFwId === fw.id ? "Hide comments" : "💬 Comments"}
-                  </button>
+                  <div style={{ display:"flex", gap:14, marginTop:10 }}>
+                    <button onClick={() => setOpenFwId(openFwId === fw.id ? null : fw.id)}
+                      style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                        fontSize:11, fontWeight:600, padding:0 }}>
+                      {openFwId === fw.id ? "Hide comments" : "💬 Comments"}
+                    </button>
+                    <button onClick={() => printFloorWalkChecklist(fw, company)}
+                      style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                        fontSize:11, fontWeight:600, padding:0 }}>
+                      🖨️ Print Checklist
+                    </button>
+                  </div>
                   {openFwId === fw.id && <CommentThread floorWalkId={fw.id} profile={profile} />}
                 </>
               )}

@@ -3,6 +3,7 @@ import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { uploadCampaignImage } from "../../services/enterprise.service.js";
 import { CampaignFileBox } from "../shared/CampaignFileBox.jsx";
+import { printCampaignChecklist } from "../../lib/checklistReports.js";
 
 const STATUS_META = {
   not_started: { label: "Not Started", color: "#6b6880" },
@@ -26,7 +27,7 @@ function getTimeProgress(dateFrom, dateTo) {
   return Math.max(0, Math.min(100, Math.round(((today - from) / (to - from)) * 100)));
 }
 
-export function CampaignPanel({ campaign, onSaveCampaign, onDeleteCampaign, campaignProgress = [], onSetBranchStatus, campaignAck, onAcknowledgeCampaign, canUploadFile = false, uploaderId, onFileUploaded }) {
+export function CampaignPanel({ campaign, onSaveCampaign, onDeleteCampaign, campaignProgress = [], onSetBranchStatus, campaignAck, onAcknowledgeCampaign, canUploadFile = false, uploaderId, onFileUploaded, company }) {
   const [editing,  setEditing]  = useState(false);
   const [campName, setCampName] = useState("");
   const [campFrom, setCampFrom] = useState("");
@@ -190,10 +191,18 @@ export function CampaignPanel({ campaign, onSaveCampaign, onDeleteCampaign, camp
             <div style={{ height: "100%", borderRadius: 3, background: cpRate >= 70 ? "#4ade80" : C.accentColor,
               width: `${cpRate}%`, transition: "width .5s" }} />
           </div>
-          <button className="btnG" style={{ ...S.btnG, fontSize: 12, padding: "6px 12px" }}
-            onClick={() => setShowDetails(p => !p)}>
-            {showDetails ? "Hide Details" : "Details →"}
-          </button>
+          <div style={{ display:"flex", gap:8 }}>
+            <button className="btnG" style={{ ...S.btnG, fontSize: 12, padding: "6px 12px" }}
+              onClick={() => setShowDetails(p => !p)}>
+              {showDetails ? "Hide Details" : "Details →"}
+            </button>
+            {cpTotal > 0 && (
+              <button className="btnG" style={{ ...S.btnG, fontSize: 12, padding: "6px 12px" }}
+                onClick={() => printCampaignChecklist({ campaign: c, campaignProgress, company })}>
+                🖨️ Print Checklist
+              </button>
+            )}
+          </div>
         </div>
       )}
 

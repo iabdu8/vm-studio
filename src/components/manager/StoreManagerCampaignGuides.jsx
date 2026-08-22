@@ -9,7 +9,7 @@ import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 // VM Controller: view-only, same as VM — no campaign file upload, no
 // guideline publishing (Head VM's job). Can still comment.
-export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], profile, guidelines }) {
+export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], profile, guidelines, company }) {
   const [preview, setPreview] = useState(false);
 
   const myRow = campaignProgress.find(b => b.branch_id === profile?.branch_id);
@@ -30,7 +30,7 @@ export function StoreManagerCampaignGuides({ campaign, campaignProgress = [], pr
 
       {campaign?.name ? (
         <>
-          <CampaignPanel campaign={campaign} campaignProgress={campaignProgress} />
+          <CampaignPanel campaign={campaign} campaignProgress={campaignProgress} company={company} />
 
           <div style={S.card}>
             <div style={{ ...S.h3, marginBottom:8 }}>Campaign File — Your Branch</div>
