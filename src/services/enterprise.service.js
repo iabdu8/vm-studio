@@ -395,6 +395,26 @@ export async function getFloorWalkComments(floor_walk_id) {
   return data ?? [];
 }
 
+export async function getVisitComments(visit_id) {
+  const { data, error } = await supabase
+    .from("visit_comments")
+    .select("*, author:author_id(full_name, role, avatar_initials)")
+    .eq("visit_id", visit_id)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function addVisitComment(visit_id, author_id, body) {
+  const { data, error } = await supabase
+    .from("visit_comments")
+    .insert({ visit_id, author_id, body })
+    .select("*, author:author_id(full_name, role, avatar_initials)")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function addFloorWalkComment(floor_walk_id, author_id, body) {
   const { data, error } = await supabase
     .from("floor_walk_comments")

@@ -69,6 +69,28 @@ function shell({ eyebrow, title, badge, meta, kpis = [], bodyHtml, footerNote, a
   printHTML(html);
 }
 
+const PILL = {
+  done: `<span class="pill pill-done">✓ Done</span>`,
+  pending: `<span class="pill pill-pending">Pending</span>`,
+};
+
+// Renders each checklist point as its own block with a small photo strip
+// underneath (instead of a table row) so per-item photos have room.
+function checklistItemsHtml(checklist) {
+  return checklist.map((it, i) => `
+    <div style="padding:10px 0;border-bottom:1px solid #f3f4f6;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <div style="font-size:13px;font-weight:600;">${i + 1}. ${esc(it.label)}</div>
+        ${PILL[it.status] ?? PILL.pending}
+      </div>
+      ${it.note ? `<div style="font-size:12px;color:#6b6880;margin-top:4px;">${esc(it.note)}</div>` : ""}
+      ${(it.photos ?? []).length ? `
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+          ${it.photos.map(p => `<img src="${esc(p.url ?? p)}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;"/>`).join("")}
+        </div>` : ""}
+    </div>`).join("");
+}
+
 // ── FLOOR WALK CHECKLIST ──────────────────────────────────────
 export function printFloorWalkChecklist(fw, company) {
   const accent = company?.accent_color ?? "#1a1420";
@@ -76,36 +98,17 @@ export function printFloorWalkChecklist(fw, company) {
   const dayName = date.toLocaleDateString("en-GB", { weekday: "long" });
   const checklist = fw.checklist ?? [];
   const extraPoints = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
-  const photos = fw.photos ?? [];
+  const photoCount = checklist.reduce((a, it) => a + (it.photos?.length ?? 0), 0);
   const doneCount = checklist.filter(it => it.status === "done").length;
-
-  const PILL = {
-    done: `<span class="pill pill-done">✓ Done</span>`,
-    pending: `<span class="pill pill-pending">Pending</span>`,
-  };
 
   const bodyHtml = `
     ${checklist.length ? `
     <div class="section">📋 Floor Walk Checklist</div>
-    <table>
-      <thead><tr><th style="width:32px">#</th><th>Check Point</th><th style="width:110px">Status</th></tr></thead>
-      <tbody>
-        ${checklist.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.label)}</td><td>${PILL[it.status] ?? PILL.pending}</td></tr>`).join("")}
-      </tbody>
-    </table>` : `<div class="box">No checklist recorded for this floor walk.</div>`}
+    ${checklistItemsHtml(checklist)}` : `<div class="box">No checklist recorded for this floor walk.</div>`}
 
     ${extraPoints.length ? `
     <div class="section">📝 Additional Notes</div>
     <div class="box">${extraPoints.map(esc).join("<br/>")}</div>` : ""}
-
-    ${photos.length ? `
-    <div class="section">📷 Photos Taken (${photos.length})</div>
-    <div class="photo-grid">
-      ${photos.map(p => `<div class="photo-block">
-        <img src="${esc(p.url ?? p)}"/>
-        ${p.comment ? `<div class="photo-caption">${esc(p.comment)}</div>` : ""}
-      </div>`).join("")}
-    </div>` : `<div class="box">No photos attached.</div>`}
   `;
 
   shell({
@@ -116,10 +119,44 @@ export function printFloorWalkChecklist(fw, company) {
     meta: `📅 <strong>${esc(date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }))}</strong><br/>By ${esc(fw.manager ?? "—")}`,
     kpis: [
       { n: `${doneCount}/${checklist.length || 9}`, l: "Checked" },
-      { n: photos.length, l: "Photos", color: "#4F46E5" },
+      { n: photoCount, l: "Photos", color: "#4F46E5" },
     ],
     bodyHtml,
     footerNote: `${fw.manager ?? ""} · ${date.toLocaleDateString("en-GB")}`,
+  });
+}
+
+// ── STORE VISIT CHECKLIST ─────────────────────────────────────
+export function printVisitChecklist(v, branchName, company) {
+  const accent = company?.accent_color ?? "#1a1420";
+  const date = v.visit_date ? new Date(v.visit_date) : new Date();
+  const dayName = date.toLocaleDateString("en-GB", { weekday: "long" });
+  const checklist = v.checklist ?? [];
+  const photoCount = checklist.reduce((a, it) => a + (it.photos?.length ?? 0), 0);
+  const doneCount = checklist.filter(it => it.status === "done").length;
+
+  const bodyHtml = `
+    ${checklist.length ? `
+    <div class="section">🚶 Store Visit Checklist</div>
+    ${checklistItemsHtml(checklist)}` : `<div class="box">No checklist recorded for this visit.</div>`}
+
+    ${v.notes ? `
+    <div class="section">📝 Notes</div>
+    <div class="box">${esc(v.notes)}</div>` : ""}
+  `;
+
+  shell({
+    eyebrow: company?.name ?? "Vismo",
+    title: "Store Visit Checklist",
+    badge: dayName,
+    accent,
+    meta: `📍 <strong>${esc(branchName ?? "—")}</strong><br/>📅 ${esc(date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }))}`,
+    kpis: [
+      { n: `${doneCount}/${checklist.length || 9}`, l: "Checked" },
+      { n: photoCount, l: "Photos", color: "#4F46E5" },
+    ],
+    bodyHtml,
+    footerNote: `${branchName ?? ""} · ${date.toLocaleDateString("en-GB")}`,
   });
 }
 

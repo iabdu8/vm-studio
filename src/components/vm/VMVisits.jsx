@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
-import { ReportView } from "../shared/ReportView.jsx";
 import { InfoBanner } from "../shared/InfoBanner.jsx";
-import { printFloorWalkChecklist } from "../../lib/checklistReports.js";
-import { ChecklistCard, ChecklistTable, StatusPill } from "../shared/ChecklistCard.jsx";
+import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
+import { printFloorWalkChecklist, printVisitChecklist } from "../../lib/checklistReports.js";
+import { ChecklistCard, ChecklistItemRow } from "../shared/ChecklistCard.jsx";
 
 export function VMVisits({ profile, floorWalks = [], company }) {
   const [visits,  setVisits]  = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeReport, setActiveReport] = useState(null);
+  const [openKey,  setOpenKey]  = useState(null); // { kind, id }
+  const [lightbox, setLightbox] = useState(null);
   const [tab, setTab] = useState("visits");
 
   const branchId   = profile?.branch_id ?? null;
@@ -19,7 +20,7 @@ export function VMVisits({ profile, floorWalks = [], company }) {
     if (!branchId || !profile?.company_id) { setLoading(false); return; }
     supabase
       .from("store_visits")
-      .select("*, visitor:visitor_id(full_name), findings:visit_findings(*)")
+      .select("*, visitor:visitor_id(full_name)")
       .eq("company_id", profile.company_id)
       .eq("branch_id", branchId)
       .order("visit_date", { ascending: false })
@@ -27,47 +28,23 @@ export function VMVisits({ profile, floorWalks = [], company }) {
       .then(({ data }) => { setVisits(data ?? []); setLoading(false); });
   }, [branchId]);
 
-  const openVisitReport = (v) => {
-    setActiveReport({
-      type: "Store Visit Report",
-      title: `Visit — ${branchName}`,
-      branch: branchName,
-      date: v.visit_date,
-      by: v.visitor?.full_name ?? "—",
-      notes: v.notes,
-      photos: (v.findings ?? []).filter(f => f.finding === "Photo" && f.image_url),
-      findings: (v.findings ?? []).filter(f => f.finding !== "Photo"),
-    });
-  };
-
-  const openFloorWalkReport = (fw) => {
-    setActiveReport({
-      type: "Floor Walk Report",
-      title: `Floor Walk — ${branchName}`,
-      branch: branchName,
-      date: fw.date ?? "",
-      by: fw.manager ?? "—",
-      notes: fw.note,
-      photos: (fw.photos ?? []).map(p => ({
-        image_url: p.url ?? p,
-        recommendation: p.comment ?? "",
-      })),
-      findings: [],
-    });
-  };
+  const allPhotosOf = (checklist) => (checklist ?? []).flatMap(it => it.photos ?? []);
 
   if (loading) return <div style={{ ...S.muted, textAlign:"center", padding:40 }}>Loading…</div>;
 
   return (
     <div>
-      {activeReport && <ReportView report={activeReport} onClose={() => setActiveReport(null)}/>}
+      {lightbox && (
+        <PhotoLightbox photos={lightbox.photos} index={lightbox.index}
+          onClose={() => setLightbox(null)} onIndexChange={i => setLightbox(p => ({ ...p, index:i }))}/>
+      )}
 
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
         Visits <span style={S.accent}>&amp; Floor Walks</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>{branchName}</div>
 
-      <InfoBanner>Read-only reports from your VM Manager (Store Visits) and Head VM (Floor Walks) — tap any card to see photos and notes.</InfoBanner>
+      <InfoBanner>Read-only reports from your VM Manager (Store Visits) and Head VM (Floor Walks) — tap "Show all points" to see the full checklist and photos.</InfoBanner>
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14 }}>
@@ -86,31 +63,46 @@ export function VMVisits({ profile, floorWalks = [], company }) {
             </div>
           )}
           {visits.map(v => {
-            const photoCount   = (v.findings ?? []).filter(f => f.finding === "Photo").length;
-            const findingCount = (v.findings ?? []).filter(f => f.finding !== "Photo").length;
+            const checklist = v.checklist ?? [];
+            const doneCount = checklist.filter(it => it.status === "done").length;
+            const photos = allPhotosOf(checklist);
+            const isOpen = openKey?.kind === "visit" && openKey.id === v.id;
             return (
-              <div key={v.id} style={{ ...S.card, cursor:"pointer" }} onClick={() => openVisitReport(v)}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+              <ChecklistCard key={v.id}
+                title={`🚶 Visit by ${v.visitor?.full_name ?? "—"}`}
+                badge={v.status} badgeColor={v.status==="closed" ? "#4ade80" : "#d4a82a"}
+                meta={v.visit_date}
+                kpis={[
+                  { n: `${doneCount}/${checklist.length || 9}`, l:"Checked" },
+                  { n: photos.length, l:"Photos" },
+                ]}
+              >
+                {checklist.length > 0 && (
                   <div>
-                    <div style={{ fontWeight:700, fontSize:14 }}>
-                      Visit by {v.visitor?.full_name ?? "—"}
-                    </div>
-                    <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>{v.visit_date}</div>
-                    <div style={{ display:"flex", gap:10, marginTop:6 }}>
-                      {photoCount > 0 && <span style={{ fontSize:11, color:C.accentColor }}>📷 {photoCount} photos</span>}
-                      {findingCount > 0 && <span style={{ fontSize:11, color:C.mutedColor }}>🔍 {findingCount} observations</span>}
-                    </div>
+                    {(isOpen ? checklist : checklist.slice(0, 3)).map((it, idx) => (
+                      <ChecklistItemRow key={idx} index={idx} item={it} editable={false}
+                        onPhotoClick={(photos, pi) => setLightbox({ photos: photos.map(p => ({ url:p.url })), index: pi })}/>
+                    ))}
                   </div>
-                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
-                    <span style={{
-                      fontSize:11, fontWeight:700, padding:"3px 10px", borderRadius:12,
-                      background: v.status==="closed" ? "#4ade8018" : "#d4a82a18",
-                      color: v.status==="closed" ? "#4ade80" : "#d4a82a",
-                    }}>{v.status}</span>
-                    <span style={{ fontSize:11, color:C.accentColor }}>Tap to view →</span>
+                )}
+                {v.notes && (
+                  <div style={{ marginTop:10, fontSize:12, color:C.mutedColor, lineHeight:1.6 }}>
+                    <strong style={{ color:C.textColor }}>Notes:</strong> {v.notes}
                   </div>
+                )}
+                <div style={{ display:"flex", gap:14, marginTop:12 }}>
+                  {checklist.length > 3 && (
+                    <button onClick={() => setOpenKey(isOpen ? null : { kind:"visit", id:v.id })}
+                      style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:11, fontWeight:600, padding:0 }}>
+                      {isOpen ? "Show less" : `Show all ${checklist.length} points →`}
+                    </button>
+                  )}
+                  <button onClick={() => printVisitChecklist(v, branchName, company)}
+                    style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:11, fontWeight:600, padding:0 }}>
+                    🖨️ Print Checklist
+                  </button>
                 </div>
-              </div>
+              </ChecklistCard>
             );
           })}
         </>
@@ -128,28 +120,26 @@ export function VMVisits({ profile, floorWalks = [], company }) {
           {floorWalks.map((fw, i) => {
             const checklist = fw.checklist ?? [];
             const doneCount = checklist.filter(it => it.status === "done").length;
+            const photos = allPhotosOf(checklist);
             const extraPoints = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
-            const photoCount = fw.photos?.length ?? 0;
             const dayName = fw.date ? new Date(fw.date).toLocaleDateString("en-GB", { weekday:"long" }) : "";
+            const isOpen = openKey?.kind === "floor" && openKey.id === (fw.id ?? i);
             return (
-            <ChecklistCard key={i}
+            <ChecklistCard key={fw.id ?? i}
               title="📋 Floor Walk" badge={dayName} badgeColor={C.accentColor}
               meta={`By ${fw.manager ?? "—"} · ${fw.date ?? ""}`}
               kpis={[
                 { n: `${doneCount}/${checklist.length || 9}`, l:"Checked" },
-                { n: photoCount, l:"Photos" },
+                { n: photos.length, l:"Photos" },
               ]}
             >
               {checklist.length > 0 && (
-                <ChecklistTable columns={["#","Check Point","Status"]}>
-                  {checklist.map((it, idx) => (
-                    <tr key={idx}>
-                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{idx+1}</td>
-                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{it.label}</td>
-                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}><StatusPill status={it.status}/></td>
-                    </tr>
+                <div>
+                  {(isOpen ? checklist : checklist.slice(0, 3)).map((it, idx) => (
+                    <ChecklistItemRow key={idx} index={idx} item={it} editable={false}
+                      onPhotoClick={(photos, pi) => setLightbox({ photos: photos.map(p => ({ url:p.url })), index: pi })}/>
                   ))}
-                </ChecklistTable>
+                </div>
               )}
               {extraPoints.length > 0 && (
                 <div style={{ marginTop:10, fontSize:12, color:C.mutedColor, lineHeight:1.6 }}>
@@ -157,10 +147,12 @@ export function VMVisits({ profile, floorWalks = [], company }) {
                 </div>
               )}
               <div style={{ display:"flex", gap:14, marginTop:12 }}>
-                <button onClick={() => openFloorWalkReport(fw)}
-                  style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:11, fontWeight:600, padding:0 }}>
-                  📷 View Photos
-                </button>
+                {checklist.length > 3 && (
+                  <button onClick={() => setOpenKey(isOpen ? null : { kind:"floor", id: fw.id ?? i })}
+                    style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:11, fontWeight:600, padding:0 }}>
+                    {isOpen ? "Show less" : `Show all ${checklist.length} points →`}
+                  </button>
+                )}
                 <button onClick={() => printFloorWalkChecklist(fw, company)}
                   style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
                     fontSize:11, fontWeight:600, padding:0 }}>
