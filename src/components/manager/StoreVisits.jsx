@@ -6,6 +6,7 @@ import { notifyBranch } from "../../services/enterprise.service.js";
 import { ReportView } from "../shared/ReportView.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { InfoBanner } from "../shared/InfoBanner.jsx";
+import { toast } from "../shared/Toast.jsx";
 import { printFloorWalkChecklist } from "../../lib/checklistReports.js";
 import { ChecklistCard, ChecklistTable, StatusPill } from "../shared/ChecklistCard.jsx";
 
@@ -20,7 +21,7 @@ const STATUS_META = {
 // A visit/floor walk stays open ("draft") while more photos get added
 // over time — it's one report until you tap Finish, not one report per photo.
 export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit,
-  floorWalks = [], onFloorWalkChanged, canCreateFloorWalk = true }) {
+  floorWalks = [], onFloorWalkChanged, canCreateFloorWalk = true, canCreateVisit = true }) {
   const [activeTab,    setActiveTab]    = useState("visits");
   const [showForm,     setShowForm]     = useState(false);
   const [activeReport, setActiveReport] = useState(null);
@@ -142,10 +143,11 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
   // ── Floor walk: ensure a draft row exists ──
   const ensureFloorWalk = async () => {
     if (draftFw) return draftFw;
-    const { data } = await supabase.from("floor_walks")
-      .insert({ company_id:company.id, added_by:profile.id, note:fwNote, manager:profile.full_name,
+    const { data, error } = await supabase.from("floor_walks")
+      .insert({ company_id:company.id, added_by:profile.id, branch_id: profile.branch_id ?? null, note:fwNote, manager:profile.full_name,
         date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }), status:"draft" })
       .select("*, photos:floor_walk_photos(*)").single();
+    if (error) throw error;
     setDraftFw(data);
     return data;
   };
@@ -167,6 +169,9 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           .insert({ floor_walk_id:fw.id, url, comment:"" }).select().single();
         setDraftFw(f => ({ ...f, photos: [...(f.photos ?? []), photo] }));
       }
+    } catch (e) {
+      process.env?.NODE_ENV !== "production" && console.error(e);
+      toast("Failed to add photo. Please try again.");
     } finally { setFwUploading(false); }
   };
 
@@ -181,14 +186,18 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
   };
 
   const finishFloorWalk = async () => {
-    const fw = await ensureFloorWalk();
     setFwFinishing(true);
     try {
-      await supabase.from("floor_walks").update({ note:fwNote, status:"submitted" }).eq("id", fw.id);
+      const fw = await ensureFloorWalk();
+      const { error } = await supabase.from("floor_walks").update({ note:fwNote, status:"submitted" }).eq("id", fw.id);
+      if (error) throw error;
       onFloorWalkChanged?.();
       if (profile.branch_id) notifyBranch(company.id, profile.branch_id, "visit_created", "New Floor Walk 🚶", "Manager published a new floor walk");
       setDraftFw(null);
       setFwNote(""); setShowForm(false);
+    } catch (e) {
+      process.env?.NODE_ENV !== "production" && console.error(e);
+      toast("Failed to finish floor walk. Please try again.");
     } finally { setFwFinishing(false); }
   };
 
@@ -204,8 +213,10 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       </div>
 
       <InfoBanner>
-        {canCreateFloorWalk
+        {canCreateFloorWalk && canCreateVisit
           ? "Both are your own reports — Floor Walks get published to every branch for everyone to see and comment on; Store Visits stay in your own log."
+          : canCreateFloorWalk
+          ? "Floor Walks here are yours to publish — every branch sees and can comment on them. Store Visits are the VM Manager's own log — you can view and comment, not create."
           : "Floor Walks here are published by the VM Manager to every branch — you can view and comment. Store Visits are the VM Manager's own on-the-ground log."}
       </InfoBanner>
 
@@ -219,12 +230,14 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       {/* ── VISITS TAB ── */}
       {activeTab === "visits" && (
         <>
-          <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
-            onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Cancel" : draftVisit ? "▶ Continue Visit Report" : "＋ New Visit Report"}
-          </button>
+          {canCreateVisit && (
+            <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
+              onClick={() => setShowForm(!showForm)}>
+              {showForm ? "Cancel" : draftVisit ? "▶ Continue Visit Report" : "＋ New Visit Report"}
+            </button>
+          )}
 
-          {showForm && (
+          {canCreateVisit && showForm && (
             <div style={S.card}>
               <div style={S.h3}>Visit Details</div>
               {draftVisit && (
