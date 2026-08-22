@@ -30,7 +30,7 @@ async function uploadToStorage(companyId, folder, id, file, preset) {
 // A visit/floor walk stays open ("draft") while more photos get added
 // over time — it's one report until you tap Finish, not one report per photo.
 export function StoreVisits({ company, branches, profile, visits, onVisitCreated, onDeleteVisit,
-  floorWalks = [], onFloorWalkChanged, canCreateFloorWalk = true, canCreateVisit = true }) {
+  floorWalks = [], onFloorWalkChanged, onDeleteFloorWalk, canCreateFloorWalk = true, canCreateVisit = true }) {
   const [activeTab,    setActiveTab]    = useState("visits");
   const [showForm,     setShowForm]     = useState(false);
   const [openReportKey, setOpenReportKey] = useState(null); // { kind, id } for expanded card view
@@ -484,6 +484,12 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                     fontSize:11, fontWeight:600, padding:0 }}>
                   🖨️ Print Checklist
                 </button>
+                {onDeleteFloorWalk && fw.id && (
+                  <button onClick={() => onDeleteFloorWalk(fw.id)}
+                    style={{ background:"none", border:"none", color:"#f87171", cursor:"pointer", fontSize:11, fontWeight:600, padding:0 }}>
+                    🗑️ Delete
+                  </button>
+                )}
               </div>
               {fw.id && openFwId === fw.id && <CommentThread floorWalkId={fw.id} profile={profile} />}
             </ChecklistCard>

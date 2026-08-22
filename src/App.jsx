@@ -387,6 +387,11 @@ function AuthenticatedApp() {
     catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete visit report."); }
     finally { setConfirm(null); }
   });
+  const handleDeleteFloorWalk = (id) => showConfirm("Delete this floor walk report?", async () => {
+    try { await supabase.from("floor_walks").delete().eq("id", id); setFloorWalks(p => p.filter(x => x.id !== id)); }
+    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete floor walk."); }
+    finally { setConfirm(null); }
+  });
   const handleDeleteDemoHold = (id) => showConfirm("Remove this item from hold?", async () => {
     try { await supabase.from("demo_holds").delete().eq("id", id); setDemoHolds(p => p.filter(x => x.id !== id)); }
     catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to remove item."); }
@@ -434,7 +439,7 @@ function AuthenticatedApp() {
             {smPage==="requests" && <MgrRequests submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onReview={handleReview} profile={profile} />}
             {smPage==="campaign" && <StoreManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} profile={profile} guidelines={guidelines} company={company} />}
             {smPage==="demo"     && <VMDemoHold demoHolds={demoHolds.filter(d => d.branch_id === profile.branch_id)} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
-            {smPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => b.id === profile.branch_id)} profile={profile} visits={visits} floorWalks={floorWalks} onFloorWalkChanged={handleFloorWalkChanged} canCreateVisit={false} />}
+            {smPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => b.id === profile.branch_id)} profile={profile} visits={visits} floorWalks={floorWalks} onFloorWalkChanged={handleFloorWalkChanged} onDeleteFloorWalk={handleDeleteFloorWalk} canCreateVisit={false} />}
             {smPage==="reports"  && <MgrReports tasks={tasks.filter(t => t.branch_id === profile.branch_id)} submissions={submissions.filter(s => s.branch_id === profile.branch_id)} onExportPDF={handleExportBranchPDF} />}
             {smPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
@@ -462,7 +467,7 @@ function AuthenticatedApp() {
             )}
             {amPage==="campaign" && <AreaManagerCampaignGuides campaign={campaign} campaignProgress={campaignProgress} branches={activeBranches} managerBranches={managerBranches} profile={profile} guidelines={guidelines} company={company} onUploadGuideline={handleUploadGuideline} onDeleteGuideline={handleDeleteGuideline} onReviewBranchFile={handleReviewCampaignBranchFile} />}
             {amPage==="training" && <Training company={company} profile={profile} branches={activeBranches} />}
-            {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onFloorWalkChanged={handleFloorWalkChanged} />}
+            {amPage==="visits"   && <StoreVisits company={company} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} visits={visits} floorWalks={floorWalks} onVisitCreated={() => loadVisits(company.id)} onDeleteVisit={handleDeleteVisit} onFloorWalkChanged={handleFloorWalkChanged} onDeleteFloorWalk={handleDeleteFloorWalk} />}
             {amPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>

@@ -223,6 +223,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
   const [creating,       setCreating]       = useState(false);
   const [loading,        setLoading]        = useState(false);
   const [copyMsg,        setCopyMsg]        = useState("");
+  const [confirmDelete,  setConfirmDelete]  = useState(null); // item pending delete confirmation
 
   // Add task modal
   const [showAdd,    setShowAdd]    = useState(false);
@@ -442,7 +443,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
     } catch (e) {
       process.env?.NODE_ENV !== "production" && console.error(e);
       toast("Failed to delete. Please try again.");
-    }
+    } finally { setConfirmDelete(null); }
   };
 
   const myItems = items
@@ -456,6 +457,25 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
 
   return (
     <div>
+      {confirmDelete && (
+        <div style={{ position:"fixed", inset:0, background:"#00000088", zIndex:900,
+          display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+          <div style={{ background:"var(--clr-surface)", borderRadius:16, padding:26,
+            maxWidth:320, width:"100%", border:"1px solid #f8717133" }}>
+            <div style={{ fontSize:15, fontWeight:600, marginBottom:18, lineHeight:1.5 }}>
+              Delete "{(confirmDelete.title ?? "").split("\n")[0]}"? This can't be undone.
+            </div>
+            <div style={{ display:"flex", gap:10 }}>
+              <button style={{ flex:1, padding:"10px", background:"#f87171", color:"#fff",
+                border:"none", borderRadius:10, cursor:"pointer", fontWeight:700, fontFamily:"'DM Sans',sans-serif" }}
+                onClick={() => deleteItem(confirmDelete)}>Delete</button>
+              <button style={{ flex:1, padding:"10px", background:"transparent", color:"var(--clr-muted)",
+                border:"1px solid #6b688033", borderRadius:10, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}
+                onClick={() => setConfirmDelete(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:10, marginBottom:16 }} className="fu">
         <div>
@@ -587,10 +607,18 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
               <tbody>
                 {weekDates.map(d => {
                   const dayItems = myItems.filter(i => i.day_of_week === d.index);
+                  const isToday = d.index === todayIndex;
+                  const dayCell = (
+                    <span style={isToday ? {
+                      display:"inline-block", padding:"3px 10px", borderRadius:8, fontSize:11,
+                      fontWeight:800, letterSpacing:.3, textTransform:"uppercase",
+                      background:C.accentColor, color:"#fff",
+                    } : { fontSize:13, fontWeight:600 }}>{d.label}</span>
+                  );
                   if (dayItems.length === 0) {
                     return (
-                      <tr key={d.index}>
-                        <td style={{ padding:"12px 16px", fontSize:13, fontWeight:600, borderBottom:`1px solid ${C.accentColor}0a` }}>{d.label}</td>
+                      <tr key={d.index} style={isToday ? { background:C.accentColor+"08" } : undefined}>
+                        <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>{dayCell}</td>
                         <td style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, borderBottom:`1px solid ${C.accentColor}0a` }}>{d.dmy}</td>
                         <td colSpan={readOnly ? 3 : 2} style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor+"88", borderBottom:`1px solid ${C.accentColor}0a` }}>No task scheduled</td>
                         {!readOnly && (
@@ -606,10 +634,10 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                     const [title, ...noteLines] = (item.title ?? "").split("\n");
                     const clickable = onItemClick && item.task_id && d.index === todayIndex;
                     return (
-                      <tr key={item.id}>
+                      <tr key={item.id} style={isToday ? { background:C.accentColor+"08" } : undefined}>
                         {i === 0 && (
                           <>
-                            <td rowSpan={dayItems.length} style={{ padding:"12px 16px", fontSize:13, fontWeight:600, verticalAlign:"top", borderBottom:`1px solid ${C.accentColor}0a` }}>{d.label}</td>
+                            <td rowSpan={dayItems.length} style={{ padding:"12px 16px", verticalAlign:"top", borderBottom:`1px solid ${C.accentColor}0a` }}>{dayCell}</td>
                             <td rowSpan={dayItems.length} style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, verticalAlign:"top", borderBottom:`1px solid ${C.accentColor}0a` }}>{d.dmy}</td>
                           </>
                         )}
@@ -643,8 +671,8 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                         </td>
                         {!readOnly && (
                           <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                            <button onClick={() => deleteItem(item)}
-                              style={{ background:"none", border:"none", color:C.mutedColor, cursor:"pointer", fontSize:15 }}>⋮</button>
+                            <button onClick={() => setConfirmDelete(item)} title="Delete this task"
+                              style={{ background:"none", border:"none", color:"#f87171", cursor:"pointer", fontSize:15 }}>🗑️</button>
                           </td>
                         )}
                       </tr>
