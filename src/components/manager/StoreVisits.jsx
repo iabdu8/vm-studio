@@ -165,8 +165,9 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
         const path = `${company.id}/floorwalk/${fw.id}-${Date.now()}-${safeName}`;
         await supabase.storage.from("vm-photos").upload(path, compressed);
         const url = supabase.storage.from("vm-photos").getPublicUrl(path).data.publicUrl;
-        const { data: photo } = await supabase.from("floor_walk_photos")
+        const { data: photo, error: photoErr } = await supabase.from("floor_walk_photos")
           .insert({ floor_walk_id:fw.id, url, comment:"" }).select().single();
+        if (photoErr) throw photoErr;
         setDraftFw(f => ({ ...f, photos: [...(f.photos ?? []), photo] }));
       }
     } catch (e) {
@@ -383,7 +384,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                   style={{ display:"none" }} onChange={handleFwFiles}/>
               </div>
               {fwUploading && <div style={{ ...S.muted, fontSize:12, marginBottom:10 }}>Uploading…</div>}
-              {(draftFw?.photos ?? []).map(p => (
+              {(draftFw?.photos ?? []).filter(Boolean).map(p => (
                 <div key={p.id} style={{ marginBottom:10, border:`1px solid ${C.accentColor}18`, borderRadius:10, overflow:"hidden" }}>
                   <div style={{ position:"relative" }}>
                     <img loading="lazy" src={p.url} alt="" style={{ width:"100%", maxHeight:160, objectFit:"cover", display:"block" }}/>
