@@ -556,6 +556,19 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
           <div style={{ ...S.muted }}>No staff assigned to this branch yet.</div>
         </div>
       ) : (
+        <>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:12 }}>
+          {[
+            { n: myItems.length, l:"Total This Week", c:C.accentColor },
+            { n: myItems.filter(i => i.status==="done").length, l:"Done", c:"#4ade80" },
+            { n: myItems.filter(i => i.day_of_week===todayIndex).length, l:"Today", c:"#d4a82a" },
+          ].map(k => (
+            <div key={k.l} style={{ textAlign:"center", padding:"10px 6px", background:C.surfaceHigh, borderRadius:10 }}>
+              <div style={{ fontSize:18, fontWeight:800, color:k.c, lineHeight:1 }}>{k.n}</div>
+              <div style={{ fontSize:9, fontWeight:700, color:C.mutedColor, letterSpacing:.5, textTransform:"uppercase", marginTop:3 }}>{k.l}</div>
+            </div>
+          ))}
+        </div>
         <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
           <div style={{ overflowX:"auto" }}>
             <table style={{ width:"100%", borderCollapse:"collapse", minWidth:760 }}>
@@ -647,6 +660,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* Add Task modal */}

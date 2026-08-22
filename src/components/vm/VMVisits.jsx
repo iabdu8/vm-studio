@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import { ReportView } from "../shared/ReportView.jsx";
 import { InfoBanner } from "../shared/InfoBanner.jsx";
 import { printFloorWalkChecklist } from "../../lib/checklistReports.js";
+import { ChecklistCard, ChecklistTable, StatusPill } from "../shared/ChecklistCard.jsx";
 
 export function VMVisits({ profile, floorWalks = [], company }) {
   const [visits,  setVisits]  = useState([]);
@@ -124,36 +125,41 @@ export function VMVisits({ profile, floorWalks = [], company }) {
               <div style={{ ...S.muted }}>No floor walks published yet.</div>
             </div>
           )}
-          {floorWalks.map((fw, i) => (
-            <div key={i} style={S.card}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", cursor:"pointer" }}
-                onClick={() => openFloorWalkReport(fw)}>
-                <div>
-                  <div style={{ fontWeight:700, fontSize:14 }}>📋 Floor Walk</div>
-                  <div style={{ ...S.muted, fontSize:12, marginTop:2 }}>
-                    By {fw.manager} · {fw.date ?? ""}
-                  </div>
-                  {fw.note && (
-                    <div style={{ fontSize:13, marginTop:6, color:C.textColor, lineHeight:1.4,
-                      maxWidth:240, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                      {fw.note}
-                    </div>
-                  )}
-                  {fw.photos?.length > 0 && (
-                    <div style={{ fontSize:11, color:C.accentColor, marginTop:4 }}>
-                      📷 {fw.photos.length} photos
-                    </div>
-                  )}
-                </div>
-                <span style={{ fontSize:11, color:C.accentColor }}>Tap to view →</span>
+          {floorWalks.map((fw, i) => {
+            const points = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
+            const photoCount = fw.photos?.length ?? 0;
+            const dayName = fw.date ? new Date(fw.date).toLocaleDateString("en-GB", { weekday:"long" }) : "";
+            return (
+            <ChecklistCard key={i}
+              title="📋 Floor Walk" badge={dayName} badgeColor={C.accentColor}
+              meta={`By ${fw.manager ?? "—"} · ${fw.date ?? ""}`}
+              kpis={[{ n: points.length, l:"Points" }, { n: photoCount, l:"Photos" }]}
+            >
+              {points.length > 0 && (
+                <ChecklistTable columns={["#","Check Point","Status"]}>
+                  {points.map((p, idx) => (
+                    <tr key={idx}>
+                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{idx+1}</td>
+                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{p}</td>
+                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}><StatusPill status="done"/></td>
+                    </tr>
+                  ))}
+                </ChecklistTable>
+              )}
+              <div style={{ display:"flex", gap:14, marginTop:12 }}>
+                <button onClick={() => openFloorWalkReport(fw)}
+                  style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:11, fontWeight:600, padding:0 }}>
+                  📷 View Photos
+                </button>
+                <button onClick={() => printFloorWalkChecklist(fw, company)}
+                  style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
+                    fontSize:11, fontWeight:600, padding:0 }}>
+                  🖨️ Print Checklist
+                </button>
               </div>
-              <button onClick={() => printFloorWalkChecklist(fw, company)}
-                style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
-                  fontSize:11, fontWeight:600, padding:0, marginTop:10 }}>
-                🖨️ Print Checklist
-              </button>
-            </div>
-          ))}
+            </ChecklistCard>
+            );
+          })}
         </>
       )}
     </div>

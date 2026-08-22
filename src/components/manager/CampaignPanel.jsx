@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import { uploadCampaignImage } from "../../services/enterprise.service.js";
 import { CampaignFileBox } from "../shared/CampaignFileBox.jsx";
 import { printCampaignChecklist } from "../../lib/checklistReports.js";
+import { ChecklistTable } from "../shared/ChecklistCard.jsx";
 
 const STATUS_META = {
   not_started: { label: "Not Started", color: "#6b6880" },
@@ -225,25 +226,28 @@ export function CampaignPanel({ campaign, onSaveCampaign, onDeleteCampaign, camp
                 ))}
               </div>
 
-              {/* Per-branch status — tap to cycle */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {/* Per-branch status */}
+              <ChecklistTable columns={["Branch","Status","Note"]}>
                 {campaignProgress.map(cb => {
                   const meta = STATUS_META[cb.status] ?? STATUS_META.not_started;
+                  const cellStyle = { padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` };
                   return (
-                    <button key={cb.branch_id}
-                      onClick={() => onSetBranchStatus?.(cb.branch_id, NEXT_STATUS[cb.status] ?? "in_progress")}
-                      title="Tap to change status"
-                      style={{
-                        padding: "5px 11px", borderRadius: 16, cursor: "pointer",
-                        fontSize: 11, fontWeight: 600,
-                        background: meta.color + "1c", color: meta.color,
-                        border: `1px solid ${meta.color}44`, transition: "all .2s",
-                      }}>
-                      {cb.branch?.name ?? "—"} · {meta.label}
-                    </button>
+                    <tr key={cb.branch_id}>
+                      <td style={{ ...cellStyle, fontWeight:600 }}>{cb.branch?.name ?? "—"}</td>
+                      <td style={cellStyle}>
+                        <button onClick={() => onSetBranchStatus?.(cb.branch_id, NEXT_STATUS[cb.status] ?? "in_progress")}
+                          disabled={!onSetBranchStatus} title={onSetBranchStatus ? "Tap to change status" : ""}
+                          style={{ padding:"3px 11px", borderRadius:12, fontSize:10, fontWeight:800,
+                            background: meta.color+"22", color: meta.color, border:"none",
+                            cursor: onSetBranchStatus ? "pointer" : "default" }}>
+                          {meta.label}
+                        </button>
+                      </td>
+                      <td style={{ ...cellStyle, color:C.mutedColor }}>{cb.note ?? "—"}</td>
+                    </tr>
                   );
                 })}
-              </div>
+              </ChecklistTable>
             </div>
           )}
 
