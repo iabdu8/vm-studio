@@ -74,18 +74,29 @@ export function printFloorWalkChecklist(fw, company) {
   const accent = company?.accent_color ?? "#1a1420";
   const date = fw.date ? new Date(fw.date) : new Date();
   const dayName = date.toLocaleDateString("en-GB", { weekday: "long" });
-  const points = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
+  const checklist = fw.checklist ?? [];
+  const extraPoints = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
   const photos = fw.photos ?? [];
+  const doneCount = checklist.filter(it => it.status === "done").length;
+
+  const PILL = {
+    done: `<span class="pill pill-done">✓ Done</span>`,
+    pending: `<span class="pill pill-pending">Pending</span>`,
+  };
 
   const bodyHtml = `
-    ${points.length ? `
-    <div class="section">📋 Floor Walk Points</div>
+    ${checklist.length ? `
+    <div class="section">📋 Floor Walk Checklist</div>
     <table>
       <thead><tr><th style="width:32px">#</th><th>Check Point</th><th style="width:110px">Status</th></tr></thead>
       <tbody>
-        ${points.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p)}</td><td><span class="pill pill-done">✓ Noted</span></td></tr>`).join("")}
+        ${checklist.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.label)}</td><td>${PILL[it.status] ?? PILL.pending}</td></tr>`).join("")}
       </tbody>
-    </table>` : `<div class="box">No written notes for this floor walk.</div>`}
+    </table>` : `<div class="box">No checklist recorded for this floor walk.</div>`}
+
+    ${extraPoints.length ? `
+    <div class="section">📝 Additional Notes</div>
+    <div class="box">${extraPoints.map(esc).join("<br/>")}</div>` : ""}
 
     ${photos.length ? `
     <div class="section">📷 Photos Taken (${photos.length})</div>
@@ -104,7 +115,7 @@ export function printFloorWalkChecklist(fw, company) {
     accent,
     meta: `📅 <strong>${esc(date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }))}</strong><br/>By ${esc(fw.manager ?? "—")}`,
     kpis: [
-      { n: points.length, l: "Points Noted" },
+      { n: `${doneCount}/${checklist.length || 9}`, l: "Checked" },
       { n: photos.length, l: "Photos", color: "#4F46E5" },
     ],
     bodyHtml,

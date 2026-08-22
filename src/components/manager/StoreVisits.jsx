@@ -10,6 +10,14 @@ import { toast } from "../shared/Toast.jsx";
 import { printFloorWalkChecklist } from "../../lib/checklistReports.js";
 import { ChecklistCard, ChecklistTable, StatusPill } from "../shared/ChecklistCard.jsx";
 
+// Standard daily floor walk checklist — same points every time,
+// tap to cycle Pending → Done.
+const DEFAULT_FW_CHECKLIST = [
+  "First 10M", "Recovery Status", "Gaps / Availability", "Min / Max Issues",
+  "Pricing / Signage", "Marketing / Danglers", "VM Standards",
+  "Customer Flow / Blocked Areas", "Pending Points from Yesterday",
+].map(label => ({ label, status: "pending" }));
+
 const STATUS_META = {
   draft:     { label:"In Progress", color:"#d4a82a" },
   submitted: { label:"Submitted", color:"#4ade80" },
@@ -145,11 +153,20 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
     if (draftFw) return draftFw;
     const { data, error } = await supabase.from("floor_walks")
       .insert({ company_id:company.id, added_by:profile.id, branch_id: profile.branch_id ?? null, note:fwNote, manager:profile.full_name,
-        date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }), status:"draft" })
+        date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }), status:"draft",
+        checklist: DEFAULT_FW_CHECKLIST })
       .select("*, photos:floor_walk_photos(*)").single();
     if (error) throw error;
     setDraftFw(data);
     return data;
+  };
+
+  const toggleFwCheckItem = async (idx) => {
+    const fw = await ensureFloorWalk();
+    const list = fw.checklist ?? DEFAULT_FW_CHECKLIST;
+    const next = list.map((it, i) => i === idx ? { ...it, status: it.status === "done" ? "pending" : "done" } : it);
+    setDraftFw(f => ({ ...f, checklist: next }));
+    await supabase.from("floor_walks").update({ checklist: next }).eq("id", fw.id);
   };
 
   const handleFwFiles = async (e) => {
@@ -366,7 +383,31 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                   🟡 In progress — keep adding photos, then tap Finish when done.
                 </div>
               )}
-              <div style={S.lbl}>Notes / Instructions</div>
+
+              <div style={S.lbl}>Checklist — tap to mark done</div>
+              <div style={{ marginBottom:14 }}>
+                {(draftFw?.checklist ?? DEFAULT_FW_CHECKLIST).map((item, idx) => (
+                  <button key={item.label} onClick={() => toggleFwCheckItem(idx)}
+                    style={{ display:"flex", alignItems:"center", gap:10, width:"100%", textAlign:"left",
+                      padding:"9px 4px", background:"none", border:"none", cursor:"pointer",
+                      borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>
+                    <span style={{ width:20, height:20, borderRadius:5, flexShrink:0, display:"flex",
+                      alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800,
+                      background: item.status==="done" ? "#4ade80" : "transparent",
+                      border: item.status==="done" ? "none" : `1px solid ${C.mutedColor}55`,
+                      color:"#0a0a0f" }}>
+                      {item.status==="done" ? "✓" : ""}
+                    </span>
+                    <span style={{ fontSize:13, fontWeight:600,
+                      color: item.status==="done" ? C.mutedColor : C.textColor,
+                      textDecoration: item.status==="done" ? "line-through" : "none" }}>
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div style={S.lbl}>Notes / Additional Points</div>
               <textarea style={{ ...S.inp, minHeight:72, resize:"vertical" }}
                 placeholder="Floor walk instructions..." value={fwNote}
                 onChange={e => setFwNote(e.target.value)}
@@ -416,7 +457,9 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           )}
 
           {floorWalks.map((fw, i) => {
-            const points = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
+            const checklist = fw.checklist ?? [];
+            const doneCount = checklist.filter(it => it.status === "done").length;
+            const extraPoints = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
             const photoCount = fw.photos?.length ?? 0;
             const dayName = fw.date ? new Date(fw.date).toLocaleDateString("en-GB", { weekday:"long" }) : "";
             return (
@@ -425,18 +468,26 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
               title={`📋 Floor Walk — ${fw.manager ?? ""}`}
               badge={dayName} badgeColor={C.accentColor}
               meta={fw.date ?? ""}
-              kpis={[{ n: points.length, l:"Points" }, { n: photoCount, l:"Photos" }]}
+              kpis={[
+                { n: `${doneCount}/${checklist.length || 9}`, l:"Checked" },
+                { n: photoCount, l:"Photos" },
+              ]}
             >
-              {points.length > 0 && (
+              {checklist.length > 0 && (
                 <ChecklistTable columns={["#","Check Point","Status"]}>
-                  {points.map((p, idx) => (
+                  {checklist.map((it, idx) => (
                     <tr key={idx}>
                       <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{idx+1}</td>
-                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{p}</td>
-                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}><StatusPill status="done"/></td>
+                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{it.label}</td>
+                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}><StatusPill status={it.status}/></td>
                     </tr>
                   ))}
                 </ChecklistTable>
+              )}
+              {extraPoints.length > 0 && (
+                <div style={{ marginTop:10, fontSize:12, color:C.mutedColor, lineHeight:1.6 }}>
+                  <strong style={{ color:C.textColor }}>Notes:</strong> {extraPoints.join(" · ")}
+                </div>
               )}
               <div style={{ display:"flex", gap:14, marginTop:12 }}>
                 <button onClick={() => setActiveReport({

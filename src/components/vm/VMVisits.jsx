@@ -126,25 +126,35 @@ export function VMVisits({ profile, floorWalks = [], company }) {
             </div>
           )}
           {floorWalks.map((fw, i) => {
-            const points = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
+            const checklist = fw.checklist ?? [];
+            const doneCount = checklist.filter(it => it.status === "done").length;
+            const extraPoints = (fw.note ?? "").split("\n").map(l => l.trim()).filter(Boolean);
             const photoCount = fw.photos?.length ?? 0;
             const dayName = fw.date ? new Date(fw.date).toLocaleDateString("en-GB", { weekday:"long" }) : "";
             return (
             <ChecklistCard key={i}
               title="📋 Floor Walk" badge={dayName} badgeColor={C.accentColor}
               meta={`By ${fw.manager ?? "—"} · ${fw.date ?? ""}`}
-              kpis={[{ n: points.length, l:"Points" }, { n: photoCount, l:"Photos" }]}
+              kpis={[
+                { n: `${doneCount}/${checklist.length || 9}`, l:"Checked" },
+                { n: photoCount, l:"Photos" },
+              ]}
             >
-              {points.length > 0 && (
+              {checklist.length > 0 && (
                 <ChecklistTable columns={["#","Check Point","Status"]}>
-                  {points.map((p, idx) => (
+                  {checklist.map((it, idx) => (
                     <tr key={idx}>
                       <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{idx+1}</td>
-                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{p}</td>
-                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}><StatusPill status="done"/></td>
+                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}>{it.label}</td>
+                      <td style={{ padding:"8px 12px", borderBottom:`1px solid color-mix(in srgb, var(--clr-text) 8%, transparent)` }}><StatusPill status={it.status}/></td>
                     </tr>
                   ))}
                 </ChecklistTable>
+              )}
+              {extraPoints.length > 0 && (
+                <div style={{ marginTop:10, fontSize:12, color:C.mutedColor, lineHeight:1.6 }}>
+                  <strong style={{ color:C.textColor }}>Notes:</strong> {extraPoints.join(" · ")}
+                </div>
               )}
               <div style={{ display:"flex", gap:14, marginTop:12 }}>
                 <button onClick={() => openFloorWalkReport(fw)}
