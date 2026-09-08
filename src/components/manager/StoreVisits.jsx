@@ -41,6 +41,8 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
 
   // ── Visit draft ──
   const [draftVisit,   setDraftVisit]   = useState(null);
+  const draftVisitRef = useRef(null);
+  const creatingVisitRef = useRef(null);
   const [branchId,     setBranchId]     = useState(branches[0]?.id ?? "");
   const [visitDate,    setVisitDate]    = useState(new Date().toISOString().slice(0,10));
   const [notes,        setNotes]        = useState("");
@@ -49,9 +51,17 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
 
   // ── Floor walk draft ──
   const [draftFw,      setDraftFw]      = useState(null);
+  const draftFwRef = useRef(null);
+  const creatingFwRef = useRef(null);
   const [fwNote,        setFwNote]       = useState("");
   const [fwUploadingIdx,setFwUploadingIdx] = useState(null);
   const [fwFinishing,   setFwFinishing]  = useState(false);
+
+  useEffect(() => { draftVisitRef.current = draftVisit; }, [draftVisit]);
+  useEffect(() => { draftFwRef.current = draftFw; }, [draftFw]);
+  useEffect(() => {
+    if (!branchId && branches[0]?.id) setBranchId(branches[0].id);
+  }, [branches, branchId]);
 
   useEffect(() => {
     if (!company?.id || !profile?.id) return;
@@ -61,6 +71,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       .order("created_at", { ascending:false }).limit(1).maybeSingle()
       .then(({ data }) => {
         if (data) {
+          draftVisitRef.current = data;
           setDraftVisit(data);
           setBranchId(data.branch_id ?? branches[0]?.id ?? "");
           setVisitDate(data.visit_date ?? new Date().toISOString().slice(0,10));
@@ -71,28 +82,45 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       .select("*")
       .eq("company_id", company.id).eq("added_by", profile.id).eq("status", "draft")
       .order("created_at", { ascending:false }).limit(1).maybeSingle()
-      .then(({ data }) => { if (data) { setDraftFw(data); setFwNote(data.note ?? ""); } });
+      .then(({ data }) => {
+        if (data) {
+          draftFwRef.current = data;
+          setDraftFw(data);
+          setFwNote(data.note ?? "");
+          setBranchId(data.branch_id ?? branches[0]?.id ?? "");
+        }
+      });
   }, [company?.id, profile?.id]);
 
   // ════════════════════════════════════════════════════════════
   //  VISITS
   // ════════════════════════════════════════════════════════════
   const ensureVisit = async () => {
-    if (draftVisit) return draftVisit;
-    const { data, error } = await supabase
-      .from("store_visits")
-      .insert({ company_id:company.id, branch_id:branchId, visitor_id:profile.id,
-        visit_date:visitDate, notes, status:"draft", checklist: DEFAULT_CHECKLIST })
-      .select("*").single();
-    if (error) throw error;
-    setDraftVisit(data);
-    return data;
+    if (draftVisitRef.current) return draftVisitRef.current;
+    if (creatingVisitRef.current) return creatingVisitRef.current;
+    creatingVisitRef.current = (async () => {
+      const { data, error } = await supabase
+        .from("store_visits")
+        .insert({ company_id:company.id, branch_id:branchId, visitor_id:profile.id,
+          visit_date:visitDate, notes, status:"draft", checklist: DEFAULT_CHECKLIST })
+        .select("*").single();
+      if (error) throw error;
+      draftVisitRef.current = data;
+      setDraftVisit(data);
+      return data;
+    })();
+    try {
+      return await creatingVisitRef.current;
+    } finally {
+      creatingVisitRef.current = null;
+    }
   };
 
   const toggleVisitItem = async (idx) => {
     const v = await ensureVisit();
-    const list = v.checklist ?? DEFAULT_CHECKLIST;
+    const list = draftVisitRef.current?.checklist ?? v.checklist ?? DEFAULT_CHECKLIST;
     const next = list.map((it, i) => i === idx ? { ...it, status: it.status === "done" ? "pending" : "done" } : it);
+    draftVisitRef.current = { ...v, checklist: next };
     setDraftVisit(f => ({ ...f, checklist: next }));
     await supabase.from("store_visits").update({ checklist: next }).eq("id", v.id);
   };
@@ -103,10 +131,11 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       const v = await ensureVisit();
       const urls = [];
       for (const file of files) urls.push(await uploadToStorage(company.id, "visits", v.id, file, "visit"));
-      const list = draftVisit?.checklist ?? v.checklist ?? DEFAULT_CHECKLIST;
+      const list = draftVisitRef.current?.checklist ?? v.checklist ?? DEFAULT_CHECKLIST;
       const next = list.map((it, i) => i === idx ? { ...it, photos: [...(it.photos ?? []), ...urls.map(url => ({ url }))] } : it);
       const { error } = await supabase.from("store_visits").update({ checklist: next }).eq("id", v.id);
       if (error) throw error;
+      draftVisitRef.current = { ...v, checklist: next };
       setDraftVisit(f => ({ ...f, checklist: next }));
     } catch (e) {
       !import.meta.env.PROD && console.error(e);
@@ -116,16 +145,18 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
 
   const removeVisitItemPhoto = async (idx, photoIdx) => {
     const v = await ensureVisit();
-    const list = v.checklist ?? DEFAULT_CHECKLIST;
+    const list = draftVisitRef.current?.checklist ?? v.checklist ?? DEFAULT_CHECKLIST;
     const next = list.map((it, i) => i === idx ? { ...it, photos: it.photos.filter((_, pi) => pi !== photoIdx) } : it);
+    draftVisitRef.current = { ...v, checklist: next };
     setDraftVisit(f => ({ ...f, checklist: next }));
     await supabase.from("store_visits").update({ checklist: next }).eq("id", v.id);
   };
 
   const updateVisitItemComment = async (idx, val) => {
     const v = await ensureVisit();
-    const list = v.checklist ?? DEFAULT_CHECKLIST;
+    const list = draftVisitRef.current?.checklist ?? v.checklist ?? DEFAULT_CHECKLIST;
     const next = list.map((it, i) => i === idx ? { ...it, note: val } : it);
+    draftVisitRef.current = { ...v, checklist: next };
     setDraftVisit(f => ({ ...f, checklist: next }));
     await supabase.from("store_visits").update({ checklist: next }).eq("id", v.id);
   };
@@ -139,6 +170,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       notifyBranch(company.id, v.branch_id, "visit_created", "Store Visit Report 🚶",
         "A visit report was submitted for your branch");
       onVisitCreated?.();
+      draftVisitRef.current = null;
       setDraftVisit(null);
       setNotes(""); setShowForm(false);
     } catch (e) {
@@ -151,21 +183,32 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
   //  FLOOR WALKS
   // ════════════════════════════════════════════════════════════
   const ensureFloorWalk = async () => {
-    if (draftFw) return draftFw;
-    const { data, error } = await supabase.from("floor_walks")
-      .insert({ company_id:company.id, added_by:profile.id, branch_id: profile.branch_id ?? null, note:fwNote, manager:profile.full_name,
-        date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }), status:"draft",
-        checklist: DEFAULT_CHECKLIST })
-      .select("*").single();
-    if (error) throw error;
-    setDraftFw(data);
-    return data;
+    if (draftFwRef.current) return draftFwRef.current;
+    if (creatingFwRef.current) return creatingFwRef.current;
+    if (!branchId) throw new Error("A branch is required to create a floor walk.");
+    creatingFwRef.current = (async () => {
+      const { data, error } = await supabase.from("floor_walks")
+        .insert({ company_id:company.id, added_by:profile.id, branch_id: branchId, note:fwNote, manager:profile.full_name,
+          date: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"short" }), status:"draft",
+          checklist: DEFAULT_CHECKLIST })
+        .select("*").single();
+      if (error) throw error;
+      draftFwRef.current = data;
+      setDraftFw(data);
+      return data;
+    })();
+    try {
+      return await creatingFwRef.current;
+    } finally {
+      creatingFwRef.current = null;
+    }
   };
 
   const toggleFwItem = async (idx) => {
     const fw = await ensureFloorWalk();
-    const list = fw.checklist ?? DEFAULT_CHECKLIST;
+    const list = draftFwRef.current?.checklist ?? fw.checklist ?? DEFAULT_CHECKLIST;
     const next = list.map((it, i) => i === idx ? { ...it, status: it.status === "done" ? "pending" : "done" } : it);
+    draftFwRef.current = { ...fw, checklist: next };
     setDraftFw(f => ({ ...f, checklist: next }));
     await supabase.from("floor_walks").update({ checklist: next }).eq("id", fw.id);
   };
@@ -176,10 +219,11 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       const fw = await ensureFloorWalk();
       const urls = [];
       for (const file of files) urls.push(await uploadToStorage(company.id, "floorwalk", fw.id, file, "floorWalk"));
-      const list = draftFw?.checklist ?? fw.checklist ?? DEFAULT_CHECKLIST;
+      const list = draftFwRef.current?.checklist ?? fw.checklist ?? DEFAULT_CHECKLIST;
       const next = list.map((it, i) => i === idx ? { ...it, photos: [...(it.photos ?? []), ...urls.map(url => ({ url }))] } : it);
       const { error } = await supabase.from("floor_walks").update({ checklist: next }).eq("id", fw.id);
       if (error) throw error;
+      draftFwRef.current = { ...fw, checklist: next };
       setDraftFw(f => ({ ...f, checklist: next }));
     } catch (e) {
       !import.meta.env.PROD && console.error(e);
@@ -189,16 +233,18 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
 
   const removeFwItemPhoto = async (idx, photoIdx) => {
     const fw = await ensureFloorWalk();
-    const list = fw.checklist ?? DEFAULT_CHECKLIST;
+    const list = draftFwRef.current?.checklist ?? fw.checklist ?? DEFAULT_CHECKLIST;
     const next = list.map((it, i) => i === idx ? { ...it, photos: it.photos.filter((_, pi) => pi !== photoIdx) } : it);
+    draftFwRef.current = { ...fw, checklist: next };
     setDraftFw(f => ({ ...f, checklist: next }));
     await supabase.from("floor_walks").update({ checklist: next }).eq("id", fw.id);
   };
 
   const updateFwItemComment = async (idx, val) => {
     const fw = await ensureFloorWalk();
-    const list = fw.checklist ?? DEFAULT_CHECKLIST;
+    const list = draftFwRef.current?.checklist ?? fw.checklist ?? DEFAULT_CHECKLIST;
     const next = list.map((it, i) => i === idx ? { ...it, note: val } : it);
+    draftFwRef.current = { ...fw, checklist: next };
     setDraftFw(f => ({ ...f, checklist: next }));
     await supabase.from("floor_walks").update({ checklist: next }).eq("id", fw.id);
   };
@@ -210,7 +256,8 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       const { error } = await supabase.from("floor_walks").update({ note:fwNote, status:"submitted" }).eq("id", fw.id);
       if (error) throw error;
       onFloorWalkChanged?.();
-      if (profile.branch_id) notifyBranch(company.id, profile.branch_id, "visit_created", "New Floor Walk 🚶", "Manager published a new floor walk");
+      if (fw.branch_id) notifyBranch(company.id, fw.branch_id, "visit_created", "New Floor Walk 🚶", "Manager published a new floor walk");
+      draftFwRef.current = null;
       setDraftFw(null);
       setFwNote(""); setShowForm(false);
     } catch (e) {
@@ -399,6 +446,21 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
                   🟡 In progress — tap each point below, then Finish when done.
                 </div>
               )}
+
+              <div style={S.lbl}>Branch</div>
+              <select style={S.sel} value={branchId}
+                onChange={e => {
+                  const nextBranchId = e.target.value;
+                  setBranchId(nextBranchId);
+                  if (draftFwRef.current) {
+                    const next = { ...draftFwRef.current, branch_id: nextBranchId };
+                    draftFwRef.current = next;
+                    setDraftFw(next);
+                    supabase.from("floor_walks").update({ branch_id:nextBranchId }).eq("id", next.id);
+                  }
+                }}>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
 
               <div style={S.lbl}>Checklist — tap to mark done, add photos per point</div>
               <div style={{ marginBottom:14 }}>

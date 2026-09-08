@@ -14,6 +14,7 @@ const appContext = read("src/context/AppContext.jsx");
 const dataService = read("src/services/data.service.js");
 const training = read("src/components/manager/Training.jsx");
 const i18n = read("src/lib/i18n.js");
+const storeVisits = read("src/components/manager/StoreVisits.jsx");
 
 const checks = [
   ["profile self escalation guard exists", /guard_profile_sensitive_update/.test(migrations)],
@@ -50,6 +51,11 @@ const checks = [
   ["send-push validates UUID targets", /\[0-9a-f-\]\{36\}/.test(sendPush)],
   ["send-push has recipient guard", /uniqueUserIds\.length > 100/.test(sendPush)],
   ["language switch is dynamic", /setLanguage/.test(i18n) && /toggleLanguage/.test(i18n) && /document\.documentElement\.dir/.test(i18n)],
+  ["store visit draft creation is guarded against duplicate inserts", /draftVisitRef/.test(storeVisits) && /creatingVisitRef/.test(storeVisits) && /if \(creatingVisitRef\.current\) return creatingVisitRef\.current/.test(storeVisits)],
+  ["store visit finish clears the current draft reference", /draftVisitRef\.current = null/.test(storeVisits)],
+  ["floor walk uses selected managed branch", /branch_id:\s*branchId/.test(storeVisits) && !/branch_id:\s*profile\.branch_id/.test(storeVisits)],
+  ["floor walk completion notifies the selected branch", /notifyBranch\(company\.id,\s*fw\.branch_id/.test(storeVisits)],
+  ["floor walk form exposes branch selection", /Floor Walk Details/.test(storeVisits) && /<select style=\{S\.sel\} value=\{branchId\}/.test(storeVisits)],
 ];
 
 for (const [name, pass] of checks) {
