@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "node tests/security-static.test.mjs",
+    "test:security": "node tests/security-static.test.mjs",
     "preview": "vite preview",
-    "prepare": "chmod +x node_modules/.bin/vite || true"
+    "prepare": "node -e \"process.exit(0)\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

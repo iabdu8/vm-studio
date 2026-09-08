@@ -5,6 +5,7 @@ import { notifyUser } from "../../services/enterprise.service.js";
 import { toast } from "../shared/Toast.jsx";
 import { CommentThread } from "../shared/CommentThread.jsx";
 import { printWeeklyPlanChecklist } from "../../lib/checklistReports.js";
+import { getLocale, t } from "../../lib/i18n.js";
 
 // ============================================================
 //  WEEKLY STORE PLAN — Table View
@@ -12,23 +13,27 @@ import { printWeeklyPlanChecklist } from "../../lib/checklistReports.js";
 // ============================================================
 
 const STATUS_META = {
-  pending:     { bg:"#6b688018", color:"#6b6880", label:"Scheduled" },
-  in_progress: { bg:"#d4a82a18", color:"#d4a82a", label:"In Progress" },
-  done:        { bg:"#4ade8018", color:"#4ade80", label:"Done" },
+  pending:     { bg:"#6b688018", color:"#6b6880", labelKey:"weeklyPlan.scheduled", fallback:"Scheduled" },
+  in_progress: { bg:"#d4a82a18", color:"#d4a82a", labelKey:"weeklyPlan.inProgress", fallback:"In Progress" },
+  done:        { bg:"#4ade8018", color:"#4ade80", labelKey:"weeklyPlan.done", fallback:"Done" },
 };
 
 // Gulf work week: Saturday → Friday
-const DAY_LABELS = ["Saturday","Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"];
+const DAY_LABELS_EN = ["Saturday","Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"];
+const DAY_LABELS_AR = ["السبت","الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
+const dayLabels = () => getLocale().startsWith("ar") ? DAY_LABELS_AR : DAY_LABELS_EN;
 
 const getWeekDates = (weekStartStr) => {
+  const locale = getLocale();
+  const labels = dayLabels();
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStartStr);
     d.setDate(d.getDate() + i);
     return {
       index: i,
-      label: DAY_LABELS[i],
-      date:  d.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" }),
-      dmy:   d.toLocaleDateString("en-GB", { day:"2-digit", month:"2-digit", year:"numeric" }),
+      label: labels[i],
+      date:  d.toLocaleDateString(locale, { day:"numeric", month:"short", year:"numeric" }),
+      dmy:   d.toLocaleDateString(locale, { day:"2-digit", month:"2-digit", year:"numeric" }),
     };
   });
 };
@@ -53,7 +58,7 @@ const getWeekStartOf = (dateStr) => {
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const formatDueLabel = (dateStr) =>
-  new Date(dateStr).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  new Date(dateStr).toLocaleDateString(getLocale(), { weekday: "short", day: "numeric", month: "short" });
 
 const PRIORITY_COLOR = { high: "#f87171", medium: "#d4a82a", low: "#4ade80" };
 
@@ -101,20 +106,21 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates, p
   }, [expanded, company?.id, branchId, weekStart]);
 
   const totalThisWeek = items.length;
+  const direction = getLocale().startsWith("ar") ? "right" : "left";
 
   return (
     <div>
       <button onClick={() => setExpanded(p => !p)} style={{
         width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center",
-        background:"none", border:"none", cursor:"pointer", padding:"8px 2px", textAlign:"left",
+        background:"none", border:"none", cursor:"pointer", padding:"8px 2px", textAlign: direction,
       }}>
-        <div style={S.h3}>📍 {branchName}{loaded && ` · ${totalThisWeek} task${totalThisWeek===1?"":"s"}`}</div>
-        <span style={{ color:C.mutedColor, fontSize:12 }}>{expanded ? "▲ Hide" : "▼ Show"}</span>
+        <div style={S.h3}>📍 {branchName}{loaded && ` · ${totalThisWeek} ${totalThisWeek === 1 ? t("weeklyPlan.taskSingular", "task") : t("weeklyPlan.taskPlural", "tasks")}`}</div>
+        <span style={{ color:C.mutedColor, fontSize:12 }}>{expanded ? `▲ ${t("weeklyPlan.hide", "Hide")}` : `▼ ${t("weeklyPlan.show", "Show")}`}</span>
       </button>
       {!expanded ? null : loading ? (
-        <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>Loading…</div>
+        <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>{t("weeklyPlan.loading", "Loading...")}</div>
       ) : staff.length === 0 ? (
-        <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>No staff at this branch.</div>
+        <div style={{ ...S.muted, fontSize:12, padding:"10px 0" }}>{t("weeklyPlan.noStaff", "No staff at this branch.")}</div>
       ) : (
         <div style={{ ...S.card, padding:0, overflow:"hidden", border:`1px solid color-mix(in srgb, var(--clr-text) 16%, transparent)` }}>
           <div style={{ overflowX:"auto" }}>
@@ -125,7 +131,7 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates, p
             </colgroup>
             <thead>
               <tr>
-                {["Employee", ...weekDates.map(d => `${d.label.slice(0,3)} ${d.dmy.slice(0,5)}`)].map((h, i, arr) => (
+                {[t("weeklyPlan.employee", "Employee"), ...weekDates.map(d => `${d.label.slice(0,3)} ${d.dmy.slice(0,5)}`)].map((h, i, arr) => (
                   <th key={h} style={{
                     padding:"6px 4px", textAlign:"left", fontSize:9, fontWeight:800,
                     color:C.accentColor, letterSpacing:.2, textTransform:"uppercase",
@@ -179,10 +185,10 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates, p
                                     <div style={{ fontSize:9, fontWeight:600,
                                       color: isDayOff ? C.mutedColor : item.status==="done" ? C.mutedColor : C.textColor,
                                       textDecoration: item.status==="done" ? "line-through" : "none" }}>
-                                      {isDayOff ? "Day Off" : title}
+                                      {isDayOff ? t("weeklyPlan.dayOff", "Day Off") : title}
                                     </div>
                                     {!isDayOff && (
-                                      <div style={{ fontSize:8, fontWeight:700, color:meta.color, marginTop:1 }}>{meta.label}</div>
+                                      <div style={{ fontSize:8, fontWeight:700, color:meta.color, marginTop:1 }}>{t(meta.labelKey, meta.fallback)}</div>
                                     )}
                                   </div>
                                 );
@@ -204,7 +210,7 @@ function BranchWeekGrid({ company, branchId, branchName, weekStart, weekDates, p
         const openItem = items.find(i => i.id === openItemId);
         return openItem?.task_id ? (
           <div style={{ marginTop:10 }}>
-            <div style={{ ...S.muted, fontSize:11, marginBottom:4 }}>💬 Comments — {openItem.title?.split("\n")[0]}</div>
+            <div style={{ ...S.muted, fontSize:11, marginBottom:4 }}>💬 {t("area.comments", "Comments")} — {openItem.title?.split("\n")[0]}</div>
             <CommentThread taskId={openItem.task_id} profile={profile} />
           </div>
         ) : null;
@@ -314,10 +320,10 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       .from("weekly_plans").select("id")
       .eq("company_id", company.id).eq("branch_id", selectedBranch)
       .eq("week_start", lastWeekStart).single();
-    if (!lastPlan) { setCopyMsg("No plan found for the previous week."); return; }
+    if (!lastPlan) { setCopyMsg(t("weeklyPlan.noPreviousPlan", "No plan found for the previous week.")); return; }
     const { data: lastItems } = await supabase
       .from("weekly_plan_items").select("*").eq("plan_id", lastPlan.id);
-    if (!lastItems?.length) { setCopyMsg("Previous week's plan is empty."); return; }
+    if (!lastItems?.length) { setCopyMsg(t("weeklyPlan.previousPlanEmpty", "Previous week's plan is empty.")); return; }
     setCreating(true);
     const plan = await ensurePlan();
     if (plan) {
@@ -339,7 +345,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
         await supabase.from("weekly_plan_items").insert({
           ...i, id: undefined, plan_id: plan.id, task_id: task?.id ?? null, status: "pending",
         });
-        if (task?.id) notifyUser(company.id, i.assigned_staff_id, "task_created", "New Task Assigned 📋", (i.title ?? "").split("\n")[0]);
+        if (task?.id) notifyUser(company.id, i.assigned_staff_id, "task_created", `📋 ${t("weeklyPlan.newTaskAssigned", "New Task Assigned")}`, (i.title ?? "").split("\n")[0]);
       }
       await loadItems(plan.id);
       onTasksChanged?.();
@@ -362,7 +368,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       const targetMonday = getWeekStartOf(addDate);
       const dayOfWeek = Math.round((new Date(addDate) - new Date(targetMonday)) / 86400000);
       const plan = await ensurePlanFor(targetMonday);
-      if (!plan) { toast("Failed to create task. Please try again."); return; }
+      if (!plan) { toast(t("weeklyPlan.failedCreate", "Failed to create task. Please try again.")); return; }
       const catId = addCat === "DAYOFF" ? null : (addCat || null);
 
       // The plan item IS the task: create the backing `tasks` row so the VM
@@ -400,17 +406,17 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
         const newOffset = Math.round((new Date(targetMonday) - new Date(getWeekStart(0))) / (7 * 86400000));
         setWeekOffset(newOffset);
         setShowAdd(false);
-        if (task?.id) notifyUser(company.id, selectedStaff, "task_created", "New Task Assigned 📋", addTitle);
+        if (task?.id) notifyUser(company.id, selectedStaff, "task_created", `📋 ${t("weeklyPlan.newTaskAssigned", "New Task Assigned")}`, addTitle);
         onTasksChanged?.();
         return;
       }
       if (data) setItems(p => [...p, { ...data, category: one(data.category), assigned_staff: one(data.assigned_staff) }]);
       setShowAdd(false);
-      if (task?.id) notifyUser(company.id, selectedStaff, "task_created", "New Task Assigned 📋", addTitle);
+      if (task?.id) notifyUser(company.id, selectedStaff, "task_created", `📋 ${t("weeklyPlan.newTaskAssigned", "New Task Assigned")}`, addTitle);
       onTasksChanged?.();
     } catch (e) {
-      process.env?.NODE_ENV !== "production" && console.error(e);
-      toast("Failed to create task. Please try again.");
+      !import.meta.env.PROD && console.error(e);
+      toast(t("weeklyPlan.failedCreate", "Failed to create task. Please try again."));
     } finally { setSaving(false); }
   };
 
@@ -426,8 +432,8 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
         onTasksChanged?.();
       }
     } catch (e) {
-      process.env?.NODE_ENV !== "production" && console.error(e);
-      toast("Failed to update status. Please try again.");
+      !import.meta.env.PROD && console.error(e);
+      toast(t("weeklyPlan.failedUpdateStatus", "Failed to update status. Please try again."));
     }
   };
 
@@ -441,8 +447,8 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
         onTasksChanged?.();
       }
     } catch (e) {
-      process.env?.NODE_ENV !== "production" && console.error(e);
-      toast("Failed to delete. Please try again.");
+      !import.meta.env.PROD && console.error(e);
+      toast(t("weeklyPlan.failedDelete", "Failed to delete. Please try again."));
     } finally { setConfirmDelete(null); }
   };
 
@@ -463,15 +469,15 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
           <div style={{ background:"var(--clr-surface)", borderRadius:16, padding:26,
             maxWidth:320, width:"100%", border:"1px solid #f8717133" }}>
             <div style={{ fontSize:15, fontWeight:600, marginBottom:18, lineHeight:1.5 }}>
-              Delete "{(confirmDelete.title ?? "").split("\n")[0]}"? This can't be undone.
+              {t("weeklyPlan.delete", "Delete")} "{(confirmDelete.title ?? "").split("\n")[0]}"? {t("weeklyPlan.deletePrompt", "This can't be undone.")}
             </div>
             <div style={{ display:"flex", gap:10 }}>
               <button style={{ flex:1, padding:"10px", background:"#f87171", color:"#fff",
                 border:"none", borderRadius:10, cursor:"pointer", fontWeight:700, fontFamily:"'DM Sans',sans-serif" }}
-                onClick={() => deleteItem(confirmDelete)}>Delete</button>
+                onClick={() => deleteItem(confirmDelete)}>{t("weeklyPlan.delete", "Delete")}</button>
               <button style={{ flex:1, padding:"10px", background:"transparent", color:"var(--clr-muted)",
                 border:"1px solid #6b688033", borderRadius:10, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}
-                onClick={() => setConfirmDelete(null)}>Cancel</button>
+                onClick={() => setConfirmDelete(null)}>{t("common.cancel", "Cancel")}</button>
             </div>
           </div>
         </div>
@@ -479,21 +485,21 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
       {/* Header */}
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:10, marginBottom:16 }} className="fu">
         <div>
-          <div style={{ ...S.h1, marginBottom:2 }}>Weekly <span style={S.accent}>Store Plan</span></div>
-          <div style={{ ...S.muted, fontSize:12 }}>Create and assign weekly tasks for your team</div>
+          <div style={{ ...S.h1, marginBottom:2 }}>{t("weeklyPlan.titlePrefix", "Weekly")} <span style={S.accent}>{t("weeklyPlan.titleAccent", "Store Plan")}</span></div>
+          <div style={{ ...S.muted, fontSize:12 }}>{t("weeklyPlan.subtitle", "Create and assign weekly tasks for your team")}</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           {weekNav && (
             <button className="btnG" style={{ ...S.btnG, padding:"7px 10px" }} onClick={() => setWeekOffset(o => o - 1)}>‹</button>
           )}
           <div style={{ padding:"7px 14px", borderRadius:10, background:C.surfaceHigh, fontSize:12, fontWeight:600, whiteSpace:"nowrap" }}>
-            📅 {weekNav ? `${weekDates[0].date} — ${weekDates[6].date}` : new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"short", year:"numeric" })}
+            📅 {weekNav ? `${weekDates[0].date} — ${weekDates[6].date}` : new Date().toLocaleDateString(getLocale(), { weekday:"long", day:"numeric", month:"short", year:"numeric" })}
           </div>
           {weekNav && (
             <button className="btnG" style={{ ...S.btnG, padding:"7px 10px" }} onClick={() => setWeekOffset(o => o + 1)}>›</button>
           )}
           {weekNav && weekOffset !== 0 && (
-            <button className="btnG" style={{ ...S.btnG, fontSize:11, padding:"7px 10px" }} onClick={() => setWeekOffset(0)}>This Week</button>
+            <button className="btnG" style={{ ...S.btnG, fontSize:11, padding:"7px 10px" }} onClick={() => setWeekOffset(0)}>{t("weeklyPlan.thisWeek", "This Week")}</button>
           )}
         </div>
       </div>
@@ -518,27 +524,27 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
           <div style={{ ...S.card, marginBottom:0, display:"flex", alignItems:"center", gap:10, padding:"10px 16px", flex:"1 1 260px" }}>
             <div style={{ ...S.avatar(34) }}>{selectedStaffObj?.full_name?.split(" ").map(x=>x[0]).join("").slice(0,2) ?? "—"}</div>
             {lockedStaffId ? (
-              <div style={{ fontSize:14, fontWeight:700 }}>{selectedStaffObj?.full_name ?? "My Plan"}</div>
+              <div style={{ fontSize:14, fontWeight:700 }}>{selectedStaffObj?.full_name ?? t("weeklyPlan.myPlan", "My Plan")}</div>
             ) : (
               <select style={{ background:"none", border:"none", color:C.textColor, fontSize:14, fontWeight:700,
                 fontFamily:"'DM Sans',sans-serif", flex:1, cursor:"pointer" }}
                 value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)}>
-                {staff.length === 0 && <option value="">No staff at this branch</option>}
+                {staff.length === 0 && <option value="">{t("weeklyPlan.noStaff", "No staff at this branch.")}</option>}
                 {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
               </select>
             )}
           </div>
           <div style={{ ...S.card, marginBottom:0, padding:"10px 16px", textAlign:"center" }}>
             <div style={{ ...S.dFont, fontSize:20, fontWeight:700, color:C.accentColor, lineHeight:1 }}>{myItems.length}</div>
-            <div style={{ fontSize:10, color:C.mutedColor, marginTop:2 }}>Total Tasks This Week</div>
+            <div style={{ fontSize:10, color:C.mutedColor, marginTop:2 }}>{t("weeklyPlan.totalTasksThisWeek", "Total Tasks This Week")}</div>
           </div>
           {!readOnly && (
             <>
               <button className="btnG" style={S.btnG} onClick={copyLastWeek} disabled={creating || !selectedBranch}>
-                📋 Copy Last Week
+                📋 {t("weeklyPlan.copyLastWeek", "Copy Last Week")}
               </button>
               <button className="btnP" style={S.btnP} onClick={() => openAdd(weekDates[0].index)} disabled={!selectedStaff}>
-                ＋ Add Task
+                ＋ {t("weeklyPlan.addTask", "Add Task")}
               </button>
               {todayIndex >= 0 && (
                 <button className="btnG" style={S.btnG} onClick={() => printWeeklyPlanChecklist({
@@ -552,7 +558,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                   })),
                   company,
                 })}>
-                  🖨️ Print Today
+                  🖨️ {t("weeklyPlan.printToday", "Print Today")}
                 </button>
               )}
             </>
@@ -569,19 +575,19 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
           ))}
         </div>
       ) : loading ? (
-        <div style={{ ...S.muted, textAlign:"center", padding:30 }}>Loading…</div>
+        <div style={{ ...S.muted, textAlign:"center", padding:30 }}>{t("weeklyPlan.loading", "Loading...")}</div>
       ) : !selectedStaff ? (
         <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>
           <div style={{ fontSize:32, marginBottom:12 }}>👤</div>
-          <div style={{ ...S.muted }}>No staff assigned to this branch yet.</div>
+          <div style={{ ...S.muted }}>{t("weeklyPlan.noStaffAssigned", "No staff assigned to this branch yet.")}</div>
         </div>
       ) : (
         <>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:12 }}>
           {[
-            { n: myItems.length, l:"Total This Week", c:C.accentColor },
-            { n: myItems.filter(i => i.status==="done").length, l:"Done", c:"#4ade80" },
-            { n: myItems.filter(i => i.day_of_week===todayIndex).length, l:"Today", c:"#d4a82a" },
+            { n: myItems.length, l:t("weeklyPlan.totalThisWeek", "Total This Week"), c:C.accentColor },
+            { n: myItems.filter(i => i.status==="done").length, l:t("weeklyPlan.done", "Done"), c:"#4ade80" },
+            { n: myItems.filter(i => i.day_of_week===todayIndex).length, l:t("weeklyPlan.today", "Today"), c:"#d4a82a" },
           ].map(k => (
             <div key={k.l} style={{ textAlign:"center", padding:"10px 6px", background:C.surfaceHigh, borderRadius:10 }}>
               <div style={{ fontSize:18, fontWeight:800, color:k.c, lineHeight:1 }}>{k.n}</div>
@@ -594,7 +600,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
             <table style={{ width:"100%", borderCollapse:"collapse", minWidth:760 }}>
               <thead>
                 <tr>
-                  {["Day","Date","Task","Status","Notes / Details", ...(readOnly ? [] : ["Actions"])].map(h => (
+                  {[t("weeklyPlan.day", "Day"), t("weeklyPlan.date", "Date"), t("weeklyPlan.task", "Task"), t("common.status", "Status"), t("weeklyPlan.notes", "Notes / Details"), ...(readOnly ? [] : [t("common.actions", "Actions")])].map(h => (
                     <th key={h} style={{
                       padding:"12px 16px", textAlign:"left", fontSize:11, fontWeight:700,
                       color:C.mutedColor, letterSpacing:1, textTransform:"uppercase",
@@ -620,10 +626,10 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                       <tr key={d.index} style={isToday ? { background:C.accentColor+"08" } : undefined}>
                         <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>{dayCell}</td>
                         <td style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, borderBottom:`1px solid ${C.accentColor}0a` }}>{d.dmy}</td>
-                        <td colSpan={readOnly ? 3 : 2} style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor+"88", borderBottom:`1px solid ${C.accentColor}0a` }}>No task scheduled</td>
+                        <td colSpan={readOnly ? 3 : 2} style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor+"88", borderBottom:`1px solid ${C.accentColor}0a` }}>{t("weeklyPlan.noTaskScheduled", "No task scheduled")}</td>
                         {!readOnly && (
                           <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                            <button onClick={() => openAdd(d.index)} style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:12, fontWeight:600 }}>＋ Add</button>
+                            <button onClick={() => openAdd(d.index)} style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer", fontSize:12, fontWeight:600 }}>＋ {t("weeklyPlan.add", "Add")}</button>
                           </td>
                         )}
                       </tr>
@@ -650,7 +656,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                           )}
                           <div style={{ fontSize:13, fontWeight:600, color: item.status==="done" ? C.mutedColor : C.textColor,
                             textDecoration: item.status==="done" ? "line-through" : "none" }}>
-                            {title}{clickable && <span style={{ color:C.accentColor, fontWeight:700 }}> · 📤 Tap to submit</span>}
+                            {title}{clickable && <span style={{ color:C.accentColor, fontWeight:700 }}> · 📤 {t("weeklyPlan.tapToSubmit", "Tap to submit")}</span>}
                           </div>
                         </td>
                         <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
@@ -658,12 +664,12 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                             <button onClick={() => cycleStatus(item)} style={{
                               padding:"4px 12px", borderRadius:14, fontSize:11, fontWeight:700, cursor:"pointer",
                               background:meta.bg, color:meta.color, border:`1px solid ${meta.color}33`,
-                            }}>{meta.label}</button>
+                            }}>{t(meta.labelKey, meta.fallback)}</button>
                           ) : (
                             <span style={{
                               padding:"4px 12px", borderRadius:14, fontSize:11, fontWeight:700,
                               background:meta.bg, color:meta.color, border:`1px solid ${meta.color}33`,
-                            }}>{meta.label}</span>
+                            }}>{t(meta.labelKey, meta.fallback)}</span>
                           )}
                         </td>
                         <td style={{ padding:"12px 16px", fontSize:12, color:C.mutedColor, borderBottom:`1px solid ${C.accentColor}0a`, maxWidth:220 }}>
@@ -671,7 +677,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
                         </td>
                         {!readOnly && (
                           <td style={{ padding:"12px 16px", borderBottom:`1px solid ${C.accentColor}0a` }}>
-                            <button onClick={() => setConfirmDelete(item)} title="Delete this task"
+                            <button onClick={() => setConfirmDelete(item)} title={t("weeklyPlan.deleteTitle", "Delete this task")}
                               style={{ background:"none", border:"none", color:"#f87171", cursor:"pointer", fontSize:15 }}>🗑️</button>
                           </td>
                         )}
@@ -684,7 +690,7 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
           </div>
           {statusEditable && (
             <div style={{ padding:"10px 16px", fontSize:11, color:C.mutedColor, borderTop:`1px solid ${C.accentColor}0a` }}>
-              ℹ️ Tap a status pill to cycle Scheduled → In Progress → Done
+              ℹ️ {t("weeklyPlan.statusHint", "Tap a status pill to cycle Scheduled -> In Progress -> Done")}
             </div>
           )}
         </div>
@@ -697,53 +703,57 @@ export function WeeklyPlan({ company, categories, branches, profile, readOnly = 
           display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
           <div style={{ background:"var(--clr-surface)", borderRadius:20, padding:26,
             width:"100%", maxWidth:420, border:`1px solid ${C.accentColor}33` }}>
-            <div style={{ fontWeight:700, fontSize:16, marginBottom:14 }}>＋ Add Task</div>
-            <div style={S.lbl}>Date</div>
+            <div style={{ fontWeight:700, fontSize:16, marginBottom:14 }}>＋ {t("weeklyPlan.addTask", "Add Task")}</div>
+            <div style={S.lbl}>{t("weeklyPlan.date", "Date")}</div>
             <input style={S.inp} type="date" value={addDate} onChange={e => setAddDate(e.target.value)} />
-            <div style={S.lbl}>Category</div>
+            <div style={S.lbl}>{t("weeklyPlan.category", "Category")}</div>
             <select style={S.sel} value={addCat} onChange={e => {
               setAddCat(e.target.value);
-              if (e.target.value === "DAYOFF") setAddTitle("Day Off");
-              else if (addTitle === "Day Off") setAddTitle("");
+              if (e.target.value === "DAYOFF") setAddTitle(t("weeklyPlan.dayOff", "Day Off"));
+              else if (addTitle === t("weeklyPlan.dayOff", "Day Off")) setAddTitle("");
             }}>
-              <option value="">— optional —</option>
-              <option value="DAYOFF">Day Off</option>
+              <option value="">— {t("weeklyPlan.optional", "optional")} —</option>
+              <option value="DAYOFF">{t("weeklyPlan.dayOff", "Day Off")}</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
 
             {addCat !== "DAYOFF" && (
               <>
-                <div style={S.lbl}>Quick Select</div>
+                <div style={S.lbl}>{t("weeklyPlan.quickSelect", "Quick Select")}</div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:10 }}>
-                  {["Remerchandise","Refresh","New Implementation"].map(p => (
-                    <button key={p} type="button" onClick={() => setAddTitle(p)} style={{
+                  {[
+                    ["Remerchandise", t("weeklyPlan.remerchandise", "Remerchandise")],
+                    ["Refresh", t("weeklyPlan.refresh", "Refresh")],
+                    ["New Implementation", t("weeklyPlan.newImplementation", "New Implementation")],
+                  ].map(([value, label]) => (
+                    <button key={value} type="button" onClick={() => setAddTitle(label)} style={{
                       padding:"6px 12px", borderRadius:16, cursor:"pointer", fontSize:12, fontWeight:600,
-                      background: addTitle===p ? C.accentColor+"28" : "transparent",
-                      color:      addTitle===p ? C.accentColor : C.mutedColor,
-                      border:     addTitle===p ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
-                    }}>{p}</button>
+                      background: addTitle===label ? C.accentColor+"28" : "transparent",
+                      color:      addTitle===label ? C.accentColor : C.mutedColor,
+                      border:     addTitle===label ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
+                    }}>{label}</button>
                   ))}
                 </div>
               </>
             )}
 
-            <div style={S.lbl}>Task</div>
-            <input style={S.inp} placeholder="e.g. Update window display"
+            <div style={S.lbl}>{t("weeklyPlan.task", "Task")}</div>
+            <input style={S.inp} placeholder={t("weeklyPlan.taskPlaceholder", "e.g. Update window display")}
               value={addTitle} onChange={e => setAddTitle(e.target.value)}
               disabled={addCat === "DAYOFF"} autoFocus />
 
             {addCat !== "DAYOFF" && (
               <>
-                <div style={S.lbl}>Notes / Details</div>
+                <div style={S.lbl}>{t("weeklyPlan.notes", "Notes / Details")}</div>
                 <textarea style={{ ...S.inp, minHeight:64, resize:"vertical" }}
-                  placeholder="Extra instructions…" value={addNotes} onChange={e => setAddNotes(e.target.value)} />
+                  placeholder={t("weeklyPlan.notesPlaceholder", "Extra instructions...")} value={addNotes} onChange={e => setAddNotes(e.target.value)} />
               </>
             )}
             <div style={{ display:"flex", gap:8, marginTop:4 }}>
               <button className="btnP" style={{ ...S.btnP, flex:1 }} onClick={addItem} disabled={saving || !addTitle.trim()}>
-                {saving ? "Saving…" : "Add Task →"}
+                {saving ? t("weeklyPlan.saving", "Saving...") : `${t("weeklyPlan.addTask", "Add Task")} →`}
               </button>
-              <button className="btnG" style={S.btnG} onClick={() => setShowAdd(false)}>Cancel</button>
+              <button className="btnG" style={S.btnG} onClick={() => setShowAdd(false)}>{t("common.cancel", "Cancel")}</button>
             </div>
           </div>
         </div>

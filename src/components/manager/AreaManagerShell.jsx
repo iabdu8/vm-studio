@@ -9,6 +9,7 @@ import { BestBranchOfMonth } from "../shared/BestBranchOfMonth.jsx";
 import { CampaignBanner } from "../shared/CampaignBanner.jsx";
 import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
 import { InfoBanner } from "../shared/InfoBanner.jsx";
+import { t } from "../../lib/i18n.js";
 
 // ============================================================
 //  AREA MANAGER SHELL (VM Manager)
@@ -42,13 +43,13 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Area <span style={S.accent}>Overview</span>
+        {t("area.overview", "Area Overview")}
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        {myBranches.length} branch(es) · {todayStr()}
+        {myBranches.length} {t("area.branchCount", "branch(es)")} · {todayStr()}
       </div>
 
-      <InfoBanner>You see stats for the branches assigned to you only — Super Admin assigns which branches that is. This is view + comment, no approvals.</InfoBanner>
+      <InfoBanner>{t("info.areaOverview", "You see stats for the branches assigned to you only. Super Admin assigns those branches. This is view + comment, no approvals.")}</InfoBanner>
 
       <BestBranchOfMonth company={company} />
       <CampaignBanner campaign={campaign} />
@@ -61,7 +62,7 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
             background: branchFilter==="all" ? C.accentColor+"28" : "transparent",
             color:      branchFilter==="all" ? C.accentColor : C.mutedColor,
             border:     branchFilter==="all" ? `1px solid ${C.accentColor}55` : `1px solid ${C.mutedColor}22`,
-          }}>All Branches</button>
+          }}>{t("area.allBranches", "All Branches")}</button>
           {myBranches.map(b => (
             <button key={b.id} onClick={() => setBranchFilter(b.id)} style={{
               padding:"6px 13px", borderRadius:20, cursor:"pointer", fontSize:12, fontWeight:600, flexShrink:0,
@@ -76,10 +77,10 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
       {/* KPIs */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
         {[
-          { n:pending,            l:"Pending Review", sub:"awaiting approval", c:"#d4a82a" },
-          { n:approved,           l:"Approved",       sub:"this period",       c:"#4ade80" },
-          { n:myBranches.length,  l:"My Branches",    sub:"assigned to me",    c:"#818cf8" },
-          { n:filteredTasks.filter(t=>!(t.is_done??t.done)).length, l:"Open Tasks", sub:"", c:"#f87171" },
+          { n:pending,            l:t("area.pendingReview", "Pending Review"), sub:t("area.awaitingApproval", "awaiting approval"), c:"#d4a82a" },
+          { n:approved,           l:t("area.approved", "Approved"),            sub:t("area.thisPeriod", "this period"),              c:"#4ade80" },
+          { n:myBranches.length,  l:t("area.myBranches", "My Branches"),       sub:t("area.assignedToMe", "assigned to me"),         c:"#818cf8" },
+          { n:filteredTasks.filter(t=>!(t.is_done??t.done)).length, l:t("area.openTasks", "Open Tasks"), sub:"", c:"#f87171" },
         ].map(k => (
           <div key={k.l} style={{ ...S.card, marginBottom:0 }}>
             <div style={{ ...S.dFont, fontSize:28, fontWeight:700, color:k.c, lineHeight:1 }}>{k.n}</div>
@@ -91,8 +92,8 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
 
       {/* Branch performance */}
       <div style={S.card}>
-        <div style={S.h3}>Branch Performance · Approval Rate</div>
-        {branchPerf.length === 0 && <div style={S.muted}>No submissions yet.</div>}
+        <div style={S.h3}>{t("area.branchPerformance", "Branch Performance · Approval Rate")}</div>
+        {branchPerf.length === 0 && <div style={S.muted}>{t("area.noSubmissions", "No submissions yet.")}</div>}
         {branchPerf.map((b, i) => (
           <div key={b.branch} style={{ marginBottom:12 }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
@@ -115,8 +116,8 @@ export function AreaManagerOverview({ profile, tasks, submissions, branches, man
       {/* Branch Activity (submissions) — only when a specific branch is selected */}
       {branchFilter !== "all" && (
         <div style={{ marginTop:14 }}>
-          <div style={{ ...S.h3, marginTop:10, marginBottom:8, fontSize:11 }}>Submissions ({filteredSubmissions.length})</div>
-          {filteredSubmissions.length === 0 && <div style={{ ...S.muted, fontSize:12 }}>No submissions yet.</div>}
+          <div style={{ ...S.h3, marginTop:10, marginBottom:8, fontSize:11 }}>{t("area.branchSubmissions", "Submissions")} ({filteredSubmissions.length})</div>
+          {filteredSubmissions.length === 0 && <div style={{ ...S.muted, fontSize:12 }}>{t("area.noSubmissions", "No submissions yet.")}</div>}
           {filteredSubmissions.map(s => (
             <div key={s.id} style={S.card}>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
@@ -175,23 +176,21 @@ export function AreaManagerRequests({ submissions, profile, branches = [], manag
         <PhotoLightbox photos={lightbox.photos} index={lightbox.index}
           onClose={() => setLightbox(null)} onIndexChange={i => setLightbox(p => ({ ...p, index:i }))}/>
       )}
-      <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Branch <span style={S.accent}>Submissions</span>
-      </div>
+      <div style={{ ...S.h1, marginBottom:2 }} className="fu">{t("area.branchSubmissions", "Branch Submissions")}</div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        View-only across your region — comments only on your own branches
+        {t("area.requestsSubtitle", "View-only across your region — comments only on your own branches")}
       </div>
 
-      <InfoBanner>You see every branch in your region, but 💬 comments only work on branches actually assigned to you. Approving or rejecting stays with the VM Controller.</InfoBanner>
+      <InfoBanner>{t("info.areaRequests", "You see every branch in your region, but comments only work on branches assigned to you. Approving or rejecting stays with the VM Controller.")}</InfoBanner>
 
       <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto" }}>
-        {[["pending","⏳ Pending"],["approved","✓ Approved"],["revision","↩ Revision"],["all","All"]].map(([k,l]) => (
+        {[["pending",`⏳ ${t("area.pending", "Pending")}`],["approved",`✓ ${t("area.approved", "Approved")}`],["revision",`↩ ${t("area.revision", "Revision")}`],["all",t("area.all", "All")]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(filter===k)} onClick={()=>setFilter(k)}>{l}</button>
         ))}
       </div>
 
       {visible.length === 0 && (
-        <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No submissions in this category.</div>
+        <div style={{ ...S.muted, textAlign:"center", padding:40 }}>{t("area.emptyCategory", "No submissions in this category.")}</div>
       )}
 
       {visible.map(s => {
@@ -244,13 +243,13 @@ export function AreaManagerRequests({ submissions, profile, branches = [], manag
                 <button onClick={() => setOpenId(openId === s.id ? null : s.id)}
                   style={{ background:"none", border:"none", color:C.accentColor, cursor:"pointer",
                     fontSize:11, fontWeight:600, padding:0 }}>
-                  {openId === s.id ? "Hide comments" : "💬 Comments"}
+                  {openId === s.id ? t("area.hideComments", "Hide comments") : `💬 ${t("area.comments", "Comments")}`}
                 </button>
               )}
               {openId === s.id && s.task_id && <CommentThread taskId={s.task_id} profile={profile} />}
             </>
           ) : (
-            <div style={{ fontSize:11, color:C.mutedColor }}>👁️ View only — not your branch</div>
+            <div style={{ fontSize:11, color:C.mutedColor }}>👁️ {t("area.viewOnly", "View only — not your branch")}</div>
           )}
         </div>
         );
@@ -266,21 +265,19 @@ export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches
 
   return (
     <div>
-      <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Campaign <span style={S.accent}>&amp; Guides</span>
-      </div>
+      <div style={{ ...S.h1, marginBottom:2 }} className="fu">{t("area.campaignGuides", "Campaigns & Guides")}</div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        View the active campaign and team guidelines
+        {t("area.campaignSubtitle", "View the active campaign and team guidelines")}
       </div>
 
-      <InfoBanner>Campaign is view + comment only (Head VM manages it). Guidelines below you can publish yourself — every branch sees them instantly.</InfoBanner>
+      <InfoBanner>{t("info.areaCampaign", "Campaign is view + comment only and managed by Head VM. Guidelines below publish to every branch instantly.")}</InfoBanner>
 
       {campaign?.name && (
         <>
           <CampaignPanel campaign={campaign} campaignProgress={myProgress} company={company} />
           {onReviewBranchFile && (
             <div style={S.card}>
-              <div style={{ ...S.h3, marginBottom:6 }}>Campaign Files — Review</div>
+              <div style={{ ...S.h3, marginBottom:6 }}>{t("area.campaignFilesReview", "Campaign Files — Review")}</div>
               <CampaignFileReview campaignProgress={myProgress} onReview={onReviewBranchFile} />
             </div>
           )}
@@ -289,11 +286,11 @@ export function AreaManagerCampaignGuides({ campaign, campaignProgress, branches
       )}
       {!campaign?.name && (
         <div style={{ ...S.card, textAlign:"center", padding:"32px 20px", marginBottom:16 }}>
-          <div style={{ ...S.muted }}>No active campaign yet.</div>
+          <div style={{ ...S.muted }}>{t("area.noActiveCampaign", "No active campaign yet.")}</div>
         </div>
       )}
 
-      <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>Guidelines</div>
+      <div style={{ ...S.h3, marginTop:20, marginBottom:10 }}>{t("area.guidelines", "Guidelines")}</div>
       <GuidelinesManager company={company} guidelines={guidelines}
         onUploadGuideline={onUploadGuideline} onDeleteGuideline={onDeleteGuideline} />
     </div>

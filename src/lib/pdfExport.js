@@ -8,6 +8,13 @@
  * Generate and download a weekly VM report as PDF
  * @param {object} data - { company, tasks, submissions, branches, weekLabel }
  */
+const esc = (value) => String(value ?? "")
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#39;");
+
 export function exportWeeklyReport(data) {
   const { company, tasks, submissions, branches, weekLabel } = data;
 
@@ -81,12 +88,12 @@ export function exportWeeklyReport(data) {
     <div class="logo-dot"></div>
     <div>
       <div class="app-name">Vismo</div>
-      <div class="company-name">${company?.name ?? "Company Report"}</div>
+      <div class="company-name">${esc(company?.name ?? "Company Report")}</div>
     </div>
   </div>
   <div class="report-meta">
     <div class="report-title">Weekly VM Report</div>
-    <div class="report-week">${weekLabel ?? new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" })}</div>
+    <div class="report-week">${esc(weekLabel ?? new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" }))}</div>
     <div class="report-week">Generated ${new Date().toLocaleString()}</div>
   </div>
 </div>
@@ -117,7 +124,7 @@ export function exportWeeklyReport(data) {
       ${Object.entries(branchMap).map(([name, b]) => {
         const branchPct = b.total ? Math.round((b.approved / b.total) * 100) : 0;
         return `<tr>
-          <td><strong>${name}</strong></td>
+          <td><strong>${esc(name)}</strong></td>
           <td>${b.total}</td>
           <td><span class="badge badge-approved">${b.approved}</span></td>
           <td><span class="badge badge-pending">${b.pending}</span></td>
@@ -149,13 +156,13 @@ export function exportWeeklyReport(data) {
     </thead>
     <tbody>
       ${submissions.map(s => `<tr>
-        <td><strong>${s.submitter?.full_name ?? s.vm ?? "—"}</strong></td>
-        <td>${s.branch?.name ?? s.branch ?? "—"}</td>
-        <td>${s.category?.name ?? "—"}</td>
-        <td>${s.subcategory?.name ?? "—"}</td>
-        <td><span class="badge badge-${s.status}">${s.status}</span></td>
+        <td><strong>${esc(s.submitter?.full_name ?? s.vm ?? "—")}</strong></td>
+        <td>${esc(s.branch?.name ?? s.branch ?? "—")}</td>
+        <td>${esc(s.category?.name ?? "—")}</td>
+        <td>${esc(s.subcategory?.name ?? "—")}</td>
+        <td><span class="badge badge-${esc(s.status)}">${esc(s.status)}</span></td>
         <td>${s.score != null ? s.score + "/100" : "—"}</td>
-        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.note ?? "—"}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.note ?? "—")}</td>
       </tr>`).join("")}
     </tbody>
   </table>
@@ -170,10 +177,10 @@ export function exportWeeklyReport(data) {
     </thead>
     <tbody>
       ${tasks.map(t => `<tr>
-        <td>${t.category?.name ?? "—"}</td>
-        <td>${t.title ?? t.text ?? "—"}</td>
-        <td><span class="badge ${t.priority==="high"?"badge-revision":t.priority==="medium"?"badge-pending":"badge-approved"}">${t.priority}</span></td>
-        <td>${t.due_label ?? t.dueDate ?? "—"}</td>
+        <td>${esc(t.category?.name ?? "—")}</td>
+        <td>${esc(t.title ?? t.text ?? "—")}</td>
+        <td><span class="badge ${t.priority==="high"?"badge-revision":t.priority==="medium"?"badge-pending":"badge-approved"}">${esc(t.priority ?? "—")}</span></td>
+        <td>${esc(t.due_label ?? t.dueDate ?? "—")}</td>
         <td><span class="badge ${(t.is_done||t.done)?"badge-approved":"badge-pending"}">${(t.is_done||t.done)?"Done":"Open"}</span></td>
       </tr>`).join("")}
     </tbody>
@@ -183,7 +190,7 @@ export function exportWeeklyReport(data) {
 <!-- Footer -->
 <div class="footer">
   <span>Vismo · Visual Merchandising Operations Platform</span>
-  <span>Confidential · ${company?.name ?? ""}</span>
+  <span>Confidential · ${esc(company?.name ?? "")}</span>
 </div>
 
 </body>

@@ -3,7 +3,10 @@ import { supabase } from "../../lib/supabase.js";
 import { S, C } from "../../styles/theme.js";
 import { StyleTag } from "./Atoms.jsx";
 import { Logo } from "./Logo.jsx";
-import { lookupCompanyByCode, lookupActiveBranches, lookupRegions, lookupBranchesByRegion, setManagerBranches } from "../../services/enterprise.service.js";
+import { completeProfileFromInvite, lookupCompanyByCode, lookupScopedInvite, lookupActiveBranches, lookupRegions, lookupBranchesByRegion } from "../../services/enterprise.service.js";
+import { t } from "../../lib/i18n.js";
+
+const PENDING_INVITE_KEY = "vismo_pending_invite";
 
 export function RegisterPage({ onBack }) {
   const [step,     setStep]     = useState(1);
@@ -23,30 +26,38 @@ export function RegisterPage({ onBack }) {
   const [loading,  setLoading]  = useState(false);
   const [regionLoading, setRegionLoading] = useState(false);
   const [done,     setDone]     = useState(false);
+  const [completedInvite, setCompletedInvite] = useState(false);
 
   const verifyCode = async () => {
     if (!code.trim()) return;
     setLoading(true); setErr("");
     try {
       const upperCode = code.trim().toUpperCase();
-      const companyMatch = await lookupCompanyByCode(upperCode);
+      const companyMatch = await lookupCompanyByCode(upperCode) ?? await lookupScopedInvite(upperCode);
       if (companyMatch) {
-        setCompany(companyMatch); setRole(companyMatch.role);
+        const normalizedCompany = {
+          ...companyMatch,
+          id: companyMatch.id ?? companyMatch.company_id,
+          name: companyMatch.name ?? companyMatch.company_name,
+          logo_url: companyMatch.logo_url ?? companyMatch.company_logo_url,
+          accent_color: companyMatch.accent_color ?? companyMatch.company_accent_color,
+        };
+        setCompany(normalizedCompany); setRole(companyMatch.role);
         if (companyMatch.role === "area_manager") {
-          const regionList = await lookupRegions(companyMatch.id);
+          const regionList = await lookupRegions(normalizedCompany.id);
           setRegions(regionList);
           setSelectedRegions([]); setBranches([]); setPickedBranchIds([]);
         } else if (companyMatch.role === "manager") {
           // Head VM is company-wide — no branch to pick
           setBranches([]);
         } else {
-          const branchData = await lookupActiveBranches(companyMatch.id);
+          const branchData = await lookupActiveBranches(normalizedCompany.id);
           setBranches(branchData);
           if (branchData.length === 1) setBranchId(branchData[0].id);
         }
         setStep(2); return;
       }
-      setErr("Invalid invite code. Please check with your manager.");
+      setErr(t("register.invalidCode", "Invalid invite code. Please check with your manager."));
     } finally { setLoading(false); }
   };
 
@@ -69,18 +80,29 @@ export function RegisterPage({ onBack }) {
     try {
       // area_manager isn't tied to a single branch — their scope lives in manager_branches
       const signupBranchId = role === "area_manager" ? null : (branchId || null);
+      const pendingInvite = {
+        code: code.trim().toUpperCase(),
+        branchId: signupBranchId,
+        branchIds: role === "area_manager" ? pickedBranchIds : null,
+        employeeId: employeeId?.trim() || null,
+      };
+      localStorage.setItem(PENDING_INVITE_KEY, JSON.stringify(pendingInvite));
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: email.trim(), password: password.trim(),
-        options: { data: { full_name: name.trim(), role, company_id: company.id, branch_id: signupBranchId } },
+        options: { data: { full_name: name.trim() } },
       });
       if (authErr) throw authErr;
       const userId = authData.user?.id;
       if (!userId) throw new Error("Failed to create account.");
 
-      if (role === "area_manager") await setManagerBranches(userId, pickedBranchIds);
-
-      if (employeeId.trim()) {
-        await supabase.from("profiles").update({ employee_id: employeeId.trim() }).eq("id", userId);
+      if (authData.session) {
+        await completeProfileFromInvite(code, {
+          branchId: signupBranchId,
+          branchIds: role === "area_manager" ? pickedBranchIds : null,
+          employeeId,
+        });
+        localStorage.removeItem(PENDING_INVITE_KEY);
+        setCompletedInvite(true);
       }
 
       setDone(true);
@@ -93,13 +115,14 @@ export function RegisterPage({ onBack }) {
       <StyleTag />
       <div style={{ ...S.loginCard, textAlign:"center" }} className="fu">
         <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
-        <div style={{ ...S.dFont, fontSize:24, fontWeight:700, color:C.accentColor, marginBottom:8 }}>Account Created!</div>
+        <div style={{ ...S.dFont, fontSize:24, fontWeight:700, color:C.accentColor, marginBottom:8 }}>تم إنشاء الحساب</div>
         <div style={{ ...S.muted, marginBottom:8 }}>
-          You joined <strong style={{ color:C.accentColor }}>{company?.name}</strong> as{" "}
-          <strong style={{ color:"#818cf8" }}>Visual Merchandiser</strong>
+          {completedInvite
+            ? <>تم ربطك بـ <strong style={{ color:C.accentColor }}>{company?.name}</strong> بنجاح.</>
+            : <>أكد بريدك الإلكتروني ثم سجل الدخول لإكمال ربط الدعوة بـ <strong style={{ color:C.accentColor }}>{company?.name}</strong>.</>}
         </div>
-        <div style={{ ...S.muted, marginBottom:24, fontSize:12 }}>Check your email to confirm, then sign in.</div>
-        <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={onBack}>Back to Sign In →</button>
+        <div style={{ ...S.muted, marginBottom:24, fontSize:12 }}>لا يتم تفعيل الدور أو الفرع من الواجهة مباشرة.</div>
+        <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={onBack}>{t("login.backToLogin", "Back to Sign In")}</button>
       </div>
     </div>
   );
@@ -110,7 +133,7 @@ export function RegisterPage({ onBack }) {
       <div style={S.loginCard} className="fu">
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:24 }}>
           <Logo size="lg" />
-          <div style={{ ...S.muted, fontSize:12, marginTop:10, textAlign:"center" }}>Create your account</div>
+          <div style={{ ...S.muted, fontSize:12, marginTop:10, textAlign:"center" }}>{t("register.title", "Create your account")}</div>
         </div>
 
         {/* Steps */}
@@ -123,7 +146,7 @@ export function RegisterPage({ onBack }) {
                 display:"flex", alignItems:"center", justifyContent:"center",
                 fontSize:11, fontWeight:700, flexShrink:0 }}>{n}</div>
               <span style={{ fontSize:12, color: step>=n ? C.textColor : C.mutedColor }}>
-                {n===1 ? "Invite Code" : "Your Details"}
+                {n===1 ? t("register.inviteCode", "Invite Code") : t("register.details", "Your Details")}
               </span>
               {n<2 && <div style={{ width:20, height:1, background:C.mutedColor+"44" }}/>}
             </div>
@@ -133,9 +156,9 @@ export function RegisterPage({ onBack }) {
         {step === 1 && (
           <>
             <div style={{ ...S.muted, fontSize:13, marginBottom:20, lineHeight:1.6 }}>
-              Enter the invite code from your manager to join your company workspace.
+              {t("register.inviteHelp", "Enter the invite code from your manager to join your company workspace.")}
             </div>
-            <div style={S.lbl}>Invite Code</div>
+            <div style={S.lbl}>{t("register.inviteCode", "Invite Code")}</div>
             <input
               style={{ ...S.inp, textTransform:"uppercase", letterSpacing:4, fontSize:18, textAlign:"center" }}
               value={code}
@@ -145,7 +168,7 @@ export function RegisterPage({ onBack }) {
             />
             {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
             <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={verifyCode} disabled={loading}>
-              {loading ? "Checking…" : "Verify Code →"}
+              {loading ? t("register.checking", "Checking...") : `${t("register.verifyCode", "Verify Code")} →`}
             </button>
           </>
         )}
@@ -174,7 +197,7 @@ export function RegisterPage({ onBack }) {
 
             {role === "area_manager" ? (
               <>
-                <div style={S.lbl}>Your Region(s) — pick more than one if you cover several</div>
+                <div style={S.lbl}>المنطقة / Region</div>
                 {regions.length > 0 ? (
                   <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:12 }}>
                     {regions.map(r => {
@@ -198,7 +221,7 @@ export function RegisterPage({ onBack }) {
                   <div style={{ marginBottom:12 }}>
                     <div style={S.lbl}>Which branch(es) in {selectedRegions.join(" + ")} do you manage?</div>
                     {regionLoading ? (
-                      <div style={{ fontSize:12, color:C.mutedColor }}>Loading branches…</div>
+                      <div style={{ fontSize:12, color:C.mutedColor }}>Loading branches...</div>
                     ) : (
                       <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                         {branches.map(b => {
@@ -224,35 +247,35 @@ export function RegisterPage({ onBack }) {
               </>
             ) : branches.length > 0 && (
               <>
-                <div style={S.lbl}>Branch</div>
+                <div style={S.lbl}>{t("register.branch", "Branch")}</div>
                 <select style={S.sel} value={branchId} onChange={e => setBranchId(e.target.value)}>
-                  <option value="">— Select your branch —</option>
+                  <option value="">- {t("register.selectBranch", "Select your branch")} -</option>
                   {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </>
             )}
-            <div style={S.lbl}>Full Name</div>
+            <div style={S.lbl}>{t("register.fullName", "Full Name")}</div>
             <input style={S.inp} placeholder="Your full name" value={name}
               onChange={e => { setName(e.target.value); setErr(""); }}/>
-            <div style={S.lbl}>Employee ID</div>
+            <div style={S.lbl}>{t("register.employeeId", "Employee ID")}</div>
             <input style={S.inp} placeholder="e.g. 10234" value={employeeId}
               onChange={e => setEmployeeId(e.target.value)}/>
-            <div style={S.lbl}>Email</div>
+            <div style={S.lbl}>{t("login.email", "Email")}</div>
             <input style={S.inp} type="email" placeholder="your@email.com" value={email}
               onChange={e => { setEmail(e.target.value); setErr(""); }}/>
-            <div style={S.lbl}>Password</div>
-            <input style={S.inp} type="password" placeholder="Min. 6 characters" value={password}
+            <div style={S.lbl}>{t("login.password", "Password")}</div>
+            <input style={S.inp} type="password" placeholder={t("register.passwordMin", "Min. 6 characters")} value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key==="Enter" && register()}/>
 
             {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
             <button className="btnP" style={{ ...S.btnP, width:"100%", marginBottom:10 }}
               onClick={register} disabled={loading}>
-              {loading ? "Creating account…" : "Create Account →"}
+              {loading ? t("register.creating", "Creating account...") : `${t("register.createAccount", "Create Account")} →`}
             </button>
             <button className="btnG" style={{ ...S.btnG, width:"100%", fontSize:12 }}
               onClick={() => { setStep(1); setErr(""); }}>
-              ← Change Code
+              ← {t("register.changeCode", "Change Code")}
             </button>
           </>
         )}
@@ -260,7 +283,7 @@ export function RegisterPage({ onBack }) {
         <div style={{ textAlign:"center", marginTop:16 }}>
           <button onClick={onBack} style={{ background:"none", border:"none", color:C.mutedColor,
             cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
-            Already have an account? Sign in
+            {t("register.alreadyAccount", "Already have an account? Sign in")}
           </button>
         </div>
       </div>

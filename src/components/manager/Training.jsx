@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { InfoBanner } from "../shared/InfoBanner.jsx";
+import { t } from "../../lib/i18n.js";
 
 function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
@@ -134,9 +135,9 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
   };
 
   const branchLabel = (ids) => {
-    if (!ids?.length) return "All Branches";
+    if (!ids?.length) return t("training.allBranches", "All Branches");
     const names = ids.map(id => branches.find(b => b.id === id)?.name).filter(Boolean);
-    return names.length ? names.join(", ") : "All Branches";
+    return names.length ? names.join(", ") : t("training.allBranches", "All Branches");
   };
 
   const updateAttendee = async (attendeeId, field, value) => {
@@ -145,9 +146,14 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
       const n = Number(value);
       if (isNaN(n) || n < 0 || n > 100) return;
     }
-    await supabase.from("training_attendees")
-      .update({ [field]: value, updated_at: new Date().toISOString() })
-      .eq("id", attendeeId);
+    const mine = selected?.attendees?.find(a => a.id === attendeeId)?.user_id === profile?.id;
+    if (mine && field === "status" && readOnly) {
+      await supabase.rpc("update_own_attendance_status", { p_attendee_id: attendeeId, p_status: value });
+    } else {
+      await supabase.from("training_attendees")
+        .update({ [field]: value, updated_at: new Date().toISOString() })
+        .eq("id", attendeeId);
+    }
     const update = (list) => list.map(a => a.id===attendeeId ? {...a,[field]:value} : a);
     setSelected(prev => prev ? { ...prev, attendees: update(prev.attendees) } : prev);
     setTrainings(prev => prev.map(t => t.id===selected?.id
@@ -188,7 +194,7 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
     return { total:att.length, present, absent, avg };
   };
 
-  if (loading) return <div style={{ ...S.muted, textAlign:"center", padding:30 }}>Loading…</div>;
+  if (loading) return <div style={{ ...S.muted, textAlign:"center", padding:30 }}>{t("training.loading", "Loading training...")}</div>;
 
   // ── DETAIL VIEW ──
   if (selected) {
@@ -393,14 +399,14 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
 
       <InfoBanner>
         {readOnly
-          ? "Scheduled by the Head VM or VM Manager. If you're an attendee, you can check yourself in/out once it's created."
-          : "Pick All Branches, a region, or specific branches, then add attendees — they can check themselves in/out, and you can score them after."}
+          ? t("info.trainingReadOnly", "Scheduled by the Head VM or VM Manager. If you're an attendee, you can check yourself in/out once it's created.")
+          : t("info.trainingManager", "Pick All Branches, a region, or specific branches, then add attendees. They can check themselves in/out, and you can score them after.")}
       </InfoBanner>
 
       {!readOnly && !showForm && (
         <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
           onClick={() => setShowForm(true)}>
-          ＋ New Training
+          ＋ {t("training.newTraining", "New Training")}
         </button>
       )}
 
@@ -488,7 +494,7 @@ export function Training({ company, profile, branches = [], readOnly = false }) 
       {trainings.length===0 && !showForm && (
         <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>
           <div style={{ fontSize:32, marginBottom:12 }}>🎓</div>
-          <div style={{ ...S.muted }}>No trainings yet.</div>
+          <div style={{ ...S.muted }}>{t("training.noTrainings", "No trainings yet.")}</div>
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { S, C } from "../../styles/theme.js";
 import { supabase } from "../../lib/supabase.js";
 import { uploadAvatar } from "../../services/data.service.js";
 import { toast } from "./Toast.jsx";
+import { roleLabel, t } from "../../lib/i18n.js";
 
 // Minimal per-user settings: change avatar photo, change password.
 export function ProfileModal({ user, company, onClose, onUpdated }) {
@@ -24,26 +25,26 @@ export function ProfileModal({ user, company, onClose, onUpdated }) {
     setUploading(true);
     try {
       await uploadAvatar(company.id, user.id, file);
-      toast("Photo updated!", "success");
+      toast(t("profile.photoUpdated", "Photo updated."), "success");
       onUpdated?.();
     } catch (err) {
-      process.env?.NODE_ENV !== "production" && console.error(err);
-      toast("Failed to upload photo.");
+      !import.meta.env.PROD && console.error(err);
+      toast(t("profile.photoFailed", "Failed to upload photo."));
     } finally { setUploading(false); }
   };
 
   const savePassword = async () => {
-    if (pw1.length < 6) return toast("Password must be at least 6 characters.");
-    if (pw1 !== pw2) return toast("Passwords don't match.");
+    if (pw1.length < 6) return toast(t("profile.passwordShort", "Password must be at least 6 characters."));
+    if (pw1 !== pw2) return toast(t("profile.passwordMismatch", "Passwords don't match."));
     setSavingPw(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: pw1 });
       if (error) throw error;
-      toast("Password updated!", "success");
+      toast(t("profile.passwordUpdated", "Password updated."), "success");
       setPw1(""); setPw2("");
     } catch (err) {
-      process.env?.NODE_ENV !== "production" && console.error(err);
-      toast("Failed to update password.");
+      !import.meta.env.PROD && console.error(err);
+      toast(t("profile.passwordFailed", "Failed to update password."));
     } finally { setSavingPw(false); }
   };
 
@@ -56,7 +57,7 @@ export function ProfileModal({ user, company, onClose, onUpdated }) {
         borderRadius:16, padding:22, border:`1px solid ${C.accentColor}22`,
       }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-          <div style={S.h3}>My Profile</div>
+          <div style={S.h3}>{t("profile.title", "My Profile")}</div>
           <button onClick={onClose} style={{ background:"none", border:"none",
             color:C.mutedColor, fontSize:18, cursor:"pointer" }}>✕</button>
         </div>
@@ -78,22 +79,22 @@ export function ProfileModal({ user, company, onClose, onUpdated }) {
           <input ref={fileRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handlePhoto}/>
           <button className="btnG" style={{ ...S.btnG, fontSize:12, marginTop:10, padding:"6px 14px" }}
             onClick={pickPhoto} disabled={uploading}>
-            {uploading ? "Uploading…" : "Change Photo"}
+            {uploading ? t("profile.uploading", "Uploading...") : t("profile.changePhoto", "Change Photo")}
           </button>
           <div style={{ fontSize:14, fontWeight:700, marginTop:10 }}>{name}</div>
-          <div style={{ ...S.muted, fontSize:12 }}>{user?.role}</div>
+          <div style={{ ...S.muted, fontSize:12 }}>{roleLabel(user?.role)}</div>
         </div>
 
         {/* Password */}
-        <div style={S.lbl}>New Password</div>
-        <input style={S.inp} type="password" placeholder="At least 6 characters"
+        <div style={S.lbl}>{t("profile.newPassword", "New Password")}</div>
+        <input style={S.inp} type="password" placeholder={t("profile.passwordPlaceholder", "At least 6 characters")}
           value={pw1} onChange={e => setPw1(e.target.value)}/>
-        <div style={S.lbl}>Confirm Password</div>
-        <input style={S.inp} type="password" placeholder="Repeat password"
+        <div style={S.lbl}>{t("profile.confirmPassword", "Confirm Password")}</div>
+        <input style={S.inp} type="password" placeholder={t("profile.repeatPassword", "Repeat password")}
           value={pw2} onChange={e => setPw2(e.target.value)}/>
         <button className="btnP" style={{ ...S.btnP, width:"100%" }}
           onClick={savePassword} disabled={savingPw || !pw1 || !pw2}>
-          {savingPw ? "Saving…" : "Update Password"}
+          {savingPw ? t("common.saving", "Saving...") : t("profile.updatePassword", "Update Password")}
         </button>
       </div>
     </>

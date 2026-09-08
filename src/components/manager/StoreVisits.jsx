@@ -9,6 +9,7 @@ import { toast } from "../shared/Toast.jsx";
 import { PhotoLightbox } from "../shared/PhotoLightbox.jsx";
 import { printFloorWalkChecklist, printVisitChecklist } from "../../lib/checklistReports.js";
 import { ChecklistCard, ChecklistItemRow, DEFAULT_CHECKLIST } from "../shared/ChecklistCard.jsx";
+import { t } from "../../lib/i18n.js";
 
 const STATUS_META = {
   draft:     { label:"In Progress", color:"#d4a82a" },
@@ -102,14 +103,13 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       const v = await ensureVisit();
       const urls = [];
       for (const file of files) urls.push(await uploadToStorage(company.id, "visits", v.id, file, "visit"));
-      setDraftVisit(f => {
-        const list = f.checklist ?? DEFAULT_CHECKLIST;
-        const next = list.map((it, i) => i === idx ? { ...it, photos: [...(it.photos ?? []), ...urls.map(url => ({ url }))] } : it);
-        supabase.from("store_visits").update({ checklist: next }).eq("id", v.id);
-        return { ...f, checklist: next };
-      });
+      const list = draftVisit?.checklist ?? v.checklist ?? DEFAULT_CHECKLIST;
+      const next = list.map((it, i) => i === idx ? { ...it, photos: [...(it.photos ?? []), ...urls.map(url => ({ url }))] } : it);
+      const { error } = await supabase.from("store_visits").update({ checklist: next }).eq("id", v.id);
+      if (error) throw error;
+      setDraftVisit(f => ({ ...f, checklist: next }));
     } catch (e) {
-      process.env?.NODE_ENV !== "production" && console.error(e);
+      !import.meta.env.PROD && console.error(e);
       toast("Failed to add photo. Please try again.");
     } finally { setUploadingIdx(null); }
   };
@@ -142,7 +142,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       setDraftVisit(null);
       setNotes(""); setShowForm(false);
     } catch (e) {
-      process.env?.NODE_ENV !== "production" && console.error(e);
+      !import.meta.env.PROD && console.error(e);
       toast("Failed to finish visit. Please try again.");
     } finally { setFinishing(false); }
   };
@@ -176,14 +176,13 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       const fw = await ensureFloorWalk();
       const urls = [];
       for (const file of files) urls.push(await uploadToStorage(company.id, "floorwalk", fw.id, file, "floorWalk"));
-      setDraftFw(f => {
-        const list = f.checklist ?? DEFAULT_CHECKLIST;
-        const next = list.map((it, i) => i === idx ? { ...it, photos: [...(it.photos ?? []), ...urls.map(url => ({ url }))] } : it);
-        supabase.from("floor_walks").update({ checklist: next }).eq("id", fw.id);
-        return { ...f, checklist: next };
-      });
+      const list = draftFw?.checklist ?? fw.checklist ?? DEFAULT_CHECKLIST;
+      const next = list.map((it, i) => i === idx ? { ...it, photos: [...(it.photos ?? []), ...urls.map(url => ({ url }))] } : it);
+      const { error } = await supabase.from("floor_walks").update({ checklist: next }).eq("id", fw.id);
+      if (error) throw error;
+      setDraftFw(f => ({ ...f, checklist: next }));
     } catch (e) {
-      process.env?.NODE_ENV !== "production" && console.error(e);
+      !import.meta.env.PROD && console.error(e);
       toast("Failed to add photo. Please try again.");
     } finally { setFwUploadingIdx(null); }
   };
@@ -215,7 +214,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       setDraftFw(null);
       setFwNote(""); setShowForm(false);
     } catch (e) {
-      process.env?.NODE_ENV !== "production" && console.error(e);
+      !import.meta.env.PROD && console.error(e);
       toast("Failed to finish floor walk. Please try again.");
     } finally { setFwFinishing(false); }
   };
@@ -230,15 +229,15 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
       )}
 
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Store <span style={S.accent}>Visits</span>
+        {t("visits.title", "Store Visits")}
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
-        Document and follow up on branch visits
+        {t("visits.subtitle", "Document and follow up on branch visits")}
       </div>
 
       <InfoBanner>
         {canCreateFloorWalk && canCreateVisit
-          ? "Both are your own reports — Floor Walks get published to every branch for everyone to see and comment on; Store Visits stay in your own log."
+          ? t("info.visits", "Both are your own reports. Floor Walks publish to every branch for viewing and comments; Store Visits stay in your own log.")
           : canCreateFloorWalk
           ? "Floor Walks here are yours to publish — every branch sees and can comment on them. Store Visits are the VM Manager's own log — you can view and comment, not create."
           : "Floor Walks here are published by the VM Manager to every branch — you can view and comment. Store Visits are the VM Manager's own on-the-ground log."}
@@ -246,7 +245,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:14 }}>
-        {[["visits","🚶 Store Visits"],["floor","📋 Floor Walks"]].map(([k,l]) => (
+        {[["visits",`🚶 ${t("visits.storeVisits", "Store Visits")}`],["floor",`📋 ${t("visits.floorWalks", "Floor Walks")}`]].map(([k,l]) => (
           <button key={k} className="tab-btn" style={S.tab(activeTab===k)} onClick={() => { setActiveTab(k); setShowForm(false); }}>{l}</button>
         ))}
       </div>
@@ -257,7 +256,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           {canCreateVisit && (
             <button className="btnP" style={{ ...S.btnP, marginBottom:16 }}
               onClick={() => setShowForm(!showForm)}>
-              {showForm ? "Cancel" : draftVisit ? "▶ Continue Visit Report" : "＋ New Visit Report"}
+              {showForm ? t("common.cancel", "Cancel") : draftVisit ? "▶ Continue Visit Report" : `＋ ${t("visits.newVisit", "New Visit Report")}`}
             </button>
           )}
 
@@ -313,7 +312,7 @@ export function StoreVisits({ company, branches, profile, visits, onVisitCreated
           {visits.length === 0 && !showForm && (
             <div style={{ ...S.card, textAlign:"center", padding:"32px 20px" }}>
               <div style={{ fontSize:32, marginBottom:12 }}>🚶</div>
-              <div style={{ ...S.muted }}>No visits recorded yet.</div>
+              <div style={{ ...S.muted }}>{t("visits.empty", "No visits recorded yet.")}</div>
             </div>
           )}
 

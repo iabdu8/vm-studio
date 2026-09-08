@@ -15,6 +15,7 @@ import {
   uploadCampaignBranchFile, reviewCampaignBranchFile,
 } from "./services/enterprise.service.js";
 import { supabase }             from "./lib/supabase.js";
+import { getLocale, t, useLanguage } from "./lib/i18n.js";
 import { useOfflineSync }       from "./hooks/useOfflineSync.js";
 import { exportWeeklyReport }   from "./lib/pdfExport.js";
 import { subscribeToPush }      from "./lib/notifications.js";
@@ -58,8 +59,8 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
         maxWidth:360, width:"100%", border:`1px solid ${C.accentColor}22` }}>
         <div style={{ fontSize:15, fontWeight:600, marginBottom:20, lineHeight:1.5 }}>{message}</div>
         <div style={{ display:"flex", gap:10 }}>
-          <button className="btnP" style={{ ...S.btnP, flex:1, background:"#f87171" }} onClick={onConfirm}>Confirm</button>
-          <button className="btnG" style={{ ...S.btnG, flex:1 }} onClick={onCancel}>Cancel</button>
+          <button className="btnP" style={{ ...S.btnP, flex:1, background:"#f87171" }} onClick={onConfirm}>{t("common.confirm", "Confirm")}</button>
+          <button className="btnG" style={{ ...S.btnG, flex:1 }} onClick={onCancel}>{t("common.cancel", "Cancel")}</button>
         </div>
       </div>
     </div>
@@ -71,7 +72,23 @@ function LoadingScreen() {
     <div style={{ ...S.loginBg, flexDirection:"column", gap:16 }}>
       <StyleTag />
       <Logo size="lg" />
-      <div style={{ color:C.mutedColor, fontSize:13, marginTop:12 }}>Loading…</div>
+      <div style={{ color:C.mutedColor, fontSize:13, marginTop:12 }}>{t("common.loading", "Loading...")}</div>
+    </div>
+  );
+}
+
+function ConfigErrorScreen({ message }) {
+  return (
+    <div style={S.loginBg}><StyleTag />
+      <div style={{ ...S.loginCard, textAlign:"center" }} className="fu">
+        <Logo size="md" />
+        <div style={{ ...S.dFont, fontSize:18, fontWeight:700, color:C.textColor, marginTop:22, marginBottom:8 }}>
+          {t("localSetupRequired", "Local setup required")}
+        </div>
+        <div style={{ ...S.muted, lineHeight:1.6 }}>
+          {message}
+        </div>
+      </div>
     </div>
   );
 }
@@ -94,27 +111,27 @@ function ForgotPassword({ onBack }) {
     <div style={S.loginBg}><StyleTag />
       <div style={{ ...S.loginCard, textAlign:"center" }} className="fu">
         <div style={{ fontSize:44, marginBottom:16 }}>📧</div>
-        <div style={{ ...S.dFont, fontSize:22, fontWeight:700, color:C.accentColor, marginBottom:8 }}>Check your email</div>
+        <div style={{ ...S.dFont, fontSize:22, fontWeight:700, color:C.accentColor, marginBottom:8 }}>{t("login.checkEmail", "Check your email")}</div>
         <div style={{ ...S.muted, marginBottom:24 }}>Reset link sent to <strong>{email}</strong></div>
-        <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={onBack}>Back to Sign In</button>
+        <button className="btnP" style={{ ...S.btnP, width:"100%" }} onClick={onBack}>{t("login.backToLogin", "Back to Sign In")}</button>
       </div>
     </div>
   );
   return (
     <div style={S.loginBg}><StyleTag />
       <div style={S.loginCard} className="fu">
-        <div style={{ ...S.dFont, fontSize:28, fontWeight:700, color:C.accentColor, marginBottom:4 }}>Reset Password</div>
-        <div style={{ ...S.muted, fontSize:12, marginBottom:24 }}>We'll send a reset link to your email.</div>
-        <div style={S.lbl}>Email</div>
+        <div style={{ ...S.dFont, fontSize:28, fontWeight:700, color:C.accentColor, marginBottom:4 }}>{t("login.resetPassword", "Reset Password")}</div>
+        <div style={{ ...S.muted, fontSize:12, marginBottom:24 }}>{t("login.resetHelp", "We'll send a reset link to your email.")}</div>
+        <div style={S.lbl}>{t("login.email", "Email")}</div>
         <input style={S.inp} type="email" placeholder="your@email.com" value={email}
           onChange={e => { setEmail(e.target.value); setErr(""); }} onKeyDown={e => e.key==="Enter" && send()} />
         {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
         <button className="btnP" style={{ ...S.btnP, width:"100%", marginBottom:10 }} onClick={send} disabled={loading}>
-          {loading ? "Sending…" : "Send Reset Link →"}
+          {loading ? t("common.loading", "Loading...") : `${t("login.sendReset", "Send Reset Link")} →`}
         </button>
         <button onClick={onBack} style={{ background:"none", border:"none", color:C.mutedColor,
           cursor:"pointer", fontSize:12, width:"100%", textAlign:"center", fontFamily:"'DM Sans',sans-serif" }}>
-          ← Back to Sign In
+          ← {t("login.backToLogin", "Back to Sign In")}
         </button>
       </div>
     </div>
@@ -123,6 +140,7 @@ function ForgotPassword({ onBack }) {
 
 function LoginScreen({ onBack }) {
   const { justConfirmedEmail, clearJustConfirmedEmail } = useApp();
+  const { language, toggleLanguage } = useLanguage();
   const [view, setView]       = useState("login");
   const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
@@ -138,6 +156,12 @@ function LoginScreen({ onBack }) {
   if (view === "forgot")   return <ForgotPassword onBack={() => setView("login")} />;
   return (
     <div style={S.loginBg}><StyleTag />
+      <button onClick={toggleLanguage} title={language === "ar" ? "English" : "العربية"}
+        style={{ position:"fixed", top:16, insetInlineEnd:16, zIndex:10, background:"var(--clr-surface)",
+          color:C.accentColor, border:"1px solid color-mix(in srgb,var(--clr-accent) 33%,transparent)",
+          borderRadius:8, padding:"7px 10px", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+        {language === "ar" ? "EN" : "AR"}
+      </button>
       <div style={S.loginCard} className="fu">
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", marginBottom:28 }}>
           <Logo size="lg" />
@@ -145,37 +169,37 @@ function LoginScreen({ onBack }) {
         {justConfirmedEmail && (
           <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 14px", marginBottom:16,
             background:"#4ade8018", border:"1px solid #4ade8044", borderRadius:10, fontSize:13, color:"#4ade80" }}>
-            ✓ Email confirmed — sign in below.
+            ✓ {t("register.confirmThenLogin", "Confirm your email, then sign in to complete invite linking.")}
             <button onClick={clearJustConfirmedEmail} style={{ marginLeft:"auto", background:"none", border:"none",
               color:"#4ade80", cursor:"pointer", fontSize:14, lineHeight:1 }}>✕</button>
           </div>
         )}
-        <div style={S.lbl}>Email</div>
-        <input style={S.inp} type="email" placeholder="Email address" value={email}
+        <div style={S.lbl}>{t("login.email", "Email")}</div>
+        <input style={S.inp} type="email" placeholder={t("login.emailPlaceholder", "Email address")} value={email}
           onChange={e => { setEmail(e.target.value); setErr(""); }} onKeyDown={e => e.key==="Enter" && go()} />
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <div style={S.lbl}>Password</div>
+          <div style={S.lbl}>{t("login.password", "Password")}</div>
           <button onClick={() => setView("forgot")} style={{ background:"none", border:"none", color:C.mutedColor,
             cursor:"pointer", fontSize:11, fontFamily:"'DM Sans',sans-serif", padding:0, marginBottom:4 }}>
-            Forgot password?
+            {t("login.forgotPassword", "Forgot password?")}
           </button>
         </div>
-        <input style={S.inp} type="password" placeholder="Password" value={password}
+        <input style={S.inp} type="password" placeholder={t("login.password", "Password")} value={password}
           onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key==="Enter" && go()} />
         {err && <div style={{ color:"#f87171", fontSize:13, marginBottom:10 }}>{err}</div>}
         <button className="btnP" style={{ ...S.btnP, width:"100%", padding:"13px", fontSize:14 }}
-          onClick={go} disabled={loading}>{loading ? "Signing in…" : "Sign In →"}</button>
+          onClick={go} disabled={loading}>{loading ? t("login.signingIn", "Signing in...") : `${t("login.signIn", "Sign In")} →`}</button>
         <div style={{ textAlign:"center", marginTop:14 }}>
           <button onClick={() => setView("register")} style={{ background:"none", border:"none", color:C.mutedColor,
             cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
-            Have an invite code? <span style={{ color:C.accentColor, fontWeight:600 }}>Create account →</span>
+            {t("login.inviteQuestion", "Have an invite code?")} <span style={{ color:C.accentColor, fontWeight:600 }}>{t("login.createAccount", "Create account")} →</span>
           </button>
         </div>
         {onBack && (
           <div style={{ textAlign:"center", marginTop:16 }}>
             <button onClick={onBack} style={{ background:"none", border:"none", color:C.mutedColor,
               cursor:"pointer", fontSize:12, fontFamily:"'DM Sans',sans-serif" }}>
-              ← Back to Home
+              ← {t("nav.home", "Home")}
             </button>
           </div>
         )}
@@ -259,8 +283,8 @@ function AuthenticatedApp() {
     Promise.all([critical, background]).then(([criticalResults, backgroundResults]) => {
       const failed = [...criticalResults, ...backgroundResults].filter(r => r.status === "rejected");
       if (failed.length) {
-        process.env?.NODE_ENV !== "production" && console.error(failed.map(f => f.reason));
-        toast("Some data failed to load — pull down or reopen the app to retry.");
+        !import.meta.env.PROD && console.error(failed.map(f => f.reason));
+        toast(t("common.dataLoadPartial", "Some data failed to load. Reopen the app or try again."));
       }
     });
     critical.finally(() => setDataLoaded(true));
@@ -277,11 +301,11 @@ function AuthenticatedApp() {
     const payload = { company_id:company.id, submitted_by:profile.id, task_id:task_id||null, category_id:category_id||null, subcategory_id:subcategory_id||null, branch_id:branch_id||null, category_name:category_name||null, subcategory_name:subcategory_name||null, branch_name:branch_name||null, note:note||null, status:"pending" };
     try {
       await submitWithFallback({ ...payload, before, after });
-      toast("Report submitted!", "success");
+      toast(t("common.reportSubmitted", "Report submitted."), "success");
       if (isOnline) getSubmissions(company.id).then(setSubmissions);
       addLog("Submitted implementation", category_name ?? "");
       if (branch_id) notifyBranchController(company.id, branch_id, "submission_new", "New Submission 📤", (profile.full_name ?? "") + " submitted a VM report");
-    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast(e?.message ? `Failed to submit: ${e.message}` : "Failed to submit. Please try again."); }
+    } catch (e) { !import.meta.env.PROD && console.error(e); toast(e?.message ? `${t("common.failedSubmit", "Failed to submit. Please try again.")}: ${e.message}` : t("common.failedSubmit", "Failed to submit. Please try again.")); }
   };
 
   const handleReview = async (id, status, revisionNote) => {
@@ -291,24 +315,24 @@ function AuthenticatedApp() {
       addLog(status==="approved" ? "Approved submission" : "Requested revision", "VM submission");
       const sub = submissions.find(s => s.id === id);
       if (sub?.submitted_by) notifyUser(company.id, sub.submitted_by, status==="approved" ? "submission_approved" : "submission_revision", status==="approved" ? "Submission Approved ✅" : "Revision Requested ↩️", status==="approved" ? "Your VM report was approved!" : (revisionNote || "Your VM report needs revision."));
-    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to update submission."); }
+    } catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedUpdate", "Failed to update.")); }
   };
 
-  const handleDeleteSubmission = (id) => showConfirm("Delete this submission permanently?", async () => {
+  const handleDeleteSubmission = (id) => showConfirm(t("confirm.deleteSubmission", "Delete this submission permanently?"), async () => {
     try { await supabase.from("submissions").delete().eq("id", id); setSubmissions(p => p.filter(x => x.id !== id)); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete submission."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedDelete", "Failed to delete.")); }
     finally { setConfirm(null); }
   });
 
 
   const handleUploadGuideline = async (title, category, file) => {
     try { await uploadGuideline(company.id, profile.id, title, category, file); getGuidelines(company.id).then(setGuidelines); addLog("Uploaded guideline", title); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to upload guideline."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedUpload", "Failed to upload.")); }
   };
 
-  const handleDeleteGuideline = (id) => showConfirm("Delete this guideline?", async () => {
+  const handleDeleteGuideline = (id) => showConfirm(t("confirm.deleteGuideline", "Delete this guideline?"), async () => {
     try { await deleteGuideline(id); setGuidelines(p => p.filter(x => x.id !== id)); addLog("Deleted guideline", id); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete guideline."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedDelete", "Failed to delete.")); }
     finally { setConfirm(null); }
   });
 
@@ -317,7 +341,7 @@ function AuthenticatedApp() {
       const { data } = await supabase.from("demo_holds").insert({ company_id:company.id, added_by:profile.id, branch_id:profile.branch_id??null, item_code, note, time:nowTime() }).select().single();
       if (data) setDemoHolds(p => [data, ...p]);
       addLog("Added demo hold", item_code);
-    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to add item."); }
+    } catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedSave", "Failed to save.")); }
   };
 
   const handleFloorWalkChanged = () => { loadFloorWalks(company.id); addLog("Published floor walk", ""); };
@@ -339,71 +363,71 @@ function AuthenticatedApp() {
         if (data) { setCampaign(data); setCampaignAck(null); await initCampaignBranches(data.id, activeBranches.map(b => b.id)); getCampaignProgress(data.id).then(setCampaignProgress); }
         addLog("Started campaign", name);
       }
-    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to save campaign."); }
+    } catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedSave", "Failed to save.")); }
   };
 
-  const handleDeleteCampaign = () => showConfirm("End the current campaign? Branches will no longer see it.", async () => {
+  const handleDeleteCampaign = () => showConfirm(t("confirm.endCampaign", "End the current campaign? Branches will no longer see it."), async () => {
     try {
       if (campaign?.id) await supabase.from("campaigns").update({ is_active:false }).eq("id", campaign.id);
       setCampaign(null); setCampaignProgress([]); setCampaignAck(null);
       addLog("Ended campaign", campaign?.name ?? "");
-    } catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to end campaign."); }
+    } catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedUpdate", "Failed to update.")); }
     finally { setConfirm(null); }
   });
 
   const handleAcknowledgeCampaign = async (campaign_id) => {
     try { setCampaignAck(await acknowledgeCampaign(campaign_id, profile.id)); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to acknowledge campaign."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedUpdate", "Failed to update.")); }
   };
 
 
   const handleSetBranchStatus = async (branch_id, status) => {
     if (!campaign?.id) return;
     try { await setCampaignBranchStatus(campaign.id, branch_id, status); getCampaignProgress(campaign.id).then(setCampaignProgress); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to update branch status."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedUpdate", "Failed to update.")); }
   };
 
   const handleUploadBranchCampaignFile = async (branch_id, file) => {
     if (!campaign?.id) return;
     try { await uploadCampaignBranchFile(campaign.id, branch_id, profile.id, file); getCampaignProgress(campaign.id).then(setCampaignProgress); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to upload campaign file. Please try again."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedUpload", "Failed to upload.")); }
   };
 
   const handleReviewCampaignBranchFile = async (branch_id, status, note) => {
     if (!campaign?.id) return;
     try { await reviewCampaignBranchFile(campaign.id, branch_id, status, note, profile.id); getCampaignProgress(campaign.id).then(setCampaignProgress); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to save review. Please try again."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedSave", "Failed to save.")); }
   };
   const handleCreatePromotion = async (payload, branchIds) => {
     try { await createPromotion({ ...payload, company_id:company.id, created_by:profile.id }, branchIds); getPromotions(company.id).then(setPromotions); addLog("Created promotion", payload.name); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to create promotion."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedSave", "Failed to save.")); }
   };
   const handleDeletePromotion = async (id) => {
     try { await deletePromotion(id); setPromotions(p => p.filter(x => x.id !== id)); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete promotion."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedDelete", "Failed to delete.")); }
   };
-  const handleDeleteVisit = (id) => showConfirm("Delete this visit report?", async () => {
+  const handleDeleteVisit = (id) => showConfirm(t("confirm.deleteVisit", "Delete this visit report?"), async () => {
     try { await supabase.from("store_visits").delete().eq("id", id); setVisits(p => p.filter(x => x.id !== id)); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete visit report."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedDelete", "Failed to delete.")); }
     finally { setConfirm(null); }
   });
-  const handleDeleteFloorWalk = (id) => showConfirm("Delete this floor walk report?", async () => {
+  const handleDeleteFloorWalk = (id) => showConfirm(t("confirm.deleteFloorWalk", "Delete this floor walk report?"), async () => {
     try { await supabase.from("floor_walks").delete().eq("id", id); setFloorWalks(p => p.filter(x => x.id !== id)); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to delete floor walk."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedDelete", "Failed to delete.")); }
     finally { setConfirm(null); }
   });
-  const handleDeleteDemoHold = (id) => showConfirm("Remove this item from hold?", async () => {
+  const handleDeleteDemoHold = (id) => showConfirm(t("confirm.removeHoldItem", "Remove this item from hold?"), async () => {
     try { await supabase.from("demo_holds").delete().eq("id", id); setDemoHolds(p => p.filter(x => x.id !== id)); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to remove item."); }
+    catch (e) { !import.meta.env.PROD && console.error(e); toast(t("common.failedDelete", "Failed to delete.")); }
     finally { setConfirm(null); }
   });
-  const handleExportPDF = () => exportWeeklyReport({ company, tasks, submissions, branches:activeBranches, weekLabel: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" }) });
+  const handleExportPDF = () => exportWeeklyReport({ company, tasks, submissions, branches:activeBranches, weekLabel: new Date().toLocaleDateString(getLocale(), { day:"numeric", month:"long", year:"numeric" }) });
   const handleExportBranchPDF = () => exportWeeklyReport({
     company,
     tasks: tasks.filter(t => t.branch_id === profile.branch_id),
     submissions: submissions.filter(s => s.branch_id === profile.branch_id),
     branches: activeBranches.filter(b => b.id === profile.branch_id),
-    weekLabel: new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" }),
+    weekLabel: new Date().toLocaleDateString(getLocale(), { day:"numeric", month:"long", year:"numeric" }),
   });
 
   if (!dataLoaded) return <LoadingScreen />;
@@ -420,7 +444,7 @@ function AuthenticatedApp() {
           <StatusBar isOnline={isOnline} queueSize={queueSize} syncing={syncing} onSyncNow={syncQueue} />
           <div key={vmPage} className="page-transition" style={{ ...S.main, paddingTop:(!isOnline || queueSize > 0) ? 56 : 18 }}>
             {vmPage==="home"       && <VMHome user={profile} tasks={tasks} submissions={submissions} campaign={campaign} promotions={promotions} company={company} />}
-            {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks)).catch(e => { process.env?.NODE_ENV !== "production" && console.error(e); toast("Failed to update task. Please try again."); })} />}
+            {vmPage==="tasks"      && <VMTasks user={profile} categories={categories} branches={activeBranches} tasks={tasks} company={company} profile={profile} onSubmit={handleSubmit} onTaskToggle={(id, done) => updateTask(id, { is_done:done }).then(() => getTasks(company.id).then(setTasks)).catch(e => { !import.meta.env.PROD && console.error(e); toast("Failed to update task. Please try again."); })} />}
             {vmPage==="demo"       && <VMDemoHold demoHolds={demoHolds.filter(d => d.branch_id === profile.branch_id)} onAddDemoHold={handleAddDemoHold} onDeleteDemoHold={handleDeleteDemoHold} company={company} profile={profile} />}
             {vmPage==="visits"     && <VMVisits profile={profile} floorWalks={floorWalks} company={company} />}
             {vmPage==="guidelines" && <VMGuidelines guidelines={guidelines} userId={profile.id} branchId={profile.branch_id} campaign={campaign} campaignProgress={campaignProgress} company={company} />}
@@ -444,7 +468,7 @@ function AuthenticatedApp() {
             {smPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["home",HomeIcon,"Home"],["assign",AssignIcon,"Tasks"],["requests",RequestsIcon,"Approvals"],["campaign",GuidesIcon,"Campaign"],["demo",TasksIcon,"Demo Hold"],["visits",VisitsIcon,"Floor Walk"],["reports",AnalyticsIcon,"Reports"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
+            {[["home",HomeIcon,t("nav.home","Home")],["assign",AssignIcon,t("nav.tasks","Tasks")],["requests",RequestsIcon,t("nav.approvals","Approvals")],["campaign",GuidesIcon,t("nav.campaign","Campaign")],["demo",TasksIcon,t("nav.demoHold","Demo Hold")],["visits",VisitsIcon,t("nav.floorWalk","Floor Walk")],["reports",AnalyticsIcon,t("nav.reports","Reports")],["chat",ChatIcon,t("nav.chat","Chat")]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(smPage===k)} onClick={() => setSmPage(k)}>
                 <Icon size={22} /><span>{lbl}</span>
               </button>
@@ -461,7 +485,7 @@ function AuthenticatedApp() {
             {amPage==="requests" && <AreaManagerRequests submissions={submissions} profile={profile} branches={activeBranches} managerBranches={managerBranches} />}
             {amPage==="plan"     && (
               <>
-                <InfoBanner>Weekly plans for your assigned branches, set by each branch's VM Controller. Tap a task to comment on it.</InfoBanner>
+                <InfoBanner>{t("info.areaWeeklyPlan", "Weekly plans for your assigned branches, set by each branch's VM Controller. Tap a task to comment on it.")}</InfoBanner>
                 <WeeklyPlan company={company} categories={categories} branches={activeBranches.filter(b => managerBranches.includes(b.id))} profile={profile} readOnly />
               </>
             )}
@@ -471,7 +495,7 @@ function AuthenticatedApp() {
             {amPage==="chat"     && <Chat user={profile} onSend={(room, body, attachment) => sendMessage(company.id, profile.id, room, body, attachment)} companyId={company.id} branches={activeBranches} />}
           </div>
           <nav style={S.bottomNav}>
-            {[["overview",OverviewIcon,"Overview"],["requests",RequestsIcon,"Requests"],["plan",CalendarIcon,"Plan"],["campaign",GuidesIcon,"Campaign"],["training",AnalyticsIcon,"Training"],["visits",VisitsIcon,"Visits"],["chat",ChatIcon,"Chat"]].map(([k,Icon,lbl]) => (
+            {[["overview",OverviewIcon,t("nav.overview","Overview")],["requests",RequestsIcon,t("nav.requests","Requests")],["plan",CalendarIcon,t("nav.plan","Plan")],["campaign",GuidesIcon,t("nav.campaign","Campaign")],["training",AnalyticsIcon,t("nav.training","Training")],["visits",VisitsIcon,t("nav.visits","Visits")],["chat",ChatIcon,t("nav.chat","Chat")]].map(([k,Icon,lbl]) => (
               <button key={k} className="tab-btn" style={S.navBtn(amPage===k)} onClick={() => setAmPage(k)}>
                 <Icon size={22} /><span>{lbl}</span>
               </button>
@@ -502,9 +526,17 @@ function AuthenticatedApp() {
 
 // ── ROOT ─────────────────────────────────────────────────────
 export default function App() {
-  const { session, loading } = useApp();
+  useLanguage();
+  const { session, loading, supabaseConfigError } = useApp();
 
   if (loading) return <LoadingScreen />;
+
+  if (supabaseConfigError) return (
+    <>
+      <ToastContainer />
+      <ConfigErrorScreen message={supabaseConfigError} />
+    </>
+  );
 
   if (!session?.profile) return (
     <>

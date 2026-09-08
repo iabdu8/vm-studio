@@ -32,10 +32,20 @@ export async function createTask(payload) {
 }
 
 export async function updateTask(id, updates) {
+  if (Object.keys(updates ?? {}).length === 1 && Object.prototype.hasOwnProperty.call(updates, "is_done")) {
+    return markTaskDone(id, updates.is_done);
+  }
   const { data, error } = await supabase
     .from("tasks").update(updates).eq("id", id).select().single();
   if (error) throw error;
   return data;
+}
+
+export async function markTaskDone(id, done) {
+  const { data, error } = await supabase
+    .rpc("mark_task_done", { p_task_id: id, p_done: !!done });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
 }
 
 export async function deleteTask(id) {
@@ -77,20 +87,33 @@ export async function createSubmission(payload, beforeFiles, afterFiles) {
     .from("submissions").insert(payload).select().single();
   if (error) throw error;
 
+  const uploadedPaths = [];
   const upload = async (file, type) => {
+    if (!file?.type?.startsWith("image/")) throw new Error("Only image uploads are supported for submissions.");
+    if (file.size > 15 * 1024 * 1024) throw new Error("Each submission photo must be 15MB or smaller.");
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${payload.company_id}/${sub.id}/${type}-${Date.now()}-${safeName}`;
     const { error: upErr } = await supabase.storage
       .from("vm-photos").upload(path, file);
     if (upErr) throw upErr;
-    await supabase.from("submission_photos")
+    uploadedPaths.push(path);
+    const { error: photoErr } = await supabase.from("submission_photos")
       .insert({ submission_id: sub.id, storage_path: path, photo_type: type });
+    if (photoErr) throw photoErr;
   };
 
-  await Promise.all([
-    ...beforeFiles.map(f => upload(f.file ?? f, "before")),
-    ...afterFiles .map(f => upload(f.file ?? f, "after")),
-  ]);
+  try {
+    await Promise.all([
+      ...beforeFiles.map(f => upload(f.file ?? f, "before")),
+      ...afterFiles .map(f => upload(f.file ?? f, "after")),
+    ]);
+  } catch (uploadErr) {
+    if (uploadedPaths.length) {
+      await supabase.storage.from("vm-photos").remove(uploadedPaths).catch(() => {});
+    }
+    await supabase.from("submissions").delete().eq("id", sub.id).catch(() => {});
+    throw uploadErr;
+  }
 
   return sub;
 }
@@ -105,14 +128,15 @@ export async function flagSubmissionPhotos(photoIds, flagged = true) {
 }
 
 export async function reviewSubmission(id, status, score, reviewer_id, manager_note) {
-  const updates = { status, score, reviewed_by: reviewer_id, reviewed_at: new Date().toISOString() };
-  if (manager_note) updates.note = manager_note;
   const { data, error } = await supabase
-    .from("submissions")
-    .update(updates)
-    .eq("id", id).select().single();
+    .rpc("review_submission_secure", {
+      p_submission_id: id,
+      p_status: status,
+      p_score: score,
+      p_note: manager_note || null,
+    });
   if (error) throw error;
-  return data;
+  return Array.isArray(data) ? data[0] : data;
 }
 
 // ============================================================
@@ -155,6 +179,17 @@ export async function deleteMessage(id) {
 // (PDF, etc.) go through vm-guidelines, same buckets already used elsewhere.
 export async function uploadChatAttachment(company_id, room, file) {
   const isImage = file.type.startsWith("image/");
+  const allowedDocs = [
+    "application/pdf",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ];
+  if (!isImage && !allowedDocs.includes(file.type)) {
+    throw new Error("Unsupported attachment type.");
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error("Attachment must be 15MB or smaller.");
+  }
   const uploadFile = isImage ? await compressImage(file, "chat") : file;
   const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const bucket = isImage ? "vm-photos" : "vm-guidelines";

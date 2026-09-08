@@ -17,17 +17,20 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
   const approved  = submissions.filter(s => s.status === "approved").length;
   const doneT     = tasks.filter(t => t.is_done ?? t.done).length;
   const pct       = tasks.length ? Math.round((doneT / tasks.length) * 100) : 0;
+  const today     = new Date().toISOString().slice(0, 10);
+  const openTasks = tasks.filter(t => !(t.is_done ?? t.done));
+  const overdue   = openTasks.filter(t => (t.due_date ?? t.dueDate)?.slice(0, 10) < today).length;
 
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Store <span style={S.accent}>Dashboard</span>
+        لوحة <span style={S.accent}>المتجر</span>
       </div>
       <div style={{ ...S.muted, marginBottom:16, fontSize:12 }}>
         {branch} · {todayStr()}
       </div>
 
-      <InfoBanner>Your branch's daily snapshot — pending approvals, task completion, and any campaign or promotion. Use the Tasks tab to schedule work and Approvals to review submitted photos.</InfoBanner>
+      <InfoBanner>تابع تنفيذ الفرع من هنا: المهام المفتوحة أولًا، ثم مراجعة الصور، ثم الحملات والعروض النشطة.</InfoBanner>
 
       <BestBranchOfMonth company={company} />
 
@@ -44,10 +47,10 @@ export function StoreManagerHome({ profile, tasks, submissions, campaign, promot
       {/* KPIs */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
         {[
-          { n:pending,  l:"Pending",    sub:"awaiting review", c:"#d4a82a" },
-          { n:approved, l:"Approved",   sub:"this period",     c:"#4ade80" },
-          { n:doneT,    l:"Tasks Done", sub:`of ${tasks.length} total`, c:C.accentColor },
-          { n:`${pct}%`,l:"Completion", sub:"overall progress", c:"#818cf8" },
+          { n:overdue,  l:"متأخرة",     sub:"تحتاج متابعة", c:"#f87171" },
+          { n:pending,  l:"بانتظارك",   sub:"صور تحتاج مراجعة", c:"#d4a82a" },
+          { n:doneT,    l:"مكتملة",     sub:`من ${tasks.length} مهمة`, c:C.accentColor },
+          { n:`${pct}%`,l:"نسبة الإنجاز", sub:"تقدم الفرع", c:"#0ea5a4" },
         ].map(k => (
           <div key={k.l} style={{ ...S.card, marginBottom:0 }}>
             <div style={{ ...S.dFont, fontSize:28, fontWeight:700, color:k.c, lineHeight:1 }}>{k.n}</div>

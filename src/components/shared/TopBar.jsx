@@ -6,10 +6,12 @@ import { useApp } from "../../context/AppContext.jsx";
 import { supabase } from "../../lib/supabase.js";
 import { NotificationBell, NotificationPanel } from "./NotificationCenter.jsx";
 import { ProfileModal } from "./ProfileModal.jsx";
+import { roleLabel, t, useLanguage } from "../../lib/i18n.js";
 
 export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
   const { company, managerBranches, branches, refresh } = useApp();
   const { mode, toggle } = useTheme();
+  const { language, toggleLanguage } = useLanguage();
   const [showNotifs, setShowNotifs] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -57,13 +59,22 @@ export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
         </div>
 
         {/* Right */}
-        <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+        <div style={{ display:"flex", gap:8, alignItems:"center", minWidth:0 }}>
           {/* Theme toggle */}
           <button onClick={toggle} title={mode==="dark"?"Light Mode":"Dark Mode"}
             style={{ background:"none", border:"1px solid color-mix(in srgb,var(--clr-accent) 33%,transparent)",
               borderRadius:8, cursor:"pointer", fontSize:16, padding:"4px 8px", lineHeight:1,
               color:C.accentColor, transition:"all .2s" }}>
             {mode === "dark" ? "☀️" : "🌙"}
+          </button>
+
+          <button onClick={toggleLanguage}
+            aria-label={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+            title={language === "ar" ? "English" : "العربية"}
+            style={{ background:"none", border:"1px solid color-mix(in srgb,var(--clr-accent) 33%,transparent)",
+              borderRadius:8, cursor:"pointer", fontSize:12, padding:"4px 8px", lineHeight:1,
+              color:C.accentColor, fontWeight:700, minWidth:36, flexShrink:0 }}>
+            {language === "ar" ? "EN" : "AR"}
           </button>
 
           {/* Notification bell */}
@@ -74,31 +85,31 @@ export function TopBar({ user, onLogout, isSuperAdmin, onSuperAdmin }) {
           />
 
           {isSuperAdmin && onSuperAdmin && (
-            <button onClick={onSuperAdmin} style={{
+            <button onClick={onSuperAdmin} title={t("superAdmin", "Super Admin")} style={{
               background:"#a855f722", border:"1px solid #a855f733", color:"#a855f7",
               padding:"4px 10px", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:700,
             }}>🛡️</button>
           )}
 
-          <div onClick={() => setShowProfile(true)} title="My Profile"
+          <div onClick={() => setShowProfile(true)} title={t("myProfile", "My Profile")}
             style={{ ...S.avatar(30), cursor:"pointer", overflow:"hidden", padding:0 }}>
             {user?.avatar_url
               ? <img src={user.avatar_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", borderRadius:"50%" }}/>
               : initials}
           </div>
 
-          <div>
+          <div style={{ minWidth:0 }}>
             <div style={{ fontSize:12, fontWeight:600, lineHeight:1.2 }}>{name}</div>
             {branch && <div style={{ fontSize:10, color:C.mutedColor, lineHeight:1.3 }}>{branch}</div>}
             {user?.employee_id && <div style={{ fontSize:10, color:C.mutedColor, lineHeight:1.3 }}>#{user.employee_id}</div>}
           </div>
 
           <span style={S.chip(user?.role)}>
-            {user?.role === "manager" ? "MGR" : user?.role === "area_manager" ? "AM" : user?.role === "store_manager" ? "SM" : "VM"}
+            {roleLabel(user?.role)}
           </span>
 
           <button className="btnG" style={{ ...S.btnG, padding:"5px 12px", fontSize:12 }} onClick={onLogout}>
-            Out
+            {t("logout", "Out")}
           </button>
         </div>
       </div>

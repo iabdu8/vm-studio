@@ -30,7 +30,10 @@ export async function createPromotion(payload, branchIds) {
   if (branchIds?.length) {
     const { error: branchErr } = await supabase.from("promotion_branches")
       .insert(branchIds.map(b => ({ promotion_id: promo.id, branch_id: b })));
-    if (branchErr) process.env?.NODE_ENV !== "production" && console.error(branchErr);
+    if (branchErr) {
+      await supabase.from("promotions").delete().eq("id", promo.id).catch(() => {});
+      throw branchErr;
+    }
   }
   return promo;
 }
@@ -70,6 +73,11 @@ export async function reviewCampaignBranchFile(campaign_id, branch_id, status, n
 // ── PER-BRANCH CAMPAIGN FILE (uploaded by that branch's VM Controller) ──
 export async function uploadCampaignBranchFile(campaign_id, branch_id, uploaded_by, file) {
   const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  const isPpt = file.type === "application/vnd.ms-powerpoint"
+    || file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    || /\.(ppt|pptx)$/i.test(file.name);
+  if (!isPdf && !isPpt) throw new Error("Campaign files must be PDF, PPT, or PPTX.");
+  if (file.size > 25 * 1024 * 1024) throw new Error("Campaign files must be 25MB or smaller.");
   const file_type = isPdf ? "pdf" : "ppt";
   const safeName = Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const file_path = `campaigns/${campaign_id}/${branch_id}/${safeName}`;
@@ -105,7 +113,7 @@ export async function setCampaignBranchStatus(campaign_id, branch_id, status) {
   if (error) throw error;
 }
 function logNotifyError(error) {
-  if (error) process.env?.NODE_ENV !== "production" && console.error(error);
+  if (error) !import.meta.env.PROD && console.error(error);
 }
 
 // Fire-and-forget: pushes a native notification to every subscribed device
@@ -114,7 +122,7 @@ function logNotifyError(error) {
 function sendPush(user_ids, title, body) {
   if (!user_ids?.length) return;
   supabase.functions.invoke("send-push", { body: { user_ids, title, body } })
-    .catch(e => process.env?.NODE_ENV !== "production" && console.error(e));
+    .catch(e => !import.meta.env.PROD && console.error(e));
 }
 
 export async function notifyAll(company_id, type, title, body) {
@@ -237,6 +245,17 @@ export async function setManagerBranches(manager_id, branchIds) {
   if (error) throw error;
 }
 
+export async function completeProfileFromInvite(code, { branchId = null, branchIds = null, employeeId = null } = {}) {
+  const { data, error } = await supabase.rpc("complete_profile_from_invite", {
+    p_code: code.trim().toUpperCase(),
+    p_branch_id: branchId || null,
+    p_branch_ids: branchIds?.length ? branchIds : null,
+    p_employee_id: employeeId?.trim() || null,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
 // ── REGION-SCOPED INVITES (area_manager only, super_admin only) ──
 // VM and VM Controller now use the flat company-wide codes instead
 // (see lookupCompanyByCode) — the registrant picks their own branch.
@@ -244,11 +263,11 @@ function genInviteCode() {
   return Array.from({ length: 8 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
 }
 
-export async function createInvite(company_id, role, { region = null, branchIds = null } = {}, created_by) {
+export async function createInvite(company_id, role, { region = null, branchIds = null, expiresAt = null } = {}, created_by) {
   const code = genInviteCode();
   const { data, error } = await supabase
     .from("invites")
-    .insert({ company_id, role, code, region, branch_ids: branchIds, created_by })
+    .insert({ company_id, role, code, region, branch_ids: branchIds, expires_at: expiresAt, created_by })
     .select().single();
   if (error) throw error;
   return data;

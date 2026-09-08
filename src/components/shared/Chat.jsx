@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase.js";
 import { uploadChatAttachment, deleteMessage } from "../../services/data.service.js";
 import { PhotoLightbox } from "./PhotoLightbox.jsx";
 import { InfoBanner } from "./InfoBanner.jsx";
+import { t } from "../../lib/i18n.js";
 
 // ── Single chat room ──────────────────────────────────────────
 function ChatRoom({ user, room, companyId, onSend }) {
@@ -32,7 +33,7 @@ function ChatRoom({ user, room, companyId, onSend }) {
   const handleDelete = async (id) => {
     removeMessage(id); // optimistic
     try { await deleteMessage(id); }
-    catch (e) { process.env?.NODE_ENV !== "production" && console.error(e); }
+    catch (e) { !import.meta.env.PROD && console.error(e); }
   };
 
   useEffect(() => {
@@ -110,10 +111,10 @@ function ChatRoom({ user, room, companyId, onSend }) {
   return (
     <div style={{ ...S.card, display:"flex", flexDirection:"column", height:420, marginBottom:0 }}>
       <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:10, padding:"4px 0" }}>
-        {loading && <div style={{ ...S.muted, textAlign:"center", marginTop:40 }}>Loading…</div>}
+        {loading && <div style={{ ...S.muted, textAlign:"center", marginTop:40 }}>{t("common.loading", "Loading...")}</div>}
         {!loading && messages.length === 0 && (
           <div style={{ ...S.muted, textAlign:"center", marginTop:46, fontSize:13 }}>
-            No messages yet. Start the conversation!
+            {t("chat.empty", "No messages yet. Start the conversation!")}
           </div>
         )}
         {messages.map(m => {
@@ -166,19 +167,19 @@ function ChatRoom({ user, room, companyId, onSend }) {
       </div>
       <div style={{ display:"flex", gap:8, marginTop:10 }}>
         <button className="btnG" style={{ ...S.btnG, flexShrink:0, padding:"9px 12px" }}
-          onClick={pickFile} disabled={uploading} title="Attach photo or file">
+          onClick={pickFile} disabled={uploading} title={t("chat.attach", "Attach photo or file")}>
           {uploading ? "…" : "📎"}
         </button>
         <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
           style={{ display:"none" }} onChange={handleFile}/>
         <input
           style={{ ...S.inp, marginTop:0, marginBottom:0, flex:1 }}
-          placeholder="Type a message…"
+          placeholder={t("chat.placeholder", "Type a message...")}
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => e.key === "Enter" && send()}
         />
-        <button className="btnP" style={{ ...S.btnP, flexShrink:0 }} onClick={send}>Send</button>
+        <button className="btnP" style={{ ...S.btnP, flexShrink:0 }} onClick={send}>{t("chat.send", "Send")}</button>
       </div>
 
       {lightbox && (
@@ -205,11 +206,11 @@ export function Chat({ user, companyId, branches = [], onSend }) {
   }
 
   // General team room
-  rooms.push({ key: "team", label: "💬 Team", color: C.accentColor });
+    rooms.push({ key: "team", label: `💬 ${t("chat.team", "Team")}`, color: C.accentColor });
 
   // Managers only
   if (isManager) {
-    rooms.push({ key: "managers", label: "🔒 Managers", color: "#a855f7" });
+    rooms.push({ key: "managers", label: `🔒 ${t("chat.managers", "Managers")}`, color: "#a855f7" });
   }
 
   const [activeRoom, setActiveRoom] = useState(rooms[0]?.key ?? "team");
@@ -217,18 +218,16 @@ export function Chat({ user, companyId, branches = [], onSend }) {
   return (
     <div>
       <div style={{ ...S.h1, marginBottom:2 }} className="fu">
-        Team <span style={S.accent}>Chat</span>
+        {t("chat.title", "Team Chat")}
       </div>
       <div style={{ ...S.muted, marginBottom:14, fontSize:12 }}>
-        Real-time messaging
+        {t("chat.subtitle", "Real-time messaging")}
       </div>
 
       <InfoBanner>
         {[
-          branchId && "Your branch room is just your team.",
-          "Team is everyone in the company.",
-          isManager && "Managers is private — Head VM, VM Manager, and VM Controller only, not visible to VMs.",
-          "You can delete your own messages anytime.",
+          branchId && t("chat.branchRoom", "Your branch room is just your team."),
+          t("info.chat", "Team is everyone in the company. Managers is private and not visible to VM staff. You can delete your own messages anytime."),
         ].filter(Boolean).join(" ")}
       </InfoBanner>
 
@@ -258,8 +257,8 @@ export function Chat({ user, companyId, branches = [], onSend }) {
           border:"1px solid #a855f733", borderRadius:10 }}>
           <span style={{ fontSize:16 }}>🔒</span>
           <div>
-            <div style={{ fontSize:12, fontWeight:700, color:"#a855f7" }}>Managers Only</div>
-            <div style={{ fontSize:11, color:C.mutedColor }}>Not visible to VM staff</div>
+            <div style={{ fontSize:12, fontWeight:700, color:"#a855f7" }}>{t("chat.managersOnly", "Managers Only")}</div>
+            <div style={{ fontSize:11, color:C.mutedColor }}>{t("chat.notVisibleVm", "Not visible to VM staff")}</div>
           </div>
         </div>
       )}

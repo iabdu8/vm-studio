@@ -1,8 +1,19 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { loadSession, onAuthChange } from "../services/auth.service.js";
-import { getManagerBranches } from "../services/enterprise.service.js";
+import { completeProfileFromInvite, getManagerBranches } from "../services/enterprise.service.js";
+import { supabaseConfigError } from "../lib/supabase.js";
 
 const AppContext = createContext(null);
+const PENDING_INVITE_KEY = "vismo_pending_invite";
+
+function readPendingInvite() {
+  try {
+    const raw = localStorage.getItem(PENDING_INVITE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AppProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -12,8 +23,23 @@ export function AppProvider({ children }) {
   const [justConfirmedEmail, setJustConfirmedEmail] = useState(false);
 
   const refresh = async () => {
+    if (supabaseConfigError) {
+      setError(supabaseConfigError);
+      setLoading(false);
+      return;
+    }
     try {
-      const s = await loadSession();
+      let s = await loadSession();
+      const pendingInvite = readPendingInvite();
+      if (s?.profile && pendingInvite?.code && (!s.profile.company_id || s.profile.is_active === false)) {
+        await completeProfileFromInvite(pendingInvite.code, {
+          branchId: pendingInvite.branchId,
+          branchIds: pendingInvite.branchIds,
+          employeeId: pendingInvite.employeeId,
+        });
+        localStorage.removeItem(PENDING_INVITE_KEY);
+        s = await loadSession();
+      }
       setSession(s);
     } catch (e) {
       setError(e.message);
@@ -47,6 +73,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       session, loading, error, refresh,
+      supabaseConfigError,
       updateCategories, updateSettings,
       justConfirmedEmail, clearJustConfirmedEmail: () => setJustConfirmedEmail(false),
       // shortcuts

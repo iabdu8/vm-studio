@@ -7,8 +7,11 @@ import { InfoBanner } from "../shared/InfoBanner.jsx";
 
 const greeting = () => {
   const h = new Date().getHours();
-  return h < 12 ? "GOOD MORNING" : h < 18 ? "GOOD AFTERNOON" : "GOOD EVENING";
+  return h < 12 ? "صباح الخير" : h < 18 ? "مساء الخير" : "مساء الخير";
 };
+
+const isoToday = () => new Date().toISOString().slice(0, 10);
+const dueValue = (task) => task.due_date ?? task.dueDate ?? task.due_at ?? null;
 
 export function VMHome({ user, tasks, submissions, campaign, promotions = [], company }) {
   const name     = user?.full_name ?? user?.name ?? "";
@@ -16,6 +19,10 @@ export function VMHome({ user, tasks, submissions, campaign, promotions = [], co
   const myTasks  = tasks.filter(t => t.assigned_to === "all" || t.assigned_to === user?.id);
   const done     = myTasks.filter(t => t.is_done ?? t.done).length;
   const pct      = myTasks.length ? Math.round((done / myTasks.length) * 100) : 0;
+  const today    = isoToday();
+  const openTasks = myTasks.filter(t => !(t.is_done ?? t.done));
+  const dueToday = openTasks.filter(t => dueValue(t)?.slice(0, 10) === today).length;
+  const overdue  = openTasks.filter(t => dueValue(t) && dueValue(t).slice(0, 10) < today).length;
   const myScore  = submissions
     .filter(s => (s.submitter?.id ?? s.submitted_by) === user?.id && s.score != null)
     .reduce((a, s) => a + s.score, 0);
@@ -28,7 +35,7 @@ export function VMHome({ user, tasks, submissions, campaign, promotions = [], co
         marginBottom:16, position:"relative", overflow:"hidden" }} className="fu">
         <div style={{ position:"absolute", right:-10, top:-10, fontSize:80, opacity:.07,
           fontFamily:"'Cormorant Garamond',serif", fontWeight:700 }}>VM</div>
-        <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, color:"#0a0a0f", opacity:.7 }}>{greeting()}</div>
+        <div style={{ fontSize:12, fontWeight:700, color:"#0a0a0f", opacity:.7 }}>{greeting()}</div>
         <div style={{ ...S.dFont, fontSize:24, fontWeight:700, color:"#0a0a0f", lineHeight:1.1, marginTop:2 }}>
           {name.split(" ")[0]}
         </div>
@@ -37,7 +44,7 @@ export function VMHome({ user, tasks, submissions, campaign, promotions = [], co
         </div>
       </div>
 
-      <InfoBanner>Your daily snapshot — tasks assigned to you, your submission score, and any active campaign or promotion. Head to the Tasks tab to actually work through your plan.</InfoBanner>
+      <InfoBanner>ابدأ من المهام المستحقة اليوم ثم ارفع صور التنفيذ. الواجهة تعرض فقط ما يخصك أو ما تم تعيينه للجميع.</InfoBanner>
 
       <BestBranchOfMonth company={company} />
 
@@ -56,9 +63,11 @@ export function VMHome({ user, tasks, submissions, campaign, promotions = [], co
       {/* KPIs */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }} className="fu2">
         {[
-          { n:`${pct}%`, l:"Done Today",  sub:`${done}/${myTasks.length} tasks` },
-          { n:subCount,  l:"Submissions", sub:"this week" },
-          { n:myScore,   l:"VM Points",   sub:"earned so far" },
+          { n:overdue,   l:"متأخرة",      sub:"تحتاج تنفيذًا الآن" },
+          { n:dueToday,  l:"اليوم",       sub:"مستحقة قبل الإغلاق" },
+          { n:`${pct}%`, l:"الإنجاز",     sub:`${done}/${myTasks.length} مهمة` },
+          { n:subCount,  l:"تقارير",      sub:"هذا الأسبوع" },
+          { n:myScore,   l:"النقاط",      sub:"حتى الآن" },
         ].map(k => (
           <div key={k.l} style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"16px 10px" }}>
             <div style={{ ...S.dFont, fontSize:26, fontWeight:700, color:C.accentColor, lineHeight:1 }}>{k.n}</div>
@@ -71,14 +80,14 @@ export function VMHome({ user, tasks, submissions, campaign, promotions = [], co
       {/* Tasks preview */}
       <div style={S.card}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-          <div style={S.h3}>Today's Tasks</div>
-          <span style={{ fontSize:11, color:C.accentColor }}>{done}/{myTasks.length} completed</span>
+          <div style={S.h3}>مهام اليوم</div>
+          <span style={{ fontSize:11, color:C.accentColor }}>{done}/{myTasks.length} مكتملة</span>
         </div>
         <div style={{ height:4, borderRadius:2, background:C.surfaceHigh, marginBottom:14 }}>
           <div style={{ height:"100%", borderRadius:2, background:C.accentColor,
             width:`${pct}%`, transition:"width .4s" }}/>
         </div>
-        {myTasks.length === 0 && <div style={S.muted}>No tasks assigned yet.</div>}
+        {myTasks.length === 0 && <div style={S.muted}>لا توجد مهام معينة لك حتى الآن.</div>}
         {myTasks.slice(0, 5).map(t => (
           <div key={t.id} style={{ display:"flex", gap:10, alignItems:"flex-start",
             padding:"9px 0", borderBottom:`1px solid ${C.accentColor}0a` }}>
@@ -103,7 +112,7 @@ export function VMHome({ user, tasks, submissions, campaign, promotions = [], co
       {/* Wall of Fame */}
       <div style={{ ...S.card, marginBottom:0, textAlign:"center", padding:"22px 14px" }}>
         <div style={{ fontSize:26, marginBottom:6 }}>🏆</div>
-        <div style={S.h3}>Store of the Month</div>
+        <div style={S.h3}>فرع الشهر</div>
         <div style={{ ...S.dFont, fontSize:18, color:C.accentColor, fontWeight:600 }}>—</div>
       </div>
     </div>

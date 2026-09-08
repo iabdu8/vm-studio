@@ -5,6 +5,7 @@ import { CampaignBranchFiles } from "./CampaignBranchFiles.jsx";
 import { FilePreview } from "./FilePreview.jsx";
 import { CampaignPanel } from "../manager/CampaignPanel.jsx";
 import { InfoBanner } from "./InfoBanner.jsx";
+import { t } from "../../lib/i18n.js";
 
 // ── GUIDELINES GRID (Manager view) ────────────────────────────
 export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDelete }) {
@@ -34,7 +35,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
   );
 
   if (!guidelines.length) return (
-    <div style={{ ...S.muted, textAlign:"center", padding:20 }}>No guidelines published yet.</div>
+    <div style={{ ...S.muted, textAlign:"center", padding:20 }}>{t("guidelines.empty", "No guidelines published yet.")}</div>
   );
 
   return (
@@ -45,7 +46,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
           <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
             fontSize:14, color:C.mutedColor }}>🔍</span>
           <input style={{ ...S.inp, paddingLeft:36, marginBottom:0 }}
-            placeholder="Search guidelines..."
+            placeholder={t("guidelines.search", "Search guidelines...")}
             value={search} onChange={e => setSearch(e.target.value)}/>
           {search && (
             <button onClick={() => setSearch("")}
@@ -56,7 +57,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
         </div>
         {filtered.length === 0 && search && (
           <div style={{ ...S.muted, textAlign:"center", padding:20 }}>
-            No results for "{search}"
+            {t("guidelines.noResults", "No results for")} "{search}"
           </div>
         )}
         {filtered.map(g => (
@@ -68,7 +69,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
                   <div style={{ fontWeight:700, fontSize:14 }}>{g.title}</div>
                   {g.is_required && (
                     <span style={{ fontSize:10, fontWeight:700, color:"#f87171",
-                      background:"#f8717118", padding:"2px 8px", borderRadius:10 }}>Required</span>
+                      background:"#f8717118", padding:"2px 8px", borderRadius:10 }}>{t("guidelines.required", "Required")}</span>
                   )}
                 </div>
                 <div style={{ ...S.muted, fontSize:12 }}>{g.category}</div>
@@ -80,7 +81,7 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
                       style={{ fontSize:12, padding:"6px 12px", background:"transparent",
                         color:C.accentColor, border:`1px solid ${C.accentColor}33`,
                         borderRadius:8, cursor:"pointer" }}>
-                      👁️ View
+                      👁️ {t("guidelines.view", "View")}
                     </button>
                     <a href={g.file_url} download target="_blank" rel="noopener noreferrer"
                       style={{ textDecoration:"none", fontSize:12, padding:"6px 10px",
@@ -101,10 +102,10 @@ export function GuidelinesGrid({ guidelines, showAcks = false, companyId, onDele
             {showAcks && (
               <div style={{ borderTop:`1px solid ${C.accentColor}14`, paddingTop:10 }}>
                 <div style={{ ...S.h3, marginBottom:6 }}>
-                  Reviewed by ({(acks[g.id] ?? []).length})
+                  {t("guidelines.reviewedBy", "Reviewed by")} ({(acks[g.id] ?? []).length})
                 </div>
                 {(acks[g.id] ?? []).length === 0 ? (
-                  <div style={{ ...S.muted, fontSize:12 }}>No one has reviewed this yet.</div>
+                  <div style={{ ...S.muted, fontSize:12 }}>{t("guidelines.noReviews", "No one has reviewed this yet.")}</div>
                 ) : (
                   <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                     {(acks[g.id] ?? []).map((a, i) => (
@@ -183,7 +184,7 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
         )}
 
         {!guidelines.length && (
-          <div style={{ ...S.muted, textAlign:"center", padding:40 }}>No guidelines published yet.</div>
+          <div style={{ ...S.muted, textAlign:"center", padding:40 }}>{t("guidelines.empty", "No guidelines published yet.")}</div>
         )}
 
         {guidelines.length > 0 && <>
@@ -192,7 +193,7 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
           <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
             fontSize:14, color:C.mutedColor }}>🔍</span>
           <input style={{ ...S.inp, paddingLeft:36, marginBottom:0 }}
-            placeholder="Search guidelines by title or category..."
+            placeholder={t("guidelines.searchDetailed", "Search guidelines by title or category...")}
             value={search} onChange={e => setSearch(e.target.value)}/>
           {search && (
             <button onClick={() => setSearch("")}
@@ -203,7 +204,7 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
         </div>
         {filtered.length === 0 && search && (
           <div style={{ ...S.muted, textAlign:"center", padding:24 }}>
-            No guidelines found for "{search}"
+            {t("guidelines.noResults", "No results for")} "{search}"
           </div>
         )}
         {filtered.map(g => (
@@ -215,7 +216,7 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
                   <div style={{ fontWeight:700, fontSize:14 }}>{g.title}</div>
                   {g.is_required && (
                     <span style={{ fontSize:10, fontWeight:700, color:"#f87171",
-                      background:"#f8717118", padding:"2px 8px", borderRadius:10 }}>Required</span>
+                      background:"#f8717118", padding:"2px 8px", borderRadius:10 }}>{t("guidelines.required", "Required")}</span>
                   )}
                 </div>
                 <div style={{ ...S.muted, fontSize:12 }}>{g.category}</div>
@@ -226,7 +227,7 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
                     style={{ fontSize:12, padding:"6px 12px", background:"transparent",
                       color:C.accentColor, border:`1px solid ${C.accentColor}33`,
                       borderRadius:8, cursor:"pointer" }}>
-                    👁️ View
+                    👁️ {t("guidelines.view", "View")}
                   </button>
                   <a href={g.file_url} download target="_blank" rel="noopener noreferrer"
                     style={{ textDecoration:"none", fontSize:12, padding:"6px 10px",
@@ -249,7 +250,7 @@ export function VMGuidelines({ guidelines, userId, branchId, campaign, campaignP
                 color: acked[g.id] ? "#4ade80" : C.mutedColor,
                 fontFamily:"'DM Sans',sans-serif",
               }}>
-              {loading[g.id] ? "Saving…"
+              {loading[g.id] ? t("common.saving", "Saving...")
                 : acked[g.id] ? "✓ I Have Reviewed This Guideline"
                 : "I Have Reviewed This Guideline"}
             </button>
